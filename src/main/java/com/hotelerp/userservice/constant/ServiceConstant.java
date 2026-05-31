@@ -1,0 +1,63 @@
+package com.hotelerp.userservice.constant;
+
+public class ServiceConstant {
+
+    // Task Management
+    public static final String CREATE_TASK = "/createTask";
+    public static final String GET_TASK_BY_ID = "/getTaskById/{id}";
+    public static final String GET_ALL_TASKS = "/getAllTasks";
+    public static final String UPDATE_TASK = "/updateTask/{id}";
+    public static final String DELETE_TASK = "/deleteTask/{id}";
+    public static final String UPDATE_TASK_STATUS = "/updateTaskStatus/{id}";
+
+    // Housekeeping Audit & SOP
+    public static final String CREATE_CHECKPOINT = "/createCheckpoints";
+    public static final String GET_ALL_CHECKPOINTS = "/getAllCheckpoints";
+    public static final String GET_CHECKPOINTS_BY_FREQUENCY = "/getCheckpointsByFrequency/{frequency}";
+    public static final String GET_COMMON_MASTER = "/getCommonMaster/{category}";
+    public static final String GET_ROOM_LIVE_STATUS = "/rooms/{roomId}/live-status";
+
+    // Lost & Found
+    public static final String CREATE_LOST_FOUND_ITEM = "/createLostFoundItem";
+    public static final String GET_LOST_ITEM_BY_ID = "/getLostItemById/{id}";
+    public static final String GET_ALL_LOST_ITEMS = "/getAllLostItem";
+    public static final String UPDATE_LOST_FOUND_ITEM = "/updateLostFoundItem/{id}";
+    public static final String DELETE_LOST_FOUND_ITEM = "/deleteLostFoundItem/{id}";
+    public static final String UPDATE_LOST_FOUND_ITEM_STATUS = "/updateLostFoundItemStatus/{id}";
+
+    // Maintenance
+    public static final String CREATE_MAINTENANCE = "/createMaintenance";
+    public static final String GET_MAINTENANCE_BY_ID = "/getMaintenanceById/{id}";
+    public static final String GET_ALL_MAINTENANCE = "/getAllMaintenance";
+    public static final String UPDATE_MAINTENANCE = "/updateMaintenance/{id}";
+    public static final String DELETE_MAINTENANCE = "/deleteMaintenance/{id}";
+    public static final String UPDATE_MAINTENANCE_STATUS = "/updateMaintenanceStatus/{id}";
+
+    // Housekeeping Staff
+    public static final String GET_HOUSEKEEPING_STAFF = "/getHousekeepingStaff";
+
+    // POS Outlets
+    public static final String CREATE_OUTLET = "/createOutlet";
+    public static final String GET_OUTLET_BY_ID = "/getOutletById/{id}";
+    public static final String GET_ALL_OUTLETS = "/getAllOutlets";
+    public static final String UPDATE_OUTLET = "/updateOutlet/{id}";
+    public static final String DELETE_OUTLET = "/deleteOutlet/{id}";
+
+    // POS Tables
+    public static final String CREATE_TABLE = "/createTable";
+    public static final String GET_TABLE_BY_ID = "/getTableById/{id}";
+    public static final String GET_ALL_TABLES = "/getAllTables";
+    public static final String UPDATE_TABLE = "/updateTable/{id}";
+    public static final String DELETE_TABLE = "/deleteTable/{id}";
+
+    // POS Menu
+    public static final String CREATE_MENU = "/createMenu";
+    public static final String GET_MENU_BY_ID = "/getMenuById/{id}";
+    public static final String GET_ALL_MENU = "/getAllMenu";
+    public static final String UPDATE_MENU = "/updateMenu/{id}";
+    public static final String DELETE_MENU = "/deleteMenu/{id}";
+
+    private ServiceConstant() {
+        // Prevent instantiation
+    }
+}
