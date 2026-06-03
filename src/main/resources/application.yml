@@ -3,10 +3,10 @@ server:
 
 spring:
   application:
-    name: hms-service
+    name: hmsservice
 
   datasource:
-    url: jdbc:mysql://localhost:3306/hotel?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://erp-mysql:3306/hotel?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -27,8 +27,8 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
 
-  # config:
-  #   import: "optional:configserver:" # Disabled for local dev unless needed
+  config:
+    import: "optional:configserver:"
 
 management:
   endpoints:
@@ -41,11 +41,12 @@ management:
 
 logging:
   level:
-    com.hotelerp.userservice: INFO
-    org.springframework.web: INFO
-    org.hibernate.SQL: INFO
+    com.hotelerp.hmsservice: INFO
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{logId:-}] [%X{requestId:-}] [%X{operation:-}] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%X{logId:-}] [%X{requestId:-}] [%X{operation:-}] [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/hms-service.log
 
@@ -57,9 +58,12 @@ app:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://adminserviceregistry:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${random.value}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
