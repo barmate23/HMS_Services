@@ -1,12 +1,12 @@
 services:
-  masterservice:
+  hmsservice:
     build:
       context: .
       dockerfile: Dockerfile
-    image: masterservice:latest
-    container_name: masterservice
+    image: hmsservice:latest
+    container_name: hmsservice
     ports:
-      - "9002:9002"
+      - "9004:9004"
     networks:
       - updated_orgadmin_rmscadminnetwork
     environment:
