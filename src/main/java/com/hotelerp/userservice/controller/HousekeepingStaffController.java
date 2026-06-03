@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/housekeeping/staff")
+@RequestMapping("/api/hmsService/v1/housekeeping/staff")
 @RequiredArgsConstructor
 public class HousekeepingStaffController {
 
