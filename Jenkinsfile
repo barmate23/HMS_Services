@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        COMPOSE_FILE = "docker-compose.masterservice.yml"
-        TARGET_SERVICE = "masterservice"
-        TARGET_CONTAINER_NAME = "masterservice"
-        TARGET_IMAGE_NAME = "masterservice:latest"
+        COMPOSE_FILE = "docker-compose.hmsservice.yml"
+        TARGET_SERVICE = "hmsservice"
+        TARGET_CONTAINER_NAME = "hmsservice"
+        TARGET_IMAGE_NAME = "hmsservice:latest"
     }
 
     stages {
