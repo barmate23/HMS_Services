@@ -6,8 +6,8 @@ pipeline {
         CONTAINER_NAME = "hmsservice"
         DOCKER_NETWORK = "updated_orgadmin_rmscadminnetwork"
 
-        HOST_PORT = "9004"
-        CONTAINER_PORT = "9004"
+        HOST_PORT = "9005"
+        CONTAINER_PORT = "9005"
 
         DOCKER_BUILDKIT = "0"
     }
