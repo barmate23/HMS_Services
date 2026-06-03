@@ -15,8 +15,10 @@ public class DiningTableDTO {
     private Long outletId;
     private String outletName;
     private String tableNumber;
-    private String section;
-    private DiningTable.TableStatus status;
+    private Long sectionId;
+    private String sectionName;
+    private Long statusId;
+    private String statusName;
     private Integer covers;
     private Long serverId;
     private String serverName;

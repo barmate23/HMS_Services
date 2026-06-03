@@ -23,13 +23,13 @@ public class DiningTable {
     @Column(name = "table_number", nullable = false, length = 20)
     private String tableNumber;
 
-    @Column(name = "section", length = 50)
-    private String section;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id")
+    private CommonMaster section;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @Builder.Default
-    private TableStatus status = TableStatus.AVAILABLE;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private CommonMaster status;
 
     @Column(name = "covers")
     private Integer covers;
@@ -52,15 +52,10 @@ public class DiningTable {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null) status = TableStatus.AVAILABLE;
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    public enum TableStatus {
-        AVAILABLE, OCCUPIED, RESERVED, MOPPING, DIRTY
     }
 }

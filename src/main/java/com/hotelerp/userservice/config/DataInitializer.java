@@ -47,7 +47,18 @@ public class DataInitializer implements CommandLineRunner {
                 // Lost & Found Categories
                 CommonMaster.builder().category("LOST_FOUND_CAT").code("PERSONAL").value("Personal Items").build(),
                 CommonMaster.builder().category("LOST_FOUND_CAT").code("JEWELLERY").value("Jewellery").build(),
-                CommonMaster.builder().category("LOST_FOUND_CAT").code("ELECTRONICS").value("Electronics").build()
+                CommonMaster.builder().category("LOST_FOUND_CAT").code("ELECTRONICS").value("Electronics").build(),
+
+                // Table Sections
+                CommonMaster.builder().category("TABLE_SECTION").code("INDOOR").value("Indoor").build(),
+                CommonMaster.builder().category("TABLE_SECTION").code("OUTDOOR").value("Outdoor").build(),
+                CommonMaster.builder().category("TABLE_SECTION").code("ROOFTOP").value("Rooftop").build(),
+
+                // Table Status
+                CommonMaster.builder().category("TABLE_STATUS").code("AVAILABLE").value("Available").build(),
+                CommonMaster.builder().category("TABLE_STATUS").code("OCCUPIED").value("Occupied").build(),
+                CommonMaster.builder().category("TABLE_STATUS").code("RESERVED").value("Reserved").build(),
+                CommonMaster.builder().category("TABLE_STATUS").code("DIRTY").value("Dirty").build()
             );
             commonMasterRepository.saveAll(masters);
             log.info("Successfully seeded {} master records", masters.size());

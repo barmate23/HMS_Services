@@ -1,9 +1,11 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.dto.DiningTableDTO;
+import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.DiningTable;
 import com.hotelerp.userservice.entity.Outlet;
 import com.hotelerp.userservice.entity.User;
+import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.DiningTableRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import com.hotelerp.userservice.repository.UserRepository;
@@ -21,12 +23,25 @@ public class DiningTableServiceImpl implements DiningTableService {
     private final DiningTableRepository tableRepository;
     private final OutletRepository outletRepository;
     private final UserRepository userRepository;
+    private final CommonMasterRepository commonMasterRepository;
 
     @Override
     @Transactional
     public DiningTableDTO createTable(DiningTableDTO dto) {
         Outlet outlet = outletRepository.findById(dto.getOutletId())
                 .orElseThrow(() -> new RuntimeException("Outlet not found"));
+
+        CommonMaster section = null;
+        if (dto.getSectionId() != null) {
+            section = commonMasterRepository.findById(dto.getSectionId())
+                    .orElseThrow(() -> new RuntimeException("Section not found"));
+        }
+
+        CommonMaster status = null;
+        if (dto.getStatusId() != null) {
+            status = commonMasterRepository.findById(dto.getStatusId())
+                    .orElseThrow(() -> new RuntimeException("Status not found"));
+        }
 
         User server = null;
         if (dto.getServerId() != null) {
@@ -43,8 +58,8 @@ public class DiningTableServiceImpl implements DiningTableService {
         DiningTable table = DiningTable.builder()
                 .outlet(outlet)
                 .tableNumber(dto.getTableNumber())
-                .section(dto.getSection())
-                .status(dto.getStatus() != null ? dto.getStatus() : DiningTable.TableStatus.AVAILABLE)
+                .section(section)
+                .status(status)
                 .covers(dto.getCovers())
                 .server(server)
                 .linkedTable(linkedTable)
@@ -71,13 +86,17 @@ public class DiningTableServiceImpl implements DiningTableService {
             DiningTable linkedTable = tableRepository.findById(dto.getLinkedTableId()).orElseThrow(() -> new RuntimeException("Linked table not found"));
             table.setLinkedTable(linkedTable);
         }
+        if (dto.getSectionId() != null) {
+            CommonMaster section = commonMasterRepository.findById(dto.getSectionId()).orElseThrow(() -> new RuntimeException("Section not found"));
+            table.setSection(section);
+        }
+        if (dto.getStatusId() != null) {
+            CommonMaster status = commonMasterRepository.findById(dto.getStatusId()).orElseThrow(() -> new RuntimeException("Status not found"));
+            table.setStatus(status);
+        }
 
         table.setTableNumber(dto.getTableNumber());
-        table.setSection(dto.getSection());
         table.setCovers(dto.getCovers());
-        if (dto.getStatus() != null) {
-            table.setStatus(dto.getStatus());
-        }
 
         return convertToDTO(tableRepository.save(table));
     }
@@ -115,8 +134,10 @@ public class DiningTableServiceImpl implements DiningTableService {
                 .outletId(table.getOutlet().getId())
                 .outletName(table.getOutlet().getName())
                 .tableNumber(table.getTableNumber())
-                .section(table.getSection())
-                .status(table.getStatus())
+                .sectionId(table.getSection() != null ? table.getSection().getId() : null)
+                .sectionName(table.getSection() != null ? table.getSection().getValue() : null)
+                .statusId(table.getStatus() != null ? table.getStatus().getId() : null)
+                .statusName(table.getStatus() != null ? table.getStatus().getValue() : null)
                 .covers(table.getCovers())
                 .serverId(table.getServer() != null ? table.getServer().getId() : null)
                 .serverName(table.getServer() != null ? table.getServer().getFullName() : null)
