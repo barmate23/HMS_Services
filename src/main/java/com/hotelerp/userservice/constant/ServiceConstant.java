@@ -57,6 +57,16 @@ public class ServiceConstant {
     public static final String UPDATE_MENU = "/updateMenu/{id}";
     public static final String DELETE_MENU = "/deleteMenu/{id}";
 
+    // POS Orders
+    public static final String CREATE_ORDER = "/createOrder";
+    public static final String GET_ORDER_BY_ID = "/getOrderById/{id}";
+    public static final String GET_ALL_ORDERS = "/getAllOrders";
+    public static final String UPDATE_ORDER = "/updateOrder/{id}";
+
+    // Table Reservations
+    public static final String BOOK_TABLE = "/bookTable";
+    public static final String GET_TABLE_RESERVATIONS = "/getTableReservations/{tableId}";
+
     private ServiceConstant() {
         // Prevent instantiation
     }

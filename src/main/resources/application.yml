@@ -6,7 +6,7 @@ spring:
     name: hmsservice
 
   datasource:
-    url: jdbc:mysql://erp-mysql:3306/hotel?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/hotel?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -58,7 +58,7 @@ app:
 eureka:
   client:
     service-url:
-      defaultZone: http://adminserviceregistry:8761/eureka/
+      defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
 

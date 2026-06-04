@@ -24,14 +24,17 @@ public class MenuItem {
     @Column(name = "item_name", nullable = false, length = 150)
     private String itemName;
 
-    @Column(name = "category", length = 100)
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private CommonMaster category;
 
-    @Column(name = "subcategory", length = 100)
-    private String subcategory;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subcategory_id")
+    private CommonMaster subcategory;
 
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
+    @Lob
+    @Column(name = "item_image", columnDefinition = "LONGBLOB")
+    private byte[] itemImage;
 
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;

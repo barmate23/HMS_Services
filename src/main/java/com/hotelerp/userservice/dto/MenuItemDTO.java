@@ -16,9 +16,11 @@ public class MenuItemDTO {
     private Long outletId;
     private String outletName;
     private String itemName;
-    private String category;
-    private String subcategory;
-    private String imageUrl;
+    private Long categoryId;
+    private String categoryName;
+    private Long subcategoryId;
+    private String subcategoryName;
+    private byte[] itemImage;
     private BigDecimal price;
     private BigDecimal taxPercent;
     private String variants;

@@ -18,8 +18,9 @@ public class OutletController {
     private final OutletService outletService;
 
     @PostMapping(ServiceConstant.CREATE_OUTLET)
-    public ResponseEntity<OutletDTO> createOutlet(@RequestBody OutletDTO dto) {
-        return new ResponseEntity<>(outletService.createOutlet(dto), HttpStatus.CREATED);
+    public ResponseEntity<Void> createOutlet(@RequestBody OutletDTO dto) {
+        outletService.createOutlet(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping(ServiceConstant.GET_OUTLET_BY_ID)

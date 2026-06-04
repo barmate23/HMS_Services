@@ -18,8 +18,9 @@ public class DiningTableController {
     private final DiningTableService tableService;
 
     @PostMapping(ServiceConstant.CREATE_TABLE)
-    public ResponseEntity<DiningTableDTO> createTable(@RequestBody DiningTableDTO dto) {
-        return new ResponseEntity<>(tableService.createTable(dto), HttpStatus.CREATED);
+    public ResponseEntity<Void> createTable(@RequestBody DiningTableDTO dto) {
+        tableService.createTable(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping(ServiceConstant.GET_TABLE_BY_ID)

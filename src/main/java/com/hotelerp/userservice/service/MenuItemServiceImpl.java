@@ -1,8 +1,10 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.dto.MenuItemDTO;
+import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.MenuItem;
 import com.hotelerp.userservice.entity.Outlet;
+import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.MenuItemRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
     private final MenuItemRepository menuItemRepository;
     private final OutletRepository outletRepository;
+    private final CommonMasterRepository commonMasterRepository;
 
     @Override
     @Transactional
@@ -25,12 +28,24 @@ public class MenuItemServiceImpl implements MenuItemService {
         Outlet outlet = outletRepository.findById(dto.getOutletId())
                 .orElseThrow(() -> new RuntimeException("Outlet not found"));
 
+        CommonMaster category = null;
+        if (dto.getCategoryId() != null) {
+            category = commonMasterRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+        }
+
+        CommonMaster subcategory = null;
+        if (dto.getSubcategoryId() != null) {
+            subcategory = commonMasterRepository.findById(dto.getSubcategoryId())
+                    .orElseThrow(() -> new RuntimeException("Subcategory not found"));
+        }
+
         MenuItem item = MenuItem.builder()
                 .outlet(outlet)
                 .itemName(dto.getItemName())
-                .category(dto.getCategory())
-                .subcategory(dto.getSubcategory())
-                .imageUrl(dto.getImageUrl())
+                .category(category)
+                .subcategory(subcategory)
+                .itemImage(dto.getItemImage())
                 .price(dto.getPrice())
                 .taxPercent(dto.getTaxPercent())
                 .variants(dto.getVariants())
@@ -57,9 +72,18 @@ public class MenuItemServiceImpl implements MenuItemService {
         }
 
         item.setItemName(dto.getItemName());
-        item.setCategory(dto.getCategory());
-        item.setSubcategory(dto.getSubcategory());
-        item.setImageUrl(dto.getImageUrl());
+        if (dto.getCategoryId() != null) {
+            CommonMaster category = commonMasterRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            item.setCategory(category);
+        }
+
+        if (dto.getSubcategoryId() != null) {
+            CommonMaster subcategory = commonMasterRepository.findById(dto.getSubcategoryId())
+                    .orElseThrow(() -> new RuntimeException("Subcategory not found"));
+            item.setSubcategory(subcategory);
+        }
+        item.setItemImage(dto.getItemImage());
         item.setPrice(dto.getPrice());
         item.setTaxPercent(dto.getTaxPercent());
         item.setVariants(dto.getVariants());
@@ -110,9 +134,11 @@ public class MenuItemServiceImpl implements MenuItemService {
                 .outletId(item.getOutlet().getId())
                 .outletName(item.getOutlet().getName())
                 .itemName(item.getItemName())
-                .category(item.getCategory())
-                .subcategory(item.getSubcategory())
-                .imageUrl(item.getImageUrl())
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item.getCategory() != null ? item.getCategory().getValue() : null)
+                .subcategoryId(item.getSubcategory() != null ? item.getSubcategory().getId() : null)
+                .subcategoryName(item.getSubcategory() != null ? item.getSubcategory().getValue() : null)
+                .itemImage(item.getItemImage())
                 .price(item.getPrice())
                 .taxPercent(item.getTaxPercent())
                 .variants(item.getVariants())
