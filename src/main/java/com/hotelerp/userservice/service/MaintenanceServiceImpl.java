@@ -1,15 +1,18 @@
 package com.hotelerp.userservice.service;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.MaintenanceDTO;
+import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.MaintenanceRequest;
-import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.User;
+import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.MaintenanceRepository;
-import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.UserRepository;
+import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,108 +21,162 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MaintenanceServiceImpl implements MaintenanceService {
 
     private final MaintenanceRepository maintenanceRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
-    private final CommonMasterRepository masterRepository;
+    private final CommonMasterRepository commonMasterRepository;
 
     @Override
     @Transactional
-    public MaintenanceDTO reportIssue(MaintenanceDTO dto) {
-        Room room = roomRepository.findById(dto.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-        User reportedBy = userRepository.findById(dto.getReportedById())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        CommonMaster category = masterRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        CommonMaster priority = masterRepository.findById(dto.getPriorityId())
-                .orElseThrow(() -> new RuntimeException("Priority not found"));
+    public StandardResponse<Void> reportIssue(MaintenanceDTO dto) {
+        try {
+            Long roomId = dto.getRoomId();
+            if (roomId == null) throw new IllegalArgumentException("Room ID must not be null");
 
-        User assignedTo = null;
-        if (dto.getAssignedToId() != null) {
-            assignedTo = userRepository.findById(dto.getAssignedToId())
-                    .orElseThrow(() -> new RuntimeException("Assigned user not found"));
+            Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + roomId));
+
+            CommonMaster category = commonMasterRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category master data not found for ID: " + dto.getCategoryId()));
+
+            CommonMaster priority = commonMasterRepository.findById(dto.getPriorityId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Priority master data not found for ID: " + dto.getPriorityId()));
+
+            User reportedBy = userRepository.findById(dto.getReportedById())
+                    .orElseThrow(() -> new ResourceNotFoundException("User (Reporter) not found with ID: " + dto.getReportedById()));
+
+            MaintenanceRequest request = MaintenanceRequest.builder()
+                    .room(room)
+                    .repairIssue(dto.getRepairIssue())
+                    .category(category)
+                    .priority(priority)
+                    .reportedBy(reportedBy)
+                    .status(dto.getStatus() != null ? dto.getStatus() : MaintenanceRequest.MaintenanceStatus.OPEN)
+                    .build();
+
+            maintenanceRepository.save(request);
+            return StandardResponse.success("Maintenance issue reported successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error reporting maintenance issue: ", e);
+            return StandardResponse.error("Failed to report maintenance issue", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
-
-        MaintenanceRequest request = MaintenanceRequest.builder()
-                .room(room)
-                .repairIssue(dto.getRepairIssue())
-                .category(category)
-                .priority(priority)
-                .reportedBy(reportedBy)
-                .assignedTo(assignedTo)
-                .repairNotes(dto.getRepairNotes())
-                .status(MaintenanceRequest.MaintenanceStatus.OPEN) // Default to OPEN
-                .build();
-
-        return convertToDTO(maintenanceRepository.save(request));
     }
 
     @Override
     @Transactional
-    public MaintenanceDTO updateIssue(Long id, MaintenanceDTO dto) {
-        MaintenanceRequest request = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
+    public StandardResponse<MaintenanceDTO> updateIssue(Long id, MaintenanceDTO dto) {
+        try {
+            MaintenanceRequest request = maintenanceRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Maintenance request not found with ID: " + id));
 
-        if (dto.getRoomId() != null) {
-            Room room = roomRepository.findById(dto.getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
-            request.setRoom(room);
-        }
-        if (dto.getReportedById() != null) {
-            User user = userRepository.findById(dto.getReportedById()).orElseThrow(() -> new RuntimeException("User not found"));
-            request.setReportedBy(user);
-        }
-        if (dto.getAssignedToId() != null) {
-            User user = userRepository.findById(dto.getAssignedToId()).orElseThrow(() -> new RuntimeException("Assigned user not found"));
-            request.setAssignedTo(user);
-        }
-        if (dto.getCategoryId() != null) {
-            CommonMaster cat = masterRepository.findById(dto.getCategoryId()).orElseThrow(() -> new RuntimeException("Category not found"));
-            request.setCategory(cat);
-        }
-        if (dto.getPriorityId() != null) {
-            CommonMaster prio = masterRepository.findById(dto.getPriorityId()).orElseThrow(() -> new RuntimeException("Priority not found"));
-            request.setPriority(prio);
-        }
+            if (dto.getRoomId() != null) {
+                Room room = roomRepository.findById(dto.getRoomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + dto.getRoomId()));
+                request.setRoom(room);
+            }
 
-        request.setRepairIssue(dto.getRepairIssue());
-        request.setRepairNotes(dto.getRepairNotes());
-        if (dto.getStatus() != null) {
+            if (dto.getCategoryId() != null) {
+                CommonMaster category = commonMasterRepository.findById(dto.getCategoryId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Category master data not found for ID: " + dto.getCategoryId()));
+                request.setCategory(category);
+            }
+
+            if (dto.getPriorityId() != null) {
+                CommonMaster priority = commonMasterRepository.findById(dto.getPriorityId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Priority master data not found for ID: " + dto.getPriorityId()));
+                request.setPriority(priority);
+            }
+
+            request.setRepairIssue(dto.getRepairIssue());
+            request.setRepairNotes(dto.getRepairNotes());
             request.setStatus(dto.getStatus());
+
+            if (dto.getAssignedToId() != null) {
+                User assignedTo = userRepository.findById(dto.getAssignedToId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User (Assigned Technician) not found with ID: " + dto.getAssignedToId()));
+                request.setAssignedTo(assignedTo);
+            }
+
+            MaintenanceRequest updatedRequest = maintenanceRepository.save(request);
+            return StandardResponse.success(convertToDTO(updatedRequest), "Maintenance issue updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating maintenance issue: ", e);
+            return StandardResponse.error("Failed to update maintenance issue", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
-
-        return convertToDTO(maintenanceRepository.save(request));
     }
 
     @Override
-    public MaintenanceDTO getIssueById(Long id) {
-        MaintenanceRequest request = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
-        return convertToDTO(request);
+    public StandardResponse<MaintenanceDTO> getIssueById(Long id) {
+        try {
+            MaintenanceRequest request = maintenanceRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Maintenance request not found with ID: " + id));
+            return StandardResponse.success(convertToDTO(request), "Maintenance issue fetched successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error fetching maintenance issue: ", e);
+            return StandardResponse.error("Failed to fetch maintenance issue", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
-    public List<MaintenanceDTO> getAllIssues() {
-        return maintenanceRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public StandardResponse<List<MaintenanceDTO>> getAllIssues() {
+        try {
+            List<MaintenanceDTO> dtos = maintenanceRepository.findAll().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "All maintenance issues fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching all maintenance issues: ", e);
+            return StandardResponse.error("Failed to fetch maintenance issues", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public void deleteIssue(Long id) {
-        maintenanceRepository.deleteById(id);
+    public StandardResponse<Void> deleteIssue(Long id) {
+        try {
+            if (!maintenanceRepository.existsById(id)) {
+                throw new ResourceNotFoundException("Maintenance request not found with ID: " + id);
+            }
+            maintenanceRepository.deleteById(id);
+            return StandardResponse.success("Maintenance issue deleted successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting maintenance issue: ", e);
+            return StandardResponse.error("Failed to delete maintenance issue", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public MaintenanceDTO updateStatus(Long id, String status) {
-        MaintenanceRequest request = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Maintenance request not found"));
-        request.setStatus(MaintenanceRequest.MaintenanceStatus.valueOf(status.toUpperCase().replace(" ", "_")));
-        return convertToDTO(maintenanceRepository.save(request));
+    public StandardResponse<MaintenanceDTO> updateStatus(Long id, String status) {
+        try {
+            MaintenanceRequest request = maintenanceRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Maintenance request not found with ID: " + id));
+            
+            try {
+                request.setStatus(MaintenanceRequest.MaintenanceStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                return StandardResponse.error("Invalid status: " + status, "INVALID_INPUT", "Allowed statuses: OPEN, IN_PROGRESS, RESOLVED, CANCELLED");
+            }
+            
+            MaintenanceRequest updatedRequest = maintenanceRepository.save(request);
+            return StandardResponse.success(convertToDTO(updatedRequest), "Maintenance issue status updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating maintenance status: ", e);
+            return StandardResponse.error("Failed to update status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     private MaintenanceDTO convertToDTO(MaintenanceRequest request) {

@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.LostAndFoundDTO;
 import com.hotelerp.userservice.service.LostAndFoundService;
 import com.hotelerp.userservice.constant.ServiceConstant;
@@ -18,33 +19,43 @@ public class LostAndFoundController {
     private final LostAndFoundService lostAndFoundService;
 
     @PostMapping(ServiceConstant.CREATE_LOST_FOUND_ITEM)
-    public ResponseEntity<LostAndFoundDTO> logItem(@RequestBody LostAndFoundDTO dto) {
-        return new ResponseEntity<>(lostAndFoundService.logItem(dto), HttpStatus.CREATED);
+    public ResponseEntity<StandardResponse<Void>> logItem(@RequestBody LostAndFoundDTO dto) {
+        StandardResponse<Void> response = lostAndFoundService.logItem(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_LOST_ITEM_BY_ID)
-    public ResponseEntity<LostAndFoundDTO> getItemById(@PathVariable Long id) {
-        return ResponseEntity.ok(lostAndFoundService.getItemById(id));
+    public ResponseEntity<StandardResponse<LostAndFoundDTO>> getItemById(@PathVariable Long id) {
+        StandardResponse<LostAndFoundDTO> response = lostAndFoundService.getItemById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_LOST_ITEMS)
-    public ResponseEntity<List<LostAndFoundDTO>> getAllItems() {
-        return ResponseEntity.ok(lostAndFoundService.getAllItems());
+    public ResponseEntity<StandardResponse<List<LostAndFoundDTO>>> getAllItems() {
+        StandardResponse<List<LostAndFoundDTO>> response = lostAndFoundService.getAllItems();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_LOST_FOUND_ITEM)
-    public ResponseEntity<LostAndFoundDTO> updateItem(@PathVariable Long id, @RequestBody LostAndFoundDTO dto) {
-        return ResponseEntity.ok(lostAndFoundService.updateItem(id, dto));
+    public ResponseEntity<StandardResponse<LostAndFoundDTO>> updateItem(@PathVariable Long id, @RequestBody LostAndFoundDTO dto) {
+        StandardResponse<LostAndFoundDTO> response = lostAndFoundService.updateItem(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @DeleteMapping(ServiceConstant.DELETE_LOST_FOUND_ITEM)
-    public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
-        lostAndFoundService.deleteItem(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<StandardResponse<Void>> deleteItem(@PathVariable Long id) {
+        StandardResponse<Void> response = lostAndFoundService.deleteItem(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @PatchMapping(ServiceConstant.UPDATE_LOST_FOUND_ITEM_STATUS)
-    public ResponseEntity<LostAndFoundDTO> updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return ResponseEntity.ok(lostAndFoundService.updateStatus(id, status));
+    public ResponseEntity<StandardResponse<LostAndFoundDTO>> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        StandardResponse<LostAndFoundDTO> response = lostAndFoundService.updateStatus(id, status);
+        HttpStatus httpStatus = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }

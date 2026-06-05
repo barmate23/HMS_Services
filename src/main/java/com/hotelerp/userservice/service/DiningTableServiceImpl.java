@@ -1,15 +1,16 @@
 package com.hotelerp.userservice.service;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.DiningTableDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.DiningTable;
 import com.hotelerp.userservice.entity.Outlet;
-import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.DiningTableRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
-import com.hotelerp.userservice.repository.UserRepository;
+import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,114 +19,146 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DiningTableServiceImpl implements DiningTableService {
 
-    private final DiningTableRepository tableRepository;
+    private final DiningTableRepository diningTableRepository;
     private final OutletRepository outletRepository;
-    private final UserRepository userRepository;
     private final CommonMasterRepository commonMasterRepository;
 
     @Override
     @Transactional
-    public DiningTableDTO createTable(DiningTableDTO dto) {
-        Outlet outlet = outletRepository.findById(dto.getOutletId())
-                .orElseThrow(() -> new RuntimeException("Outlet not found"));
+    public StandardResponse<Void> createTable(DiningTableDTO dto) {
+        try {
+            Long outletId = dto.getOutletId();
+            if (outletId == null) throw new IllegalArgumentException("Outlet ID must not be null");
 
-        CommonMaster section = null;
-        if (dto.getSectionId() != null) {
-            section = commonMasterRepository.findById(dto.getSectionId())
-                    .orElseThrow(() -> new RuntimeException("Section not found"));
+            Outlet outlet = outletRepository.findById(outletId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + outletId));
+
+            CommonMaster section = null;
+            if (dto.getSectionId() != null) {
+                section = commonMasterRepository.findById(dto.getSectionId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Section master data not found for ID: " + dto.getSectionId()));
+            }
+
+            CommonMaster status = null;
+            if (dto.getStatusId() != null) {
+                status = commonMasterRepository.findById(dto.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+            }
+
+            DiningTable table = DiningTable.builder()
+                    .outlet(outlet)
+                    .tableNumber(dto.getTableNumber())
+                    .covers(dto.getCovers())
+                    .section(section)
+                    .status(status)
+                    .build();
+
+            diningTableRepository.save(table);
+            return StandardResponse.success("Dining table created successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error creating dining table: ", e);
+            return StandardResponse.error("Failed to create dining table", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
-
-        CommonMaster status = null;
-        if (dto.getStatusId() != null) {
-            status = commonMasterRepository.findById(dto.getStatusId())
-                    .orElseThrow(() -> new RuntimeException("Status not found"));
-        }
-
-        User server = null;
-        if (dto.getServerId() != null) {
-            server = userRepository.findById(dto.getServerId())
-                    .orElseThrow(() -> new RuntimeException("Server not found"));
-        }
-
-        DiningTable linkedTable = null;
-        if (dto.getLinkedTableId() != null) {
-            linkedTable = tableRepository.findById(dto.getLinkedTableId())
-                    .orElseThrow(() -> new RuntimeException("Linked table not found"));
-        }
-
-        DiningTable table = DiningTable.builder()
-                .outlet(outlet)
-                .tableNumber(dto.getTableNumber())
-                .section(section)
-                .status(status)
-                .covers(dto.getCovers())
-                .server(server)
-                .linkedTable(linkedTable)
-                .build();
-
-        return convertToDTO(tableRepository.save(table));
     }
 
     @Override
     @Transactional
-    public DiningTableDTO updateTable(Long id, DiningTableDTO dto) {
-        DiningTable table = tableRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Table not found"));
+    public StandardResponse<DiningTableDTO> updateTable(Long id, DiningTableDTO dto) {
+        try {
+            DiningTable table = diningTableRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + id));
 
-        if (dto.getOutletId() != null) {
-            Outlet outlet = outletRepository.findById(dto.getOutletId()).orElseThrow(() -> new RuntimeException("Outlet not found"));
-            table.setOutlet(outlet);
-        }
-        if (dto.getServerId() != null) {
-            User server = userRepository.findById(dto.getServerId()).orElseThrow(() -> new RuntimeException("Server not found"));
-            table.setServer(server);
-        }
-        if (dto.getLinkedTableId() != null) {
-            DiningTable linkedTable = tableRepository.findById(dto.getLinkedTableId()).orElseThrow(() -> new RuntimeException("Linked table not found"));
-            table.setLinkedTable(linkedTable);
-        }
-        if (dto.getSectionId() != null) {
-            CommonMaster section = commonMasterRepository.findById(dto.getSectionId()).orElseThrow(() -> new RuntimeException("Section not found"));
-            table.setSection(section);
-        }
-        if (dto.getStatusId() != null) {
-            CommonMaster status = commonMasterRepository.findById(dto.getStatusId()).orElseThrow(() -> new RuntimeException("Status not found"));
-            table.setStatus(status);
-        }
+            if (dto.getOutletId() != null) {
+                Outlet outlet = outletRepository.findById(dto.getOutletId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + dto.getOutletId()));
+                table.setOutlet(outlet);
+            }
 
-        table.setTableNumber(dto.getTableNumber());
-        table.setCovers(dto.getCovers());
+            table.setTableNumber(dto.getTableNumber());
+            table.setCovers(dto.getCovers());
 
-        return convertToDTO(tableRepository.save(table));
+            if (dto.getSectionId() != null) {
+                CommonMaster section = commonMasterRepository.findById(dto.getSectionId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Section master data not found for ID: " + dto.getSectionId()));
+                table.setSection(section);
+            }
+
+            if (dto.getStatusId() != null) {
+                CommonMaster status = commonMasterRepository.findById(dto.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                table.setStatus(status);
+            }
+
+            DiningTable updatedTable = diningTableRepository.save(table);
+            return StandardResponse.success(convertToDTO(updatedTable), "Dining table updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating dining table: ", e);
+            return StandardResponse.error("Failed to update dining table", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
-    public DiningTableDTO getTableById(Long id) {
-        DiningTable table = tableRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Table not found"));
-        return convertToDTO(table);
+    public StandardResponse<DiningTableDTO> getTableById(Long id) {
+        try {
+            DiningTable table = diningTableRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + id));
+            return StandardResponse.success(convertToDTO(table), "Dining table fetched successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error fetching dining table: ", e);
+            return StandardResponse.error("Failed to fetch dining table", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
-    public List<DiningTableDTO> getTablesByOutlet(Long outletId) {
-        return tableRepository.findByOutletId(outletId).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public StandardResponse<List<DiningTableDTO>> getTablesByOutlet(Long outletId) {
+        try {
+            List<DiningTableDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Dining tables fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching dining tables by outlet: ", e);
+            return StandardResponse.error("Failed to fetch dining tables", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
-    public List<DiningTableDTO> getAllTables() {
-        return tableRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public StandardResponse<List<DiningTableDTO>> getAllTables() {
+        try {
+            List<DiningTableDTO> dtos = diningTableRepository.findAll().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "All dining tables fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching all dining tables: ", e);
+            return StandardResponse.error("Failed to fetch all dining tables", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public void deleteTable(Long id) {
-        tableRepository.deleteById(id);
+    public StandardResponse<Void> deleteTable(Long id) {
+        try {
+            if (!diningTableRepository.existsById(id)) {
+                throw new ResourceNotFoundException("Dining table not found with ID: " + id);
+            }
+            diningTableRepository.deleteById(id);
+            return StandardResponse.success("Dining table deleted successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting dining table: ", e);
+            return StandardResponse.error("Failed to delete dining table", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
     }
 
     private DiningTableDTO convertToDTO(DiningTable table) {
@@ -134,11 +167,11 @@ public class DiningTableServiceImpl implements DiningTableService {
                 .outletId(table.getOutlet().getId())
                 .outletName(table.getOutlet().getName())
                 .tableNumber(table.getTableNumber())
+                .covers(table.getCovers())
                 .sectionId(table.getSection() != null ? table.getSection().getId() : null)
                 .sectionName(table.getSection() != null ? table.getSection().getValue() : null)
                 .statusId(table.getStatus() != null ? table.getStatus().getId() : null)
                 .statusName(table.getStatus() != null ? table.getStatus().getValue() : null)
-                .covers(table.getCovers())
                 .serverId(table.getServer() != null ? table.getServer().getId() : null)
                 .serverName(table.getServer() != null ? table.getServer().getFullName() : null)
                 .linkedTableId(table.getLinkedTable() != null ? table.getLinkedTable().getId() : null)

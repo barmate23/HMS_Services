@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.constant.ServiceConstant;
 import com.hotelerp.userservice.dto.PosOrderDTO;
 import com.hotelerp.userservice.dto.TableReservationDTO;
@@ -34,28 +35,34 @@ public class PosController {
      *  depending on the orderTypeId and presence of tableId / roomId in the body.
      */
     @PostMapping(ServiceConstant.CREATE_ORDER)
-    public ResponseEntity<Void> createOrder(@RequestBody PosOrderDTO dto) {
-        posService.createOrder(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<StandardResponse<Void>> createOrder(@RequestBody PosOrderDTO dto) {
+        StandardResponse<Void> response = posService.createOrder(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     /** PUT /updateOrder/{id} - update status, items, notes etc. */
     @PutMapping(ServiceConstant.UPDATE_ORDER)
-    public ResponseEntity<PosOrderDTO> updateOrder(@PathVariable Long id, @RequestBody PosOrderDTO dto) {
-        return ResponseEntity.ok(posService.updateOrder(id, dto));
+    public ResponseEntity<StandardResponse<PosOrderDTO>> updateOrder(@PathVariable Long id, @RequestBody PosOrderDTO dto) {
+        StandardResponse<PosOrderDTO> response = posService.updateOrder(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     /** GET /getOrderById/{id} */
     @GetMapping(ServiceConstant.GET_ORDER_BY_ID)
-    public ResponseEntity<PosOrderDTO> getOrderById(@PathVariable Long id) {
-        return ResponseEntity.ok(posService.getOrderById(id));
+    public ResponseEntity<StandardResponse<PosOrderDTO>> getOrderById(@PathVariable Long id) {
+        StandardResponse<PosOrderDTO> response = posService.getOrderById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     /** GET /getAllOrders?outletId= */
     @GetMapping(ServiceConstant.GET_ALL_ORDERS)
-    public ResponseEntity<List<PosOrderDTO>> getAllOrders(
+    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getAllOrders(
             @RequestParam(required = false) Long outletId) {
-        return ResponseEntity.ok(posService.getOrdersByOutlet(outletId));
+        StandardResponse<List<PosOrderDTO>> response = posService.getOrdersByOutlet(outletId);
+        return ResponseEntity.ok(response);
     }
 
     // ──────────────────────────────────────────
@@ -64,14 +71,16 @@ public class PosController {
 
     /** POST /bookTable - reserve a dining table */
     @PostMapping(ServiceConstant.BOOK_TABLE)
-    public ResponseEntity<Void> bookTable(@RequestBody TableReservationDTO dto) {
-        posService.bookTable(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<StandardResponse<Void>> bookTable(@RequestBody TableReservationDTO dto) {
+        StandardResponse<Void> response = posService.bookTable(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     /** GET /getTableReservations/{tableId} */
     @GetMapping(ServiceConstant.GET_TABLE_RESERVATIONS)
-    public ResponseEntity<List<TableReservationDTO>> getTableReservations(@PathVariable Long tableId) {
-        return ResponseEntity.ok(posService.getReservationsByTable(tableId));
+    public ResponseEntity<StandardResponse<List<TableReservationDTO>>> getTableReservations(@PathVariable Long tableId) {
+        StandardResponse<List<TableReservationDTO>> response = posService.getReservationsByTable(tableId);
+        return ResponseEntity.ok(response);
     }
 }

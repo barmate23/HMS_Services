@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.DiningTableDTO;
 import com.hotelerp.userservice.service.DiningTableService;
 import com.hotelerp.userservice.constant.ServiceConstant;
@@ -18,32 +19,41 @@ public class DiningTableController {
     private final DiningTableService tableService;
 
     @PostMapping(ServiceConstant.CREATE_TABLE)
-    public ResponseEntity<Void> createTable(@RequestBody DiningTableDTO dto) {
-        tableService.createTable(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<StandardResponse<Void>> createTable(@RequestBody DiningTableDTO dto) {
+        StandardResponse<Void> response = tableService.createTable(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_TABLE_BY_ID)
-    public ResponseEntity<DiningTableDTO> getTableById(@PathVariable Long id) {
-        return ResponseEntity.ok(tableService.getTableById(id));
+    public ResponseEntity<StandardResponse<DiningTableDTO>> getTableById(@PathVariable Long id) {
+        StandardResponse<DiningTableDTO> response = tableService.getTableById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_TABLES)
-    public ResponseEntity<List<DiningTableDTO>> getAllTables(@RequestParam(required = false) Long outletId) {
+    public ResponseEntity<StandardResponse<List<DiningTableDTO>>> getAllTables(@RequestParam(required = false) Long outletId) {
+        StandardResponse<List<DiningTableDTO>> response;
         if (outletId != null) {
-            return ResponseEntity.ok(tableService.getTablesByOutlet(outletId));
+            response = tableService.getTablesByOutlet(outletId);
+        } else {
+            response = tableService.getAllTables();
         }
-        return ResponseEntity.ok(tableService.getAllTables());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_TABLE)
-    public ResponseEntity<DiningTableDTO> updateTable(@PathVariable Long id, @RequestBody DiningTableDTO dto) {
-        return ResponseEntity.ok(tableService.updateTable(id, dto));
+    public ResponseEntity<StandardResponse<DiningTableDTO>> updateTable(@PathVariable Long id, @RequestBody DiningTableDTO dto) {
+        StandardResponse<DiningTableDTO> response = tableService.updateTable(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @DeleteMapping(ServiceConstant.DELETE_TABLE)
-    public ResponseEntity<Void> deleteTable(@PathVariable Long id) {
-        tableService.deleteTable(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<StandardResponse<Void>> deleteTable(@PathVariable Long id) {
+        StandardResponse<Void> response = tableService.deleteTable(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 }

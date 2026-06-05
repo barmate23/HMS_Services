@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.MenuItemDTO;
 import com.hotelerp.userservice.service.MenuItemService;
 import com.hotelerp.userservice.constant.ServiceConstant;
@@ -18,32 +19,41 @@ public class MenuItemController {
     private final MenuItemService menuItemService;
 
     @PostMapping(ServiceConstant.CREATE_MENU)
-    public ResponseEntity<Void> createMenuItem(@RequestBody MenuItemDTO dto) {
-        menuItemService.createMenuItem(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<StandardResponse<Void>> createMenuItem(@RequestBody MenuItemDTO dto) {
+        StandardResponse<Void> response = menuItemService.createMenuItem(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_MENU_BY_ID)
-    public ResponseEntity<MenuItemDTO> getMenuItemById(@PathVariable Long id) {
-        return ResponseEntity.ok(menuItemService.getMenuItemById(id));
+    public ResponseEntity<StandardResponse<MenuItemDTO>> getMenuItemById(@PathVariable Long id) {
+        StandardResponse<MenuItemDTO> response = menuItemService.getMenuItemById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_MENU)
-    public ResponseEntity<List<MenuItemDTO>> getAllMenuItems(@RequestParam(required = false) Long outletId) {
+    public ResponseEntity<StandardResponse<List<MenuItemDTO>>> getAllMenuItems(@RequestParam(required = false) Long outletId) {
+        StandardResponse<List<MenuItemDTO>> response;
         if (outletId != null) {
-            return ResponseEntity.ok(menuItemService.getMenuItemsByOutlet(outletId));
+            response = menuItemService.getMenuItemsByOutlet(outletId);
+        } else {
+            response = menuItemService.getAllMenuItems();
         }
-        return ResponseEntity.ok(menuItemService.getAllMenuItems());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_MENU)
-    public ResponseEntity<MenuItemDTO> updateMenuItem(@PathVariable Long id, @RequestBody MenuItemDTO dto) {
-        return ResponseEntity.ok(menuItemService.updateMenuItem(id, dto));
+    public ResponseEntity<StandardResponse<MenuItemDTO>> updateMenuItem(@PathVariable Long id, @RequestBody MenuItemDTO dto) {
+        StandardResponse<MenuItemDTO> response = menuItemService.updateMenuItem(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @DeleteMapping(ServiceConstant.DELETE_MENU)
-    public ResponseEntity<Void> deleteMenuItem(@PathVariable Long id) {
-        menuItemService.deleteMenuItem(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<StandardResponse<Void>> deleteMenuItem(@PathVariable Long id) {
+        StandardResponse<Void> response = menuItemService.deleteMenuItem(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 }

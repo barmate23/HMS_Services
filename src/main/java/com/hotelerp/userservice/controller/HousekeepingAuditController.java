@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.CommonMasterDTO;
 import com.hotelerp.userservice.dto.SOPCheckpointDTO;
 import com.hotelerp.userservice.service.HousekeepingAuditService;
@@ -20,33 +21,35 @@ public class HousekeepingAuditController {
 
     // Dropdown/Master Data Endpoints
     @GetMapping(ServiceConstant.GET_COMMON_MASTER)
-    public ResponseEntity<List<CommonMasterDTO>> getMastersByCategory(@PathVariable String category) {
-        return ResponseEntity.ok(auditService.getMastersByCategory(category));
+    public ResponseEntity<StandardResponse<List<CommonMasterDTO>>> getMastersByCategory(@PathVariable String category) {
+        StandardResponse<List<CommonMasterDTO>> response = auditService.getMastersByCategory(category);
+        return ResponseEntity.ok(response);
     }
 
     // SOP Checkpoint Endpoints
     @PostMapping(ServiceConstant.CREATE_CHECKPOINT)
-    public ResponseEntity<SOPCheckpointDTO> createCheckpoint(@RequestBody SOPCheckpointDTO dto) {
-        return new ResponseEntity<>(auditService.createCheckpoint(dto), HttpStatus.CREATED);
+    public ResponseEntity<StandardResponse<Void>> createCheckpoint(@RequestBody SOPCheckpointDTO dto) {
+        StandardResponse<Void> response = auditService.createCheckpoint(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_CHECKPOINTS)
-    public ResponseEntity<List<SOPCheckpointDTO>> getAllCheckpoints() {
-        return ResponseEntity.ok(auditService.getAllCheckpoints());
+    public ResponseEntity<StandardResponse<List<SOPCheckpointDTO>>> getAllCheckpoints() {
+        StandardResponse<List<SOPCheckpointDTO>> response = auditService.getAllCheckpoints();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(ServiceConstant.GET_CHECKPOINTS_BY_FREQUENCY)
-    public ResponseEntity<List<SOPCheckpointDTO>> getCheckpointsByFrequency(@PathVariable String frequency) {
-        return ResponseEntity.ok(auditService.getCheckpointsByFrequency(frequency));
+    public ResponseEntity<StandardResponse<List<SOPCheckpointDTO>>> getCheckpointsByFrequency(@PathVariable String frequency) {
+        StandardResponse<List<SOPCheckpointDTO>> response = auditService.getCheckpointsByFrequency(frequency);
+        return ResponseEntity.ok(response);
     }
 
     // Live Room Audit Status Endpoint
-    // @GetMapping(ServiceConstant.GET_ROOM_LIVE_STATUS)
-    // public ResponseEntity<Object> getRoomAuditStatus(@PathVariable Long roomId) {
-    // Object status = auditService.getRoomAuditStatus(roomId);
-    // if (status == null) {
-    // return ResponseEntity.notFound().build();
-    // }
-    // return ResponseEntity.ok(status);
-    // }
+    @GetMapping(ServiceConstant.GET_ROOM_LIVE_STATUS)
+    public ResponseEntity<StandardResponse<Object>> getRoomAuditStatus(@PathVariable Long roomId) {
+        StandardResponse<Object> response = auditService.getRoomAuditStatus(roomId);
+        return ResponseEntity.ok(response);
+    }
 }

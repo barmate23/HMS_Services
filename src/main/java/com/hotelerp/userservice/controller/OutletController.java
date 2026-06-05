@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.OutletDTO;
 import com.hotelerp.userservice.service.OutletService;
 import com.hotelerp.userservice.constant.ServiceConstant;
@@ -18,29 +19,36 @@ public class OutletController {
     private final OutletService outletService;
 
     @PostMapping(ServiceConstant.CREATE_OUTLET)
-    public ResponseEntity<Void> createOutlet(@RequestBody OutletDTO dto) {
-        outletService.createOutlet(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<StandardResponse<Void>> createOutlet(@RequestBody OutletDTO dto) {
+        StandardResponse<Void> response = outletService.createOutlet(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_OUTLET_BY_ID)
-    public ResponseEntity<OutletDTO> getOutletById(@PathVariable Long id) {
-        return ResponseEntity.ok(outletService.getOutletById(id));
+    public ResponseEntity<StandardResponse<OutletDTO>> getOutletById(@PathVariable Long id) {
+        StandardResponse<OutletDTO> response = outletService.getOutletById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_OUTLETS)
-    public ResponseEntity<List<OutletDTO>> getAllOutlets() {
-        return ResponseEntity.ok(outletService.getAllOutlets());
+    public ResponseEntity<StandardResponse<List<OutletDTO>>> getAllOutlets() {
+        StandardResponse<List<OutletDTO>> response = outletService.getAllOutlets();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_OUTLET)
-    public ResponseEntity<OutletDTO> updateOutlet(@PathVariable Long id, @RequestBody OutletDTO dto) {
-        return ResponseEntity.ok(outletService.updateOutlet(id, dto));
+    public ResponseEntity<StandardResponse<OutletDTO>> updateOutlet(@PathVariable Long id, @RequestBody OutletDTO dto) {
+        StandardResponse<OutletDTO> response = outletService.updateOutlet(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @DeleteMapping(ServiceConstant.DELETE_OUTLET)
-    public ResponseEntity<Void> deleteOutlet(@PathVariable Long id) {
-        outletService.deleteOutlet(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<StandardResponse<Void>> deleteOutlet(@PathVariable Long id) {
+        StandardResponse<Void> response = outletService.deleteOutlet(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 }

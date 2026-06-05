@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.controller;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.MaintenanceDTO;
 import com.hotelerp.userservice.service.MaintenanceService;
 import com.hotelerp.userservice.constant.ServiceConstant;
@@ -18,33 +19,43 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
     @PostMapping(ServiceConstant.CREATE_MAINTENANCE)
-    public ResponseEntity<MaintenanceDTO> reportIssue(@RequestBody MaintenanceDTO dto) {
-        return new ResponseEntity<>(maintenanceService.reportIssue(dto), HttpStatus.CREATED);
+    public ResponseEntity<StandardResponse<Void>> reportIssue(@RequestBody MaintenanceDTO dto) {
+        StandardResponse<Void> response = maintenanceService.reportIssue(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_MAINTENANCE_BY_ID)
-    public ResponseEntity<MaintenanceDTO> getIssueById(@PathVariable Long id) {
-        return ResponseEntity.ok(maintenanceService.getIssueById(id));
+    public ResponseEntity<StandardResponse<MaintenanceDTO>> getIssueById(@PathVariable Long id) {
+        StandardResponse<MaintenanceDTO> response = maintenanceService.getIssueById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping(ServiceConstant.GET_ALL_MAINTENANCE)
-    public ResponseEntity<List<MaintenanceDTO>> getAllIssues() {
-        return ResponseEntity.ok(maintenanceService.getAllIssues());
+    public ResponseEntity<StandardResponse<List<MaintenanceDTO>>> getAllIssues() {
+        StandardResponse<List<MaintenanceDTO>> response = maintenanceService.getAllIssues();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_MAINTENANCE)
-    public ResponseEntity<MaintenanceDTO> updateIssue(@PathVariable Long id, @RequestBody MaintenanceDTO dto) {
-        return ResponseEntity.ok(maintenanceService.updateIssue(id, dto));
+    public ResponseEntity<StandardResponse<MaintenanceDTO>> updateIssue(@PathVariable Long id, @RequestBody MaintenanceDTO dto) {
+        StandardResponse<MaintenanceDTO> response = maintenanceService.updateIssue(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @DeleteMapping(ServiceConstant.DELETE_MAINTENANCE)
-    public ResponseEntity<Void> deleteIssue(@PathVariable Long id) {
-        maintenanceService.deleteIssue(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<StandardResponse<Void>> deleteIssue(@PathVariable Long id) {
+        StandardResponse<Void> response = maintenanceService.deleteIssue(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
     }
 
     @PatchMapping(ServiceConstant.UPDATE_MAINTENANCE_STATUS)
-    public ResponseEntity<MaintenanceDTO> updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return ResponseEntity.ok(maintenanceService.updateStatus(id, status));
+    public ResponseEntity<StandardResponse<MaintenanceDTO>> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        StandardResponse<MaintenanceDTO> response = maintenanceService.updateStatus(id, status);
+        HttpStatus httpStatus = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }
