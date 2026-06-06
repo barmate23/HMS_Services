@@ -167,9 +167,9 @@ public class TaskServiceImpl implements TaskService {
     private TaskDTO convertToDTO(Task task) {
         return TaskDTO.builder()
                 .id(task.getId())
-                .roomId(task.getRoom().getId())
-                .roomNumber(task.getRoom().getRoomNumber())
-                .floorNumber(task.getRoom().getFloorNumber())
+                .roomId(task.getRoom() != null ? task.getRoom().getId() : null)
+                .roomNumber(task.getRoom() != null ? task.getRoom().getRoomNumber() : null)
+                .floorNumber(task.getRoom() != null && task.getRoom().getFloor() != null ? task.getRoom().getFloor().getFloorNumber() : null)
                 .taskType(task.getTaskType())
                 .priority(task.getPriority())
                 .assignedUserId(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getId() : null)
