@@ -19,5 +19,9 @@ public class StaffDTO {
     private String shift;
     private String phone;
     private Integer completedToday;
-    private List<String> assignedRooms;
+    private Integer pendingTasks;
+    private List<TaskDTO> pendingTaskDetails;
+    private List<RoomAssignmentDTO> assignedRoomDetails;
 }
+
+

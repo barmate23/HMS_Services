@@ -169,7 +169,7 @@ public class TaskServiceImpl implements TaskService {
                 .id(task.getId())
                 .roomId(task.getRoom().getId())
                 .roomNumber(task.getRoom().getRoomNumber())
-                .floorNumber(task.getRoom().getFloorNumber())
+                .floorNumber(task.getRoom().getFloor().getFloorNumber())
                 .taskType(task.getTaskType())
                 .priority(task.getPriority())
                 .assignedUserId(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getId() : null)

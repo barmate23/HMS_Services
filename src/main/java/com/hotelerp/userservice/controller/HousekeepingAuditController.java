@@ -3,6 +3,7 @@ package com.hotelerp.userservice.controller;
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.CommonMasterDTO;
 import com.hotelerp.userservice.dto.SOPCheckpointDTO;
+import com.hotelerp.userservice.dto.RoomAuditStatusDTO;
 import com.hotelerp.userservice.service.HousekeepingAuditService;
 import com.hotelerp.userservice.constant.ServiceConstant;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,8 @@ public class HousekeepingAuditController {
     }
 
     @GetMapping(ServiceConstant.GET_CHECKPOINTS_BY_FREQUENCY)
-    public ResponseEntity<StandardResponse<List<SOPCheckpointDTO>>> getCheckpointsByFrequency(@PathVariable String frequency) {
+    public ResponseEntity<StandardResponse<List<SOPCheckpointDTO>>> getCheckpointsByFrequency(
+            @PathVariable String frequency) {
         StandardResponse<List<SOPCheckpointDTO>> response = auditService.getCheckpointsByFrequency(frequency);
         return ResponseEntity.ok(response);
     }
@@ -50,6 +52,15 @@ public class HousekeepingAuditController {
     @GetMapping(ServiceConstant.GET_ROOM_LIVE_STATUS)
     public ResponseEntity<StandardResponse<Object>> getRoomAuditStatus(@PathVariable Long roomId) {
         StandardResponse<Object> response = auditService.getRoomAuditStatus(roomId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/getRoomAuditStatus")
+    public ResponseEntity<StandardResponse<List<RoomAuditStatusDTO>>> getAuditStatusByFloorAndFrequency(
+            @RequestParam Long floorId,
+            @RequestParam String frequency) {
+        StandardResponse<List<RoomAuditStatusDTO>> response = auditService.getAuditStatusByFloorAndFrequency(floorId,
+                frequency);
         return ResponseEntity.ok(response);
     }
 }

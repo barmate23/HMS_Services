@@ -5,14 +5,13 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name = "users", indexes = {
-        @Index(name = "idx_username",    columnList = "username",   unique = true),
-        @Index(name = "idx_email",       columnList = "email",      unique = true),
+        @Index(name = "idx_username", columnList = "username", unique = true),
+        @Index(name = "idx_email", columnList = "email", unique = true),
         @Index(name = "idx_employee_id", columnList = "employeeId", unique = true),
-        @Index(name = "idx_department",  columnList = "department"),
-        @Index(name = "idx_status",      columnList = "status")
+        @Index(name = "idx_department", columnList = "department"),
+        @Index(name = "idx_status", columnList = "status")
 })
 @Data
 @NoArgsConstructor
@@ -41,20 +40,24 @@ public class User {
     private String phone;
 
     /** e.g. Front Office, Housekeeping, Accounts, Management */
-    @Column(name = "department", length = 100)
-    private String department;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private CommonMaster department;
 
     /** e.g. Property Administrator, Front Office Manager, Room Attendant */
-    @Column(name = "role", nullable = false, length = 100)
-    private String role;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id")
+    private CommonMaster role;
 
     /** e.g. HMS Cloud - Main Hotel */
-    @Column(name = "property", length = 200)
-    private String property;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    private CommonMaster property;
 
     /** e.g. Morning Shift, Evening Shift, Night Shift */
-    @Column(name = "shift", length = 50)
-    private String shift;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    private Shift shift;
 
     /** ACTIVE | LOCKED | INACTIVE */
     @Column(name = "status", nullable = false, length = 20)
@@ -84,7 +87,8 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null) status = "ACTIVE";
+        if (status == null)
+            status = "ACTIVE";
     }
 
     @PreUpdate

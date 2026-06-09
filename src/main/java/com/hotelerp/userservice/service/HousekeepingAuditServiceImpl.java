@@ -1,14 +1,9 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
-import com.hotelerp.userservice.dto.CommonMasterDTO;
-import com.hotelerp.userservice.dto.SOPCheckpointDTO;
-import com.hotelerp.userservice.entity.CommonMaster;
-import com.hotelerp.userservice.entity.SOPCheckpoint;
-import com.hotelerp.userservice.entity.RoomAuditLog;
-import com.hotelerp.userservice.repository.CommonMasterRepository;
-import com.hotelerp.userservice.repository.SOPCheckpointRepository;
-import com.hotelerp.userservice.repository.RoomAuditLogRepository;
+import com.hotelerp.userservice.dto.*;
+import com.hotelerp.userservice.entity.*;
+import com.hotelerp.userservice.repository.*;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +23,7 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private final CommonMasterRepository masterRepository;
     private final SOPCheckpointRepository checkpointRepository;
     private final RoomAuditLogRepository auditLogRepository;
+    private final RoomRepository roomRepository;
 
     @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
@@ -123,7 +119,6 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                 return StandardResponse.success(null, "No audit history found for Room ID: " + roomId);
             }
             
-            // Return latest audit summary for the room
             RoomAuditLog latest = logs.get(0);
             Map<String, Object> status = new HashMap<>();
             status.put("roomId", roomId);
@@ -136,6 +131,48 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
         } catch (Exception e) {
             log.error("Error fetching room audit status: ", e);
             return StandardResponse.error("Failed to fetch room audit status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    public StandardResponse<List<RoomAuditStatusDTO>> getAuditStatusByFloorAndFrequency(Long floorId, String frequencyCode) {
+        try {
+            List<Room> rooms = roomRepository.findByFloorId(floorId);
+            List<SOPCheckpoint> checkpoints = checkpointRepository.findByFrequencyCode(frequencyCode);
+            
+            List<RoomAuditStatusDTO> statusList = rooms.stream().map(room -> {
+                List<RoomAuditLog> logs = auditLogRepository.findLatestByRoomId(room.getId());
+                RoomAuditLog latestOverall = logs.isEmpty() ? null : logs.get(0);
+
+                List<CheckpointStatusDTO> checkpointStatuses = checkpoints.stream().map(cp -> {
+                    List<RoomAuditLog> cpLogs = auditLogRepository.findLatestByRoomAndCheckpoint(room.getId(), cp.getId());
+                    String status = cpLogs.isEmpty() ? "PENDING" : cpLogs.get(0).getStatus();
+                    
+                    return CheckpointStatusDTO.builder()
+                            .checkpointId(cp.getCheckpointId())
+                            .auditArea(cp.getAuditArea())
+                            .description(cp.getDescription())
+                            .status(status)
+                            .build();
+                }).collect(Collectors.toList());
+
+                return RoomAuditStatusDTO.builder()
+                        .roomId(room.getId())
+                        .roomNumber(room.getRoomNumber())
+                        .roomType(room.getRoomType() != null ? room.getRoomType().getName() : "Unknown")
+                        .pmsStatus(room.getStatus() != null ? room.getStatus().name() : "VACANT")
+                        .hkStatus(latestOverall != null ? latestOverall.getStatus() : "UNCLEANED")
+                        .inspectorName(latestOverall != null && latestOverall.getInspector() != null ? latestOverall.getInspector().getFullName() : "Unassigned")
+                        .lastAuditDate(latestOverall != null ? latestOverall.getAuditDate() : null)
+                        .overallScore(latestOverall != null ? latestOverall.getScore() : 0)
+                        .checkpoints(checkpointStatuses)
+                        .build();
+            }).collect(Collectors.toList());
+
+            return StandardResponse.success(statusList, "Audit status fetched successfully for floor and frequency");
+        } catch (Exception e) {
+            log.error("Error fetching audit status for floor and frequency: ", e);
+            return StandardResponse.error("Failed to fetch audit status", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
 
