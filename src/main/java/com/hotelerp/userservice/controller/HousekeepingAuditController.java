@@ -4,6 +4,8 @@ import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.CommonMasterDTO;
 import com.hotelerp.userservice.dto.SOPCheckpointDTO;
 import com.hotelerp.userservice.dto.RoomAuditStatusDTO;
+import com.hotelerp.userservice.dto.RoomAuditSaveRequest;
+
 import com.hotelerp.userservice.service.HousekeepingAuditService;
 import com.hotelerp.userservice.constant.ServiceConstant;
 import lombok.RequiredArgsConstructor;
@@ -63,4 +65,11 @@ public class HousekeepingAuditController {
                 frequency);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/saveRoomAudit")
+    public ResponseEntity<StandardResponse<Void>> saveRoomAudit(@RequestBody RoomAuditSaveRequest request) {
+        StandardResponse<Void> response = auditService.saveRoomAudit(request);
+        return ResponseEntity.ok(response);
+    }
 }
+

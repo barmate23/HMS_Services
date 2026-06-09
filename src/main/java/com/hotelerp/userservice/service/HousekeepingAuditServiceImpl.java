@@ -24,6 +24,8 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private final SOPCheckpointRepository checkpointRepository;
     private final RoomAuditLogRepository auditLogRepository;
     private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
+
 
     @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
@@ -176,7 +178,44 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
         }
     }
 
+    @Override
+    @Transactional
+    public StandardResponse<Void> saveRoomAudit(RoomAuditSaveRequest request) {
+        try {
+            Room room = roomRepository.findById(request.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.getRoomId()));
+            
+            User inspector = userRepository.findById(request.getInspectorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Inspector user not found with ID: " + request.getInspectorId()));
+
+            for (CheckpointAuditRequest auditRequest : request.getCheckpoints()) {
+                SOPCheckpoint checkpoint = checkpointRepository.findById(auditRequest.getCheckpointId())
+                        .orElseThrow(() -> new ResourceNotFoundException("SOP Checkpoint not found with ID: " + auditRequest.getCheckpointId()));
+
+                RoomAuditLog logEntry = RoomAuditLog.builder()
+                        .room(room)
+                        .checkpoint(checkpoint)
+                        .status(auditRequest.getStatus())
+                        .inspector(inspector)
+                        .score(request.getOverallScore())
+                        .remarks(auditRequest.getRemarks())
+                        .auditDate(java.time.LocalDateTime.now())
+                        .build();
+
+                auditLogRepository.save(logEntry);
+            }
+
+            return StandardResponse.success("Room audit data saved successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error saving room audit: ", e);
+            return StandardResponse.error("Failed to save room audit data", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
     private CommonMasterDTO convertToDTO(CommonMaster master) {
+
         CommonMasterDTO dto = new CommonMasterDTO();
         dto.setId(master.getId());
         dto.setCategory(master.getCategory());

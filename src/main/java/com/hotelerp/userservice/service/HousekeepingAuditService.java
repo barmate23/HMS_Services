@@ -1,9 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
-import com.hotelerp.userservice.dto.CommonMasterDTO;
-import com.hotelerp.userservice.dto.SOPCheckpointDTO;
-import com.hotelerp.userservice.dto.RoomAuditStatusDTO;
+import com.hotelerp.userservice.dto.*;
 import java.util.List;
 
 public interface HousekeepingAuditService {
@@ -19,5 +17,7 @@ public interface HousekeepingAuditService {
     // Audit Status
     StandardResponse<Object> getRoomAuditStatus(Long roomId);
     StandardResponse<List<RoomAuditStatusDTO>> getAuditStatusByFloorAndFrequency(Long floorId, String frequencyCode);
-}
 
+    // Save Audit
+    StandardResponse<Void> saveRoomAudit(RoomAuditSaveRequest request);
+}
