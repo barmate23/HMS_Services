@@ -15,6 +15,7 @@ public class ServiceConstant {
     public static final String GET_ALL_CHECKPOINTS = "/getAllCheckpoints";
     public static final String GET_CHECKPOINTS_BY_FREQUENCY = "/getCheckpointsByFrequency/{frequency}";
     public static final String GET_COMMON_MASTER = "/getCommonMaster/{category}";
+    public static final String SAVE_COMMON_MASTER = "/saveCommonMaster";
     public static final String GET_ROOM_LIVE_STATUS = "/rooms/{roomId}/live-status";
 
     // Lost & Found
@@ -66,6 +67,20 @@ public class ServiceConstant {
     // Table Reservations
     public static final String BOOK_TABLE = "/bookTable";
     public static final String GET_TABLE_RESERVATIONS = "/getTableReservations/{tableId}";
+
+    // Laundry Management
+    public static final String CREATE_LAUNDRY_PRICE_MASTER = "/createPriceMaster";
+    public static final String UPDATE_LAUNDRY_PRICE_MASTER = "/updatePriceMaster/{id}";
+    public static final String GET_ALL_LAUNDRY_PRICE_MASTERS = "/getAllPriceMasters";
+    public static final String GET_LAUNDRY_PRICE_MASTER_BY_ID = "/getPriceMasterById/{id}";
+    public static final String DELETE_LAUNDRY_PRICE_MASTER = "/deletePriceMaster/{id}";
+
+    public static final String CREATE_LAUNDRY_ORDER = "/createOrder";
+    public static final String UPDATE_LAUNDRY_ORDER = "/updateOrder/{id}";
+    public static final String GET_ALL_LAUNDRY_ORDERS = "/getAllOrders";
+    public static final String GET_LAUNDRY_ORDER_BY_ID = "/getOrderById/{id}";
+    public static final String UPDATE_LAUNDRY_ORDER_STATUS = "/updateOrderStatus/{id}";
+    public static final String DELETE_LAUNDRY_ORDER = "/deleteOrder/{id}";
 
     private ServiceConstant() {
         // Prevent instantiation
