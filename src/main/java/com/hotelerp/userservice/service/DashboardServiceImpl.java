@@ -86,7 +86,7 @@ public class DashboardServiceImpl implements DashboardService {
                 int blocked = (int) roomsOnFloor.stream().filter(r -> r.getStatus() == Room.RoomStatus.MAINTENANCE).count();
                 
                 return FloorStatDTO.builder()
-                        .floorName(floor.getName())
+                        .floorName(floor.getFloorNumber())
                         .total(total)
                         .available(available)
                         .occupied(occupied)
@@ -125,10 +125,10 @@ public class DashboardServiceImpl implements DashboardService {
                     .posPerformance(posPerformance)
                     .build();
 
-            return StandardResponse.success("Dashboard data fetched successfully", dashboardDTO);
+            return StandardResponse.success(dashboardDTO,"Dashboard data fetched successfully");
 
         } catch (Exception e) {
-            return StandardResponse.error("Failed to fetch dashboard data: " + e.getMessage());
+            return StandardResponse.error("Failed to fetch dashboard data: " ,"Internal_server_error", e.getMessage());
         }
     }
 

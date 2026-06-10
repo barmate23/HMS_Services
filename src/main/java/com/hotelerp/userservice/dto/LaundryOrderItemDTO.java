@@ -13,6 +13,7 @@ public class LaundryOrderItemDTO {
     private Long id;
     private Long priceMasterId;
     private String itemName;
+    private String category;
     private Integer quantity;
     private Double unitPrice;
     private Double total;
