@@ -1,6 +1,6 @@
 package com.hotelerp.userservice.dto;
 
-import com.hotelerp.userservice.entity.Task;
+import com.hotelerp.common.entity.Task;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

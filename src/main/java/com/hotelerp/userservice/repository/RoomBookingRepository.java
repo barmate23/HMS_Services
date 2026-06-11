@@ -1,6 +1,6 @@
 package com.hotelerp.userservice.repository;
 
-import com.hotelerp.userservice.entity.RoomBooking;
+import com.hotelerp.common.entity.RoomBooking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

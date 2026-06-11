@@ -2,7 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.posdashboard.*;
-import com.hotelerp.userservice.entity.*;
+import com.hotelerp.common.entity.*;
 import com.hotelerp.userservice.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

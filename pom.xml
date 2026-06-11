@@ -122,6 +122,12 @@
             <version>5.2.5</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.hotelerp</groupId>
+            <artifactId>hotel-erp-common</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
     </dependencies>
     
     <dependencyManagement>

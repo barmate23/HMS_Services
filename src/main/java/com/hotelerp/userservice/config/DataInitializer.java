@@ -1,6 +1,6 @@
 package com.hotelerp.userservice.config;
 
-import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.common.entity.CommonMaster;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

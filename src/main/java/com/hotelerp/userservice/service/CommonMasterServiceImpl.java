@@ -2,7 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.CommonMasterDTO;
-import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.common.entity.CommonMaster;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

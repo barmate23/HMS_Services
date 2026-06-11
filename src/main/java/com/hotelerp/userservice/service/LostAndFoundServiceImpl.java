@@ -2,10 +2,10 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.LostAndFoundDTO;
-import com.hotelerp.userservice.entity.CommonMaster;
-import com.hotelerp.userservice.entity.LostAndFoundItem;
-import com.hotelerp.userservice.entity.Room;
-import com.hotelerp.userservice.entity.User;
+import com.hotelerp.common.entity.CommonMaster;
+import com.hotelerp.common.entity.LostAndFoundItem;
+import com.hotelerp.common.entity.Room;
+import com.hotelerp.common.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.LostAndFoundRepository;
 import com.hotelerp.userservice.repository.RoomRepository;

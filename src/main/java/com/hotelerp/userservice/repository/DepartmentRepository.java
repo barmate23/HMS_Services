@@ -1,6 +1,6 @@
 package com.hotelerp.userservice.repository;
 
-import com.hotelerp.userservice.entity.Department;
+import com.hotelerp.common.entity.Department;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

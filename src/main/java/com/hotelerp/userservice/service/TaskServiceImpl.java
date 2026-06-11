@@ -2,9 +2,9 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.TaskDTO;
-import com.hotelerp.userservice.entity.Room;
-import com.hotelerp.userservice.entity.Task;
-import com.hotelerp.userservice.entity.User;
+import com.hotelerp.common.entity.Room;
+import com.hotelerp.common.entity.Task;
+import com.hotelerp.common.entity.User;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.TaskRepository;
 import com.hotelerp.userservice.repository.UserRepository;

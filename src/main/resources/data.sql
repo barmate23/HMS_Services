@@ -436,5 +436,3 @@ INSERT IGNORE INTO sop_checkpoints (id, checkpoint_id, frequency_id, audit_area,
 INSERT IGNORE INTO room_audit_logs (id, room_id, checkpoint_id, status, inspector_id, score, remarks, audit_date, created_at) VALUES
 (1, 1, 1, 'PASS', 2, 100, 'All clean', NOW(), NOW()),
 (2, 1, 2, 'FAIL', 2, 0, 'Stain found', NOW(), NOW());
-
-

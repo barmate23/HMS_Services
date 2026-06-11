@@ -2,9 +2,9 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.OutletDTO;
-import com.hotelerp.userservice.entity.CommonMaster;
-import com.hotelerp.userservice.entity.Outlet;
-import com.hotelerp.userservice.entity.User;
+import com.hotelerp.common.entity.CommonMaster;
+import com.hotelerp.common.entity.Outlet;
+import com.hotelerp.common.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import com.hotelerp.userservice.repository.UserRepository;

@@ -2,7 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.*;
-import com.hotelerp.userservice.entity.*;
+import com.hotelerp.common.entity.*;
 import com.hotelerp.userservice.repository.*;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;

@@ -2,9 +2,9 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.UserRoomAssignmentRequest;
-import com.hotelerp.userservice.entity.Room;
-import com.hotelerp.userservice.entity.User;
-import com.hotelerp.userservice.entity.UserRoomMap;
+import com.hotelerp.common.entity.Room;
+import com.hotelerp.common.entity.User;
+import com.hotelerp.common.entity.UserRoomMap;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.UserRepository;

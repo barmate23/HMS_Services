@@ -1,6 +1,6 @@
 package com.hotelerp.userservice.repository;
 
-import com.hotelerp.userservice.entity.LaundryOrder;
+import com.hotelerp.common.entity.LaundryOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
