@@ -22,16 +22,16 @@ public class Role {
 
     @Column(nullable = false, unique = true)
     private String name;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
-    
+
     @Column(name = "access_level")
     private String accessLevel; // e.g., Admin, Supervisor, Department
-    
+
     private String status; // e.g., Active, Inactive
-    
+
     @Column(length = 500)
     private String description;
 

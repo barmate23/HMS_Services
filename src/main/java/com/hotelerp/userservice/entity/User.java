@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_username", columnList = "username", unique = true),
         @Index(name = "idx_email", columnList = "email", unique = true),
         @Index(name = "idx_employee_id", columnList = "employeeId", unique = true),
-        @Index(name = "idx_department", columnList = "department"),
+        @Index(name = "idx_department", columnList = "department_id"),
+        @Index(name = "idx_role", columnList = "role_id"),
         @Index(name = "idx_status", columnList = "status")
 })
 @Data
@@ -86,12 +87,17 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null)
-            status = "ACTIVE";
+        normalizeRequiredFields();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        normalizeRequiredFields();
+    }
+
+    private void normalizeRequiredFields() {
+        if (status == null || status.isBlank())
+            status = "ACTIVE";
     }
 }
