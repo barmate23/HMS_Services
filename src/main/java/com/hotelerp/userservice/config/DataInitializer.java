@@ -1,12 +1,24 @@
 package com.hotelerp.userservice.config;
 
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Department;
+import com.hotelerp.userservice.entity.Role;
+import com.hotelerp.userservice.entity.Shift;
+import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.DepartmentRepository;
+import com.hotelerp.userservice.repository.RoleRepository;
+import com.hotelerp.userservice.repository.ShiftRepository;
+import com.hotelerp.userservice.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -16,9 +28,54 @@ import java.util.List;
 public class DataInitializer implements CommandLineRunner {
 
     private final CommonMasterRepository commonMasterRepository;
+    private final DepartmentRepository departmentRepository;
+    private final RoleRepository roleRepository;
+    private final ShiftRepository shiftRepository;
+    private final UserRepository userRepository;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @Value("${hms.bootstrap.admin.enabled:true}")
+    private boolean adminBootstrapEnabled;
+
+    @Value("${hms.bootstrap.admin.employee-id:EMP-ADMIN}")
+    private String adminEmployeeId;
+
+    @Value("${hms.bootstrap.admin.full-name:System Administrator}")
+    private String adminFullName;
+
+    @Value("${hms.bootstrap.admin.username:admin}")
+    private String adminUsername;
+
+    @Value("${hms.bootstrap.admin.email:admin@hmscloud.com}")
+    private String adminEmail;
+
+    @Value("${hms.bootstrap.admin.phone:9999999999}")
+    private String adminPhone;
+
+    @Value("${hms.bootstrap.admin.password:Hms@1234}")
+    private String adminPassword;
+
+    @Value("${hms.bootstrap.admin.department:Administration}")
+    private String adminDepartmentName;
+
+    @Value("${hms.bootstrap.admin.role:System Administrator}")
+    private String adminRoleName;
+
+    @Value("${hms.bootstrap.admin.shift-name:Morning Shift}")
+    private String adminShiftName;
+
+    @Value("${hms.bootstrap.admin.shift-code:MORN}")
+    private String adminShiftCode;
 
     @Override
+    @Transactional
     public void run(String... args) {
+        seedCommonMasters();
+        seedBootstrapAdmin();
+    }
+
+    private void seedCommonMasters() {
         if (commonMasterRepository.count() == 0) {
             log.info("Seeding common master data...");
             List<CommonMaster> masters = Arrays.asList(
@@ -63,5 +120,64 @@ public class DataInitializer implements CommandLineRunner {
             commonMasterRepository.saveAll(masters);
             log.info("Successfully seeded {} master records", masters.size());
         }
+    }
+
+    private void seedBootstrapAdmin() {
+        if (!adminBootstrapEnabled) {
+            log.info("Default admin bootstrap is disabled.");
+            return;
+        }
+
+        Department department = departmentRepository.findByNameIgnoreCase(adminDepartmentName)
+                .orElseGet(() -> departmentRepository.save(Department.builder()
+                        .name(adminDepartmentName)
+                        .description("Default administration department created during service bootstrap.")
+                        .isActive(true)
+                        .build()));
+
+        Role role = roleRepository.findByNameIgnoreCase(adminRoleName)
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name(adminRoleName)
+                        .department(department)
+                        .accessLevel("ADMIN")
+                        .status("ACTIVE")
+                        .description("Default admin role with full application access.")
+                        .build()));
+
+        Shift shift = shiftRepository.findByShiftCodeIgnoreCase(adminShiftCode)
+                .or(() -> shiftRepository.findByShiftNameIgnoreCase(adminShiftName))
+                .orElseGet(() -> shiftRepository.save(Shift.builder()
+                        .shiftName(adminShiftName)
+                        .shiftCode(adminShiftCode)
+                        .startTime(LocalTime.of(9, 0))
+                        .endTime(LocalTime.of(18, 0))
+                        .status("ACTIVE")
+                        .notes("Default shift created during service bootstrap.")
+                        .build()));
+
+        if (userRepository.existsByUsername(adminUsername)
+                || userRepository.existsByEmail(adminEmail)
+                || userRepository.existsByEmployeeId(adminEmployeeId)) {
+            log.info("Default admin user bootstrap skipped because the admin user already exists.");
+            return;
+        }
+
+        User adminUser = User.builder()
+                .employeeId(adminEmployeeId)
+                .fullName(adminFullName)
+                .username(adminUsername)
+                .email(adminEmail)
+                .phone(adminPhone)
+                .department(department)
+                .role(role)
+                .shift(shift)
+                .status("ACTIVE")
+                .floorAccess("All Floors")
+                .notes("Default admin user created during service bootstrap.")
+                .passwordHash(passwordEncoder.encode(adminPassword))
+                .build();
+
+        userRepository.save(adminUser);
+        log.info("Default admin user created with username '{}'.", adminUsername);
     }
 }
