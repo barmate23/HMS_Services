@@ -162,7 +162,7 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                         .roomId(room.getId())
                         .roomNumber(room.getRoomNumber())
                         .roomType(room.getRoomType() != null ? room.getRoomType().getName() : "Unknown")
-                        .pmsStatus(room.getStatus() != null ? room.getStatus().name() : "VACANT")
+                        .pmsStatus(room.getStatus() != null ? room.getStatus().getValue() : "VACANT")
                         .hkStatus(latestOverall != null ? latestOverall.getStatus() : "UNCLEANED")
                         .inspectorName(latestOverall != null && latestOverall.getInspector() != null ? latestOverall.getInspector().getFullName() : "Unassigned")
                         .lastAuditDate(latestOverall != null ? latestOverall.getAuditDate() : null)

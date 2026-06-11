@@ -1,7 +1,11 @@
 package com.hotelerp.userservice.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +35,4 @@ public class Role {
     @Column(length = 500)
     private String description;
 
-    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<RolePermission> permissions = new ArrayList<>();
 }

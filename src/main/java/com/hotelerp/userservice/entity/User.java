@@ -39,20 +39,19 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
-    /** e.g. Front Office, Housekeeping, Accounts, Management */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
-    private CommonMaster department;
+    private Department department;
 
     /** e.g. Property Administrator, Front Office Manager, Room Attendant */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")
-    private CommonMaster role;
+    private Role role;
 
     /** e.g. HMS Cloud - Main Hotel */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id")
-    private CommonMaster property;
+    private Hotel property;
 
     /** e.g. Morning Shift, Evening Shift, Night Shift */
     @ManyToOne(fetch = FetchType.LAZY)

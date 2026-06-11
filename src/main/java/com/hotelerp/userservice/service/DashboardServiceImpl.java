@@ -42,10 +42,10 @@ public class DashboardServiceImpl implements DashboardService {
             // 3. Summary Stats
             int totalRooms = allRooms.size();
             int occupiedRooms = (int) allRooms.stream()
-                    .filter(r -> r.getStatus() == Room.RoomStatus.OCCUPIED)
+                    .filter(r -> isStatus(r.getStatus(), "OCCUPIED"))
                     .count();
             int availableRooms = (int) allRooms.stream()
-                    .filter(r -> r.getStatus() == Room.RoomStatus.VACANT)
+                    .filter(r -> isStatus(r.getStatus(), "VACANT"))
                     .count();
             
             BigDecimal fyBookingRevenue = bookings.stream()
@@ -81,9 +81,9 @@ public class DashboardServiceImpl implements DashboardService {
                         .collect(Collectors.toList());
                 
                 int total = roomsOnFloor.size();
-                int available = (int) roomsOnFloor.stream().filter(r -> r.getStatus() == Room.RoomStatus.VACANT).count();
-                int occupied = (int) roomsOnFloor.stream().filter(r -> r.getStatus() == Room.RoomStatus.OCCUPIED).count();
-                int blocked = (int) roomsOnFloor.stream().filter(r -> r.getStatus() == Room.RoomStatus.MAINTENANCE).count();
+                int available = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "VACANT")).count();
+                int occupied = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "OCCUPIED")).count();
+                int blocked = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "MAINTENANCE")).count();
                 
                 return FloorStatDTO.builder()
                         .floorName(floor.getFloorNumber())
@@ -188,5 +188,9 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
 
         return itemStats;
+    }
+
+    private boolean isStatus(CommonMaster status, String expected) {
+        return status != null && expected.equalsIgnoreCase(status.getValue());
     }
 }

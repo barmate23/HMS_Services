@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 @Table(name = "rooms", indexes = {
         @Index(name = "idx_floor_id", columnList = "floorId"),
         @Index(name = "idx_room_number", columnList = "roomNumber"),
-        @Index(name = "idx_status", columnList = "status"),
-        @Index(name = "idx_type_id", columnList = "typeId")
+        @Index(name = "idx_status", columnList = "status_id"),
+        @Index(name = "idx_type_id", columnList = "typeId"),
+        @Index(name = "idx_hk_status", columnList = "hk_status_id")
 })
 @Data
 @NoArgsConstructor
@@ -33,9 +34,13 @@ public class Room {
     @JoinColumn(name = "typeId", nullable = false)
     private RoomType roomType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private RoomStatus status = RoomStatus.VACANT;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private CommonMaster status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hk_status_id")
+    private CommonMaster hkStatus;
 
     @Column(name = "maxOccupancy", nullable = false)
     private Integer maxOccupancy;
@@ -43,12 +48,15 @@ public class Room {
     @Column(name = "telephone", length = 20)
     private String telephone;
 
+    @Builder.Default
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Builder.Default
     @Column(name = "updatedAt")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Builder.Default
     @Column(name = "isActive")
     private Boolean isActive = true;
 

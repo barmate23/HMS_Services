@@ -31,8 +31,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "  u.username   LIKE %:searchText% OR " +
             "  u.email      LIKE %:searchText% OR " +
             "  u.employeeId LIKE %:searchText%) AND " +
-            "(:department IS NULL OR u.department.value = :department) AND " +
-            "(:role IS NULL OR u.role.value = :role)")
+            "(:department IS NULL OR u.department.name = :department) AND " +
+            "(:role IS NULL OR u.role.name = :role)")
     Page<User> searchUsers(
             @Param("searchText")  String searchText,
             @Param("department")  String department,
@@ -40,10 +40,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Pageable pageable
     );
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role.value = :role")
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role.name = :role")
     long countByRoleValue(@Param("role") String role);
 
-    @Query("SELECT u FROM User u WHERE u.department.value = :department")
+    @Query("SELECT u FROM User u WHERE u.department.name = :department")
     java.util.List<User> findByDepartmentValue(@Param("department") String department);
 
 }
