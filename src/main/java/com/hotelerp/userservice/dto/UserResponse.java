@@ -19,7 +19,9 @@ public class UserResponse {
     private String username;
     private String email;
     private String phone;
+    private Long departmentId;
     private String department;
+    private Long roleId;
     private String role;
     private String property;
     private String shift;

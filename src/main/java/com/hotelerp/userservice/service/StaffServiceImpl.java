@@ -72,7 +72,7 @@ public class StaffServiceImpl implements StaffService {
                 return StaffDTO.builder()
                         .id(user.getId())
                         .fullName(user.getFullName())
-                        .role(user.getRole() != null ? user.getRole().getValue() : "Unknown")
+                        .role(user.getRole() != null ? user.getRole().getName() : "Unknown")
                         .status(user.getStatus())
                         .shift(user.getShift() != null ? user.getShift().getShiftName() : "Unknown")
                         .phone(user.getPhone())

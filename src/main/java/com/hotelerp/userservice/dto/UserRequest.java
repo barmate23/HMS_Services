@@ -29,8 +29,15 @@ public class UserRequest {
 
     private String department;
 
-    @NotBlank(message = "Role is required")
+    private Long departmentId;
+
     private String role;
+
+    /**
+     * Frontend sends roleId from Role Master. User.role_id should map to the
+     * dedicated roles table, not common master.
+     */
+    private Long roleId;
 
     private String property;
 
