@@ -3,6 +3,7 @@ package com.hotelerp.userservice.service;
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.LaundryOrderDTO;
 import com.hotelerp.userservice.dto.LaundryPriceMasterDTO;
+import com.hotelerp.userservice.dto.LaundryServiceCatalogDTO;
 import java.util.List;
 
 public interface LaundryService {
@@ -12,6 +13,14 @@ public interface LaundryService {
     StandardResponse<List<LaundryPriceMasterDTO>> getAllPriceMasters();
     StandardResponse<LaundryPriceMasterDTO> getPriceMasterById(Long id);
     StandardResponse<Void> deletePriceMaster(Long id);
+
+    // Service Catalog APIs
+    StandardResponse<LaundryServiceCatalogDTO> createServiceCatalog(LaundryServiceCatalogDTO dto);
+    StandardResponse<LaundryServiceCatalogDTO> updateServiceCatalog(Long id, LaundryServiceCatalogDTO dto);
+    StandardResponse<List<LaundryServiceCatalogDTO>> getAllServiceCatalog();
+    StandardResponse<List<LaundryServiceCatalogDTO>> getActiveServiceCatalog();
+    StandardResponse<LaundryServiceCatalogDTO> getServiceCatalogById(Long id);
+    StandardResponse<Void> deleteServiceCatalog(Long id);
 
     // Laundry Order APIs
     StandardResponse<LaundryOrderDTO> createLaundryOrder(LaundryOrderDTO dto);

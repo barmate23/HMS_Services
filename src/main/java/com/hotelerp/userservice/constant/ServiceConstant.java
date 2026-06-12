@@ -76,6 +76,13 @@ public class ServiceConstant {
     public static final String GET_LAUNDRY_PRICE_MASTER_BY_ID = "/getPriceMasterById/{id}";
     public static final String DELETE_LAUNDRY_PRICE_MASTER = "/deletePriceMaster/{id}";
 
+    public static final String CREATE_LAUNDRY_SERVICE_CATALOG = "/createServiceCatalog";
+    public static final String UPDATE_LAUNDRY_SERVICE_CATALOG = "/updateServiceCatalog/{id}";
+    public static final String GET_ALL_LAUNDRY_SERVICE_CATALOG = "/getAllServiceCatalog";
+    public static final String GET_ACTIVE_LAUNDRY_SERVICE_CATALOG = "/getActiveServiceCatalog";
+    public static final String GET_LAUNDRY_SERVICE_CATALOG_BY_ID = "/getServiceCatalogById/{id}";
+    public static final String DELETE_LAUNDRY_SERVICE_CATALOG = "/deleteServiceCatalog/{id}";
+
     public static final String CREATE_LAUNDRY_ORDER = "/createOrder";
     public static final String UPDATE_LAUNDRY_ORDER = "/updateOrder/{id}";
     public static final String GET_ALL_LAUNDRY_ORDERS = "/getAllOrders";

@@ -3,6 +3,7 @@ package com.hotelerp.userservice.controller;
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.LaundryOrderDTO;
 import com.hotelerp.userservice.dto.LaundryPriceMasterDTO;
+import com.hotelerp.userservice.dto.LaundryServiceCatalogDTO;
 import com.hotelerp.userservice.service.LaundryService;
 import com.hotelerp.userservice.constant.ServiceConstant;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,48 @@ public class LaundryController {
     @DeleteMapping(ServiceConstant.DELETE_LAUNDRY_PRICE_MASTER)
     public ResponseEntity<StandardResponse<Void>> deletePriceMaster(@PathVariable Long id) {
         StandardResponse<Void> response = laundryService.deletePriceMaster(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    // Service Catalog Endpoints
+
+    @PostMapping(ServiceConstant.CREATE_LAUNDRY_SERVICE_CATALOG)
+    public ResponseEntity<StandardResponse<LaundryServiceCatalogDTO>> createServiceCatalog(@RequestBody LaundryServiceCatalogDTO dto) {
+        StandardResponse<LaundryServiceCatalogDTO> response = laundryService.createServiceCatalog(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @PutMapping(ServiceConstant.UPDATE_LAUNDRY_SERVICE_CATALOG)
+    public ResponseEntity<StandardResponse<LaundryServiceCatalogDTO>> updateServiceCatalog(@PathVariable Long id, @RequestBody LaundryServiceCatalogDTO dto) {
+        StandardResponse<LaundryServiceCatalogDTO> response = laundryService.updateServiceCatalog(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @GetMapping(ServiceConstant.GET_ALL_LAUNDRY_SERVICE_CATALOG)
+    public ResponseEntity<StandardResponse<List<LaundryServiceCatalogDTO>>> getAllServiceCatalog() {
+        StandardResponse<List<LaundryServiceCatalogDTO>> response = laundryService.getAllServiceCatalog();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(ServiceConstant.GET_ACTIVE_LAUNDRY_SERVICE_CATALOG)
+    public ResponseEntity<StandardResponse<List<LaundryServiceCatalogDTO>>> getActiveServiceCatalog() {
+        StandardResponse<List<LaundryServiceCatalogDTO>> response = laundryService.getActiveServiceCatalog();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(ServiceConstant.GET_LAUNDRY_SERVICE_CATALOG_BY_ID)
+    public ResponseEntity<StandardResponse<LaundryServiceCatalogDTO>> getServiceCatalogById(@PathVariable Long id) {
+        StandardResponse<LaundryServiceCatalogDTO> response = laundryService.getServiceCatalogById(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @DeleteMapping(ServiceConstant.DELETE_LAUNDRY_SERVICE_CATALOG)
+    public ResponseEntity<StandardResponse<Void>> deleteServiceCatalog(@PathVariable Long id) {
+        StandardResponse<Void> response = laundryService.deleteServiceCatalog(id);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }
