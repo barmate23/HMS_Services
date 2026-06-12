@@ -195,12 +195,14 @@ public class LaundryServiceImpl implements LaundryService {
                     .orElseThrow(() -> new RuntimeException("Room not found"));
 
             String orderId = generateOrderId();
+            List<String> selectedServices = selectedServices(dto);
+            String serviceType = joinServices(selectedServices);
 
             LaundryOrder order = LaundryOrder.builder()
                     .orderId(orderId)
                     .room(room)
                     .guestName(dto.getGuestName())
-                    .serviceType(dto.getServiceType())
+                    .serviceType(serviceType)
                     .billingOption(dto.getBillingOption())
                     .pickupDatetime(dto.getPickupDatetime())
                     .expectedDelivery(dto.getExpectedDelivery())
@@ -212,7 +214,7 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Item not found in Price Master: " + itemDto.getPriceMasterId()));
-                double unitPrice = getPriceForService(priceMaster, dto.getServiceType());
+                double unitPrice = getPriceForServices(priceMaster, selectedServices);
                 totalAmount += unitPrice * itemDto.getQuantity();
             }
 
@@ -224,7 +226,7 @@ public class LaundryServiceImpl implements LaundryService {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Item not found in Price Master"));
 
-                double unitPrice = getPriceForService(priceMaster, dto.getServiceType());
+                double unitPrice = getPriceForServices(priceMaster, selectedServices);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
@@ -252,7 +254,8 @@ public class LaundryServiceImpl implements LaundryService {
             LaundryOrder order = orderRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
 
-            order.setServiceType(dto.getServiceType());
+            List<String> selectedServices = selectedServices(dto);
+            order.setServiceType(joinServices(selectedServices));
             order.setBillingOption(dto.getBillingOption());
             order.setPickupDatetime(dto.getPickupDatetime());
             order.setExpectedDelivery(dto.getExpectedDelivery());
@@ -264,7 +267,7 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double unitPrice = getPriceForService(priceMaster, dto.getServiceType());
+                double unitPrice = getPriceForServices(priceMaster, selectedServices);
                 totalAmount += unitPrice * itemDto.getQuantity();
             }
 
@@ -277,7 +280,7 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double unitPrice = getPriceForService(priceMaster, dto.getServiceType());
+                double unitPrice = getPriceForServices(priceMaster, selectedServices);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
@@ -373,6 +376,7 @@ public class LaundryServiceImpl implements LaundryService {
                 .floorNumber(entity.getRoom().getFloor() != null ? entity.getRoom().getFloor().getFloorNumber() : null)
                 .guestName(entity.getGuestName())
                 .serviceType(entity.getServiceType())
+                .serviceTypes(splitServices(entity.getServiceType()))
                 .billingOption(entity.getBillingOption())
                 .pickupDatetime(entity.getPickupDatetime())
                 .expectedDelivery(entity.getExpectedDelivery())
@@ -407,7 +411,17 @@ public class LaundryServiceImpl implements LaundryService {
     private Double getPriceForService(LaundryPriceMaster item, String serviceType) {
         String normalized = normalizeServiceName(serviceType);
         if (item.getServicePrices() != null && item.getServicePrices().containsKey(normalized)) {
-            return item.getServicePrices().get(normalized) != null ? item.getServicePrices().get(normalized) : 0.0;
+            Double configuredPrice = item.getServicePrices().get(normalized);
+            if (configuredPrice != null && configuredPrice > 0) return configuredPrice;
+        }
+        String pricingBasis = pricingBasisForService(serviceType);
+        if ("washFold".equals(pricingBasis)) return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
+        if ("washPress".equals(pricingBasis)) return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
+        if ("dryClean".equals(pricingBasis)) return item.getDryCleanPrice() != null ? item.getDryCleanPrice() : 0.0;
+        if ("express".equals(pricingBasis)) {
+            double base = item.getWashPressPrice() != null ? item.getWashPressPrice() : item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
+            double surcharge = item.getExpressSurchargePercentage() != null ? item.getExpressSurchargePercentage() : 0.0;
+            return base * (1 + surcharge / 100);
         }
         if ("Wash & Fold".equalsIgnoreCase(serviceType)) return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
         if ("Wash & Press".equalsIgnoreCase(serviceType)) return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
@@ -418,6 +432,52 @@ public class LaundryServiceImpl implements LaundryService {
             return base * (1 + surcharge / 100);
         }
         return 0.0;
+    }
+
+    private Double getPriceForServices(LaundryPriceMaster item, List<String> serviceTypes) {
+        return serviceTypes.stream()
+                .mapToDouble(service -> getPriceForService(item, service))
+                .sum();
+    }
+
+    private List<String> selectedServices(LaundryOrderDTO dto) {
+        List<String> services;
+        if (dto.getServiceTypes() != null && !dto.getServiceTypes().isEmpty()) {
+            services = dto.getServiceTypes().stream()
+                    .filter(service -> service != null && !service.trim().isEmpty())
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList());
+        } else {
+            services = splitServices(dto.getServiceType());
+        }
+        if (services.isEmpty()) {
+            throw new RuntimeException("At least one laundry service must be selected");
+        }
+        return services;
+    }
+
+    private List<String> splitServices(String serviceType) {
+        if (serviceType == null || serviceType.trim().isEmpty()) return List.of();
+        return List.of(serviceType.split(","))
+                .stream()
+                .map(String::trim)
+                .filter(service -> !service.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private String joinServices(List<String> serviceTypes) {
+        return String.join(", ", serviceTypes);
+    }
+
+    private String pricingBasisForService(String serviceType) {
+        String normalized = normalizeServiceName(serviceType);
+        return serviceCatalogRepository.findAll().stream()
+                .filter(service -> normalizeServiceName(service.getServiceName()).equals(normalized))
+                .map(LaundryServiceCatalog::getPricingBasis)
+                .findFirst()
+                .orElse("");
     }
 
     private Map<String, Double> normalizeServicePrices(Map<String, Double> servicePrices) {
