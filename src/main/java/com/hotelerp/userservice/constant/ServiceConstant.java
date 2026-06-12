@@ -16,6 +16,7 @@ public class ServiceConstant {
     public static final String GET_CHECKPOINTS_BY_FREQUENCY = "/getCheckpointsByFrequency/{frequency}";
     public static final String GET_COMMON_MASTER = "/getCommonMaster/{category}";
     public static final String SAVE_COMMON_MASTER = "/saveCommonMaster";
+    public static final String UPDATE_COMMON_MASTER_DATA = "/updateCommonMasterData";
     public static final String GET_ROOM_LIVE_STATUS = "/rooms/{roomId}/live-status";
 
     // Lost & Found
