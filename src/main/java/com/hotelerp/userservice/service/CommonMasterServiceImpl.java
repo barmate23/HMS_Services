@@ -72,7 +72,7 @@ public class CommonMasterServiceImpl implements CommonMasterService {
     @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
         try {
-            List<CommonMasterDTO> dtos = repository.findByCategoryAndIsActiveTrue(category).stream()
+            List<CommonMasterDTO> dtos = repository.findByCategory(category).stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Masters fetched successfully");
