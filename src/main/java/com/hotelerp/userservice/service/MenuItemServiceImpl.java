@@ -143,6 +143,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     public StandardResponse<List<MenuItemDTO>> getMenuItemsByOutlet(Long outletId) {
         try {
             List<MenuItemDTO> dtos = menuItemRepository.findByOutletId(outletId).stream()
+                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Menu items fetched successfully");
@@ -156,6 +157,7 @@ public class MenuItemServiceImpl implements MenuItemService {
     public StandardResponse<List<MenuItemDTO>> getAllMenuItems() {
         try {
             List<MenuItemDTO> dtos = menuItemRepository.findAll().stream()
+                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Menu items fetched successfully");
@@ -169,10 +171,10 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Transactional
     public StandardResponse<Void> deleteMenuItem(Long id) {
         try {
-            if (!menuItemRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Menu item not found with ID: " + id);
-            }
-            menuItemRepository.deleteById(id);
+            MenuItem item = menuItemRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with ID: " + id));
+            item.setIsDeleted(true);
+            menuItemRepository.save(item);
             return StandardResponse.success("Menu item deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());

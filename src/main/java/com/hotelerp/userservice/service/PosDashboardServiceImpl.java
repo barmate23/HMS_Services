@@ -28,7 +28,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         public StandardResponse<PosOpsDashboardDTO> getPosDashboardData() {
                 try {
                         // 1. Floor Pulse
-                        List<DiningTable> allTables = diningTableRepository.findAll();
+                        List<DiningTable> allTables = diningTableRepository.findByIsDeletedFalse();
                         int totalTables = allTables.size();
                         int occupied = (int) allTables.stream()
                                         .filter(t -> t.getStatus() != null

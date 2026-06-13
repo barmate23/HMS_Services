@@ -40,6 +40,10 @@ public class Outlet {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

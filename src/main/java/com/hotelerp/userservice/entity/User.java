@@ -77,6 +77,10 @@ public class User {
     @Column(name = "lastLoginAt")
     private LocalDateTime lastLoginAt;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -115,6 +115,7 @@ public class TaskServiceImpl implements TaskService {
     public StandardResponse<List<TaskDTO>> getAllTasks() {
         try {
             List<TaskDTO> dtos = taskRepository.findAll().stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All tasks fetched successfully");
@@ -128,10 +129,10 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public StandardResponse<Void> deleteTask(Long id) {
         try {
-            if (!taskRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Task not found with ID: " + id);
-            }
-            taskRepository.deleteById(id);
+            Task task = taskRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + id));
+            task.setIsDeleted(true);
+            taskRepository.save(task);
             return StandardResponse.success("Task deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());

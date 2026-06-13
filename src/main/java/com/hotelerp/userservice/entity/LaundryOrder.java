@@ -48,6 +48,10 @@ public class LaundryOrder {
     @Column(name = "total_amount")
     private Double totalAmount;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

@@ -59,7 +59,10 @@ public class CommonMasterServiceImpl implements CommonMasterService {
     @Override
     public StandardResponse<Void> deleteCommonMaster(Long id) {
         try {
-            repository.deleteById(id);
+            CommonMaster entity = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Common Master not found with ID: " + id));
+            entity.setIsActive(false);
+            repository.save(entity);
             return StandardResponse.success("Common Master deleted successfully");
         } catch (Exception e) {
             log.error("Error deleting master: ", e);

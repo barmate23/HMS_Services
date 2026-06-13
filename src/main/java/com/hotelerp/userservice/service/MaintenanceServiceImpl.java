@@ -130,6 +130,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     public StandardResponse<List<MaintenanceDTO>> getAllIssues() {
         try {
             List<MaintenanceDTO> dtos = maintenanceRepository.findAll().stream()
+                    .filter(r -> !Boolean.TRUE.equals(r.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All maintenance issues fetched successfully");
@@ -143,10 +144,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Transactional
     public StandardResponse<Void> deleteIssue(Long id) {
         try {
-            if (!maintenanceRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Maintenance request not found with ID: " + id);
-            }
-            maintenanceRepository.deleteById(id);
+            MaintenanceRequest request = maintenanceRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Maintenance request not found with ID: " + id));
+            request.setIsDeleted(true);
+            maintenanceRepository.save(request);
             return StandardResponse.success("Maintenance issue deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());

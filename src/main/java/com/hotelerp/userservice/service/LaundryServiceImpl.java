@@ -75,6 +75,7 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<List<LaundryPriceMasterDTO>> getAllPriceMasters() {
         List<LaundryPriceMasterDTO> dtos = priceMasterRepository.findAll().stream()
+                .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Price Master items fetched successfully");
@@ -89,7 +90,10 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<Void> deletePriceMaster(Long id) {
-        priceMasterRepository.deleteById(id);
+        LaundryPriceMaster entity = priceMasterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Price Master item not found with ID: " + id));
+        entity.setIsDeleted(true);
+        priceMasterRepository.save(entity);
         return StandardResponse.success("Price Master item deleted successfully");
     }
 
@@ -216,6 +220,7 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<List<LaundryOrderDTO>> getAllLaundryOrders() {
         List<LaundryOrderDTO> dtos = orderRepository.findAll().stream()
+                .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Orders fetched successfully");
@@ -236,7 +241,10 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<Void> deleteLaundryOrder(Long id) {
-        orderRepository.deleteById(id);
+        LaundryOrder order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Laundry order not found with ID: " + id));
+        order.setIsDeleted(true);
+        orderRepository.save(order);
         return StandardResponse.success("Order deleted successfully");
     }
 

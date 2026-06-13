@@ -129,6 +129,7 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
     public StandardResponse<List<LostAndFoundDTO>> getAllItems() {
         try {
             List<LostAndFoundDTO> dtos = lostAndFoundRepository.findAll().stream()
+                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All items fetched successfully");
@@ -142,10 +143,10 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
     @Transactional
     public StandardResponse<Void> deleteItem(Long id) {
         try {
-            if (!lostAndFoundRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Item not found with ID: " + id);
-            }
-            lostAndFoundRepository.deleteById(id);
+            LostAndFoundItem item = lostAndFoundRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + id));
+            item.setIsDeleted(true);
+            lostAndFoundRepository.save(item);
             return StandardResponse.success("Item deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());

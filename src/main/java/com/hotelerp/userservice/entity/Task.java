@@ -42,6 +42,10 @@ public class Task {
     @Column(name = "status", nullable = false)
     private TaskStatus status = TaskStatus.PENDING;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

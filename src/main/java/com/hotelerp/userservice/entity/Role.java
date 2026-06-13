@@ -35,4 +35,8 @@ public class Role {
     @Column(length = 500)
     private String description;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
 }

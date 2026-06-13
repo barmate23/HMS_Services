@@ -59,6 +59,10 @@ public class PosOrder {
     @Builder.Default
     private List<PosOrderItem> items = new ArrayList<>();
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

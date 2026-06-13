@@ -60,6 +60,10 @@ public class Room {
     @Column(name = "isActive")
     private Boolean isActive = true;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     // Enum for Room Status
     public enum RoomStatus {
         VACANT, OCCUPIED, MAINTENANCE, RESERVED, CLEANING

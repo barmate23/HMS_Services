@@ -118,6 +118,7 @@ public class OutletServiceImpl implements OutletService {
     public StandardResponse<List<OutletDTO>> getAllOutlets() {
         try {
             List<OutletDTO> dtos = outletRepository.findAll().stream()
+                    .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All outlets fetched successfully");
@@ -131,10 +132,10 @@ public class OutletServiceImpl implements OutletService {
     @Transactional
     public StandardResponse<Void> deleteOutlet(Long id) {
         try {
-            if (!outletRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Outlet not found with ID: " + id);
-            }
-            outletRepository.deleteById(id);
+            Outlet outlet = outletRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + id));
+            outlet.setIsDeleted(true);
+            outletRepository.save(outlet);
             return StandardResponse.success("Outlet deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());

@@ -47,6 +47,10 @@ public class MaintenanceRequest {
     @Builder.Default
     private MaintenanceStatus status = MaintenanceStatus.OPEN;
 
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     @Column(name = "reported_at", updatable = false)
     private LocalDateTime reportedAt;
 

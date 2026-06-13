@@ -10,4 +10,6 @@ import java.util.List;
 public interface DiningTableRepository extends JpaRepository<DiningTable, Long> {
     List<DiningTable> findByOutletId(Long outletId);
     List<DiningTable> findByStatusId(Long statusId);
+
+    List<DiningTable> findByIsDeletedFalse();
 }

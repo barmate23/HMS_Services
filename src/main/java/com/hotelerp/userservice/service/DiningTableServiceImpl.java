@@ -122,6 +122,7 @@ public class DiningTableServiceImpl implements DiningTableService {
     public StandardResponse<List<DiningTableDTO>> getTablesByOutlet(Long outletId) {
         try {
             List<DiningTableDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Dining tables fetched successfully");
@@ -135,6 +136,7 @@ public class DiningTableServiceImpl implements DiningTableService {
     public StandardResponse<List<DiningTableDTO>> getAllTables() {
         try {
             List<DiningTableDTO> dtos = diningTableRepository.findAll().stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All dining tables fetched successfully");
@@ -148,10 +150,10 @@ public class DiningTableServiceImpl implements DiningTableService {
     @Transactional
     public StandardResponse<Void> deleteTable(Long id) {
         try {
-            if (!diningTableRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Dining table not found with ID: " + id);
-            }
-            diningTableRepository.deleteById(id);
+            DiningTable table = diningTableRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + id));
+            table.setIsDeleted(true);
+            diningTableRepository.save(table);
             return StandardResponse.success("Dining table deleted successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
