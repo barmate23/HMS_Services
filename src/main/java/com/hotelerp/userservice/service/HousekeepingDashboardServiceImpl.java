@@ -98,13 +98,12 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                             .map(map -> map.getUser().getFullName())
                             .findFirst().orElse("Unassigned");
 
-                    String roomStatusVal = room.getStatus() != null ? room.getStatus().getValue().toUpperCase() : "N/A";
                     String hkStatusVal = room.getHkStatus() != null ? room.getHkStatus().getValue().toUpperCase() : "N/A";
 
                     return RoomBoardDTO.builder()
                             .roomNumber(room.getRoomNumber())
                             .category(room.getRoomType() != null ? room.getRoomType().getName() : "N/A")
-                            .status(roomStatusVal + " " + hkStatusVal)
+                            .status(hkStatusVal)
                             .tasksCount((int) allTasks.stream().filter(t -> t.getRoom() != null && t.getRoom().getId().equals(room.getId())).count())
                             .maintenanceCount((int) allMaintenance.stream().filter(m -> m.getRoom() != null && m.getRoom().getId().equals(room.getId())).count())
                             .lostFoundCount((int) allLostFound.stream().filter(i -> i.getRoom() != null && i.getRoom().getId().equals(room.getId())).count())
