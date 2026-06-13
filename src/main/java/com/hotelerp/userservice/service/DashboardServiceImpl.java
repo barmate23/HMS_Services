@@ -106,8 +106,8 @@ public class DashboardServiceImpl implements DashboardService {
                     : BigDecimal.ZERO;
 
             // Sample top selling items (in real case, we'd query PosOrderItem for better accuracy)
-            List<PosItemStatDTO> topSellingItems = calculateTopSellingItems(posOrders, true);
-            List<PosItemStatDTO> lessSellingItems = calculateTopSellingItems(posOrders, false);
+            List<PosItemStatDTO> topSellingItems = calculateTopSellingItems(posOrders, true, startYear);
+            List<PosItemStatDTO> lessSellingItems = calculateTopSellingItems(posOrders, false, startYear);
 
             PosPerformanceDTO posPerformance = PosPerformanceDTO.builder()
                     .orderValue(totalPosValue)
@@ -157,7 +157,8 @@ public class DashboardServiceImpl implements DashboardService {
         return result;
     }
 
-    private List<PosItemStatDTO> calculateTopSellingItems(List<PosOrder> orders, boolean top) {
+    private List<PosItemStatDTO> calculateTopSellingItems(List<PosOrder> orders, boolean top, int startYear) {
+        String[] monthNames = {"APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"};
         // Flat map to items and group by menu item
         Map<MenuItem, List<PosOrderItem>> groupedItems = orders.stream()
                 .flatMap(o -> o.getItems().stream())
@@ -169,9 +170,33 @@ public class DashboardServiceImpl implements DashboardService {
                     List<PosOrderItem> items = entry.getValue();
                     int totalQty = items.stream().mapToInt(PosOrderItem::getQuantity).sum();
                     BigDecimal totalVal = items.stream()
-                            .map(i -> i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+                            .map(i -> i.getSubtotal() != null ? i.getSubtotal() : BigDecimal.ZERO)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
                     
+                    // Calculate monthly trend for this item
+                    List<MonthlyStatDTO> monthlyTrend = new ArrayList<>();
+                    for (int i = 0; i < 12; i++) {
+                        final int monthIndex = (i + 3) % 12 + 1; // April is 4, ..., March is 3
+                        final int year = (i < 9) ? startYear : startYear + 1;
+
+                        List<PosOrderItem> monthlyItems = items.stream()
+                                .filter(oi -> oi.getOrder() != null && oi.getOrder().getCreatedAt() != null &&
+                                             oi.getOrder().getCreatedAt().getMonthValue() == monthIndex && 
+                                             oi.getOrder().getCreatedAt().getYear() == year)
+                                .collect(Collectors.toList());
+                        
+                        int monthlyQty = monthlyItems.stream().mapToInt(PosOrderItem::getQuantity).sum();
+                        BigDecimal monthlyRev = monthlyItems.stream()
+                                .map(oi -> oi.getSubtotal() != null ? oi.getSubtotal() : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                        monthlyTrend.add(MonthlyStatDTO.builder()
+                                .month(monthNames[i])
+                                .revenue(monthlyRev)
+                                .soldQty(monthlyQty)
+                                .build());
+                    }
+
                     return PosItemStatDTO.builder()
                             .itemName(item.getItemName())
                             .category(item.getCategory() != null ? item.getCategory().getValue() : "N/A")
@@ -180,7 +205,7 @@ public class DashboardServiceImpl implements DashboardService {
                             .avgRate(totalQty > 0 ? totalVal.divide(BigDecimal.valueOf(totalQty), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO)
                             .totalValue(totalVal)
                             .imageUrl(null) // image is byte array in DB
-                            .monthlyTrend(new ArrayList<>()) // Placeholder
+                            .monthlyTrend(monthlyTrend)
                             .build();
                 })
                 .sorted((a, b) -> top ? b.getSoldQty() - a.getSoldQty() : a.getSoldQty() - b.getSoldQty())
@@ -189,6 +214,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         return itemStats;
     }
+
 
     private boolean isStatus(CommonMaster status, String expected) {
         return status != null && expected.equalsIgnoreCase(status.getValue());

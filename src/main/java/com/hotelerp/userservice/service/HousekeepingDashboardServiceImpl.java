@@ -25,6 +25,7 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
     private final SOPCheckpointRepository sopCheckpointRepository;
     private final UserRoomMapRepository userRoomMapRepository;
     private final UserRepository userRepository;
+    private final CommonMasterRepository commonMasterRepository;
 
     @Override
     public StandardResponse<HousekeepingDashboardDTO> getHousekeepingDashboardData() {
@@ -40,13 +41,13 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
 
             // 1. Summary Metrics
             int readyRooms = (int) allRooms.stream()
-                    .filter(r -> isStatus(r.getStatus(), "VACANT") && isStatus(r.getHkStatus(), "CLEAN"))
+                    .filter(r -> isStatus(r.getHkStatus(), "CLEAN"))
                     .count();
             int needService = (int) allRooms.stream()
                     .filter(r -> isStatus(r.getHkStatus(), "DIRTY"))
                     .count();
             int blockedDnd = (int) allRooms.stream()
-                    .filter(r -> isStatus(r.getStatus(), "MAINTENANCE") || isStatus(r.getHkStatus(), "DND"))
+                    .filter(r -> isStatus(r.getHkStatus(), "DND"))
                     .count();
             int openTasksCount = (int) allTasks.stream()
                     .filter(t -> t.getStatus() != Task.TaskStatus.COMPLETED)
@@ -68,7 +69,7 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
 
             // 2. Attention Queue
             List<HkAttentionItemDTO> attentionQueue = new ArrayList<>();
-            attentionQueue.add(HkAttentionItemDTO.builder().label("vacant dirty").count((int) allRooms.stream().filter(r -> isStatus(r.getStatus(), "VACANT") && isStatus(r.getHkStatus(), "DIRTY")).count()).type("VACANT_DIRTY").build());
+            attentionQueue.add(HkAttentionItemDTO.builder().label("dirty").count(needService).type("DIRTY").build());
             attentionQueue.add(HkAttentionItemDTO.builder().label("maintenance blockers").count(repairIssues).type("MAINTENANCE_BLOCKER").build());
             attentionQueue.add(HkAttentionItemDTO.builder().label("stored lost & found").count((int) allLostFound.stream().filter(i -> i.getStatus() == LostAndFoundItem.ItemStatus.STORED).count()).type("LOST_FOUND").build());
 
@@ -132,6 +133,34 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
         } catch (Exception e) {
             log.error("Error fetching HK dashboard data: ", e);
             return StandardResponse.error("Failed to fetch HK dashboard data", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    public StandardResponse<Void> updateRoomHkStatus(UpdateHkStatusRequest request) {
+        try {
+            Long roomId = request.getRoomId();
+            Long hkStatusId = request.getHkStatusId();
+            
+            if (roomId == null || hkStatusId == null) {
+                return StandardResponse.error("Room ID and HK Status ID must not be null", "BAD_REQUEST", null);
+            }
+            
+            Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with ID: " + roomId));
+            
+            CommonMaster hkStatus = commonMasterRepository.findById(hkStatusId)
+                    .orElseThrow(() -> new RuntimeException("Housekeeping status not found with ID: " + hkStatusId));
+            
+            room.setHkStatus(hkStatus);
+            room.setUpdatedAt(java.time.LocalDateTime.now());
+            roomRepository.save(room);
+            
+            log.info("Updated HK status of room {} to {}", room.getRoomNumber(), hkStatus.getValue());
+            return StandardResponse.success(null, "Room housekeeping status updated successfully");
+        } catch (Exception e) {
+            log.error("Error updating room HK status: ", e);
+            return StandardResponse.error("Failed to update room housekeeping status", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
 

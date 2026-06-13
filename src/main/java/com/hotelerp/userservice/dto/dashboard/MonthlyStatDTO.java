@@ -14,4 +14,6 @@ public class MonthlyStatDTO {
     private String month;
     private BigDecimal revenue;
     private int bookings;
+    private int soldQty;
 }
+
