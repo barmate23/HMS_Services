@@ -23,6 +23,12 @@ public class CommonMasterController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping(ServiceConstant.UPDATE_COMMON_MASTER_DATA)
+    public ResponseEntity<StandardResponse<CommonMasterDTO>> updateCommonMasterData(@RequestBody CommonMasterDTO dto) {
+        StandardResponse<CommonMasterDTO> response = commonMasterService.updateCommonMasterData(dto);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping(ServiceConstant.GET_COMMON_MASTER)
     public ResponseEntity<StandardResponse<List<CommonMasterDTO>>> getMastersByCategory(@PathVariable String category) {
         StandardResponse<List<CommonMasterDTO>> response = commonMasterService.getMastersByCategory(category);

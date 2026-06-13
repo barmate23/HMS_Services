@@ -33,7 +33,7 @@ public class CommonMasterServiceImpl implements CommonMasterService {
             entity.setCode(dto.getCode());
             entity.setValue(dto.getValue());
             entity.setDescription(dto.getDescription());
-            entity.setIsActive(true);
+            entity.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
 
             entity = repository.save(entity);
             return StandardResponse.success(convertToDTO(entity), "Common Master saved successfully");
@@ -44,9 +44,35 @@ public class CommonMasterServiceImpl implements CommonMasterService {
     }
 
     @Override
+    public StandardResponse<CommonMasterDTO> updateCommonMasterData(CommonMasterDTO dto) {
+        try {
+            if (dto.getId() == null) {
+                return StandardResponse.error("Common Master id is required", "BAD_REQUEST", "id", "id must be provided");
+            }
+
+            CommonMaster entity = repository.findById(dto.getId())
+                    .orElseThrow(() -> new RuntimeException("Common Master not found"));
+
+            entity.setCategory(dto.getCategory());
+            entity.setCode(dto.getCode());
+            entity.setValue(dto.getValue());
+            entity.setDescription(dto.getDescription());
+            if (dto.getIsActive() != null) {
+                entity.setIsActive(dto.getIsActive());
+            }
+
+            entity = repository.save(entity);
+            return StandardResponse.success(convertToDTO(entity), "Common Master updated successfully");
+        } catch (Exception e) {
+            log.error("Error updating Common Master: ", e);
+            return StandardResponse.error("Failed to update Common Master", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
         try {
-            List<CommonMasterDTO> dtos = repository.findByCategoryAndIsActiveTrue(category).stream()
+            List<CommonMasterDTO> dtos = repository.findByCategory(category).stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Masters fetched successfully");
@@ -77,6 +103,7 @@ public class CommonMasterServiceImpl implements CommonMasterService {
         dto.setCode(entity.getCode());
         dto.setValue(entity.getValue());
         dto.setDescription(entity.getDescription());
+        dto.setIsActive(entity.getIsActive());
         return dto;
     }
 }

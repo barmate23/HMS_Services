@@ -9,4 +9,5 @@ public class CommonMasterDTO {
     private String code;
     private String value;
     private String description;
+    private Boolean isActive;
 }

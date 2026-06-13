@@ -19,6 +19,7 @@ public class LaundryOrderDTO {
     private String floorNumber;
     private String guestName;
     private String serviceType;
+    private List<String> serviceTypes;
     private String billingOption;
     private LocalDateTime pickupDatetime;
     private LocalDateTime expectedDelivery;

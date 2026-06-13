@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface CommonMasterService {
     StandardResponse<CommonMasterDTO> saveCommonMaster(CommonMasterDTO dto);
+    StandardResponse<CommonMasterDTO> updateCommonMasterData(CommonMasterDTO dto);
     StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category);
     StandardResponse<Void> deleteCommonMaster(Long id);
 }

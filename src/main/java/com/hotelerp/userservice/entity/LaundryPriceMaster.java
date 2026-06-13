@@ -3,6 +3,8 @@ package com.hotelerp.userservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Entity
 @Table(name = "laundry_price_master")
@@ -33,6 +35,16 @@ public class LaundryPriceMaster {
 
     @Column(name = "express_surcharge_percentage")
     private Double expressSurchargePercentage;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "laundry_price_master_service_rates",
+            joinColumns = @JoinColumn(name = "price_master_id")
+    )
+    @MapKeyColumn(name = "service_name", length = 100)
+    @Column(name = "price")
+    @Builder.Default
+    private Map<String, Double> servicePrices = new HashMap<>();
 
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
