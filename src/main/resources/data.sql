@@ -138,13 +138,13 @@ INSERT IGNORE INTO common_masters (category, code, value, description, is_active
 -- -------------------------------------------------------
 -- HOTEL
 -- -------------------------------------------------------
-INSERT IGNORE INTO hotels (id, name, email, phone, address, city, state, country, zipCode, totalRooms, currency, createdAt, updatedAt, isActive)
+INSERT IGNORE INTO hotels (id, name, email, phone, address, city, state, country, zip_code, total_rooms, currency, created_at, updated_at, is_active)
 VALUES (1, 'Grand HMS Hotel', 'admin@grandhms.com', '+91-9800000001', '42, Park Street', 'Mumbai', 'Maharashtra', 'India', '400001', 20, 'INR', NOW(), NOW(), 1);
 
 -- -------------------------------------------------------
 -- FLOORS
 -- -------------------------------------------------------
-INSERT IGNORE INTO Floor (id, hotelId, floorNumber, noOfRooms, telephone, createdAt, updatedAt, isActive) VALUES
+INSERT IGNORE INTO floor (id, hotel_id, floor_number, no_of_rooms, telephone, created_at, updated_at, is_active) VALUES
 (1, 1, 'Floor 1', 5, '9001', NOW(), NOW(), 1),
 (2, 1, 'Floor 2', 5, '9002', NOW(), NOW(), 1),
 (3, 1, 'Floor 3', 5, '9003', NOW(), NOW(), 1),
@@ -153,7 +153,7 @@ INSERT IGNORE INTO Floor (id, hotelId, floorNumber, noOfRooms, telephone, create
 -- -------------------------------------------------------
 -- ROOM TYPES
 -- -------------------------------------------------------
-INSERT IGNORE INTO room_types (id, hotelId, name, capacity, basePricePerNight, area, description, isActive, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO room_types (id, hotel_id, name, capacity, base_price_per_night, area, description, is_active, created_at, updated_at) VALUES
 (1, 1, 'Standard',  2, 3500.00,  250.00, 'Standard room with garden view',   1, NOW(), NOW()),
 (2, 1, 'Deluxe',    2, 5500.00,  350.00, 'Deluxe room with city view',        1, NOW(), NOW()),
 (3, 1, 'Suite',     4, 9500.00,  600.00, 'Luxury suite with sea view',        1, NOW(), NOW()),
@@ -162,7 +162,7 @@ INSERT IGNORE INTO room_types (id, hotelId, name, capacity, basePricePerNight, a
 -- -------------------------------------------------------
 -- ROOMS  (status_id references common_masters: OCCUPIED~2, VACANT~1)
 -- -------------------------------------------------------
-INSERT IGNORE INTO rooms (id, roomNumber, floorId, typeId, status_id, hk_status_id, maxOccupancy, telephone, createdAt, updatedAt, isActive, is_deleted) VALUES
+INSERT IGNORE INTO rooms (id, room_number, floor_id, type_id, status_id, hk_status_id, max_occupancy, telephone, created_at, updated_at, is_active, is_deleted) VALUES
 -- Floor 1
 (1,  '101', 1, 1, (SELECT id FROM common_masters WHERE category='ROOM_STATUS' AND code='OCCUPIED' LIMIT 1),  (SELECT id FROM common_masters WHERE category='HK_STATUS' AND code='OC' LIMIT 1), 2, '1001', NOW(), NOW(), 1, 0),
 (2,  '102', 1, 2, (SELECT id FROM common_masters WHERE category='ROOM_STATUS' AND code='VACANT'   LIMIT 1),  (SELECT id FROM common_masters WHERE category='HK_STATUS' AND code='VC' LIMIT 1), 2, '1002', NOW(), NOW(), 1, 0),
@@ -199,7 +199,7 @@ INSERT IGNORE INTO rate_plan_master (id, name, description, price_adjustment, di
 -- -------------------------------------------------------
 -- GUESTS
 -- -------------------------------------------------------
-INSERT IGNORE INTO guests (id, title, firstName, lastName, countryCode, phone, email, city, country, nationality, isActive, isDeleted, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO guests (id, title, first_name, last_name, country_code, phone, email, city, country, nationality, is_active, is_deleted, created_at, updated_at) VALUES
 (1, 'MR', 'Arun', 'Sharma', '+91', '9800000011', 'arun@example.com', 'Mumbai', 'India', 'Indian', 1, 0, NOW(), NOW()),
 (2, 'MS', 'Priya', 'Nair', '+91', '9800000012', 'priya@example.com', 'Kochi', 'India', 'Indian', 1, 0, NOW(), NOW()),
 (3, 'MR', 'John', 'Doe', '+1', '5550101', 'john.doe@example.com', 'New York', 'USA', 'American', 1, 0, NOW(), NOW());
@@ -208,28 +208,29 @@ INSERT IGNORE INTO guests (id, title, firstName, lastName, countryCode, phone, e
 -- RESERVATIONS & BOOKINGS (FY 2026-27: April 2026 – March 2027)
 -- -------------------------------------------------------
 -- Reservation 1
-INSERT IGNORE INTO reservations (id, guestId, checkInDate, checkOutDate, numberOfNights, numberOfAdults, numberOfRooms, reservation_status_id, ratePlanId, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO reservations (id, guest_id, check_in_date, check_out_date, number_of_nights, number_of_adults, number_of_rooms, reservation_status_id, rate_plan_id, created_at, updated_at) VALUES
 (1, 1, '2026-04-03', '2026-04-06', 3, 2, 1, (SELECT id FROM common_masters WHERE category='RESERVATION_STATUS' AND code='CONFIRMED' LIMIT 1), 1, '2026-04-01 10:00:00', NOW());
-INSERT IGNORE INTO bookings (id, reservationId, roomId, checkInDate, checkOutDate, numberOfNights, ratePerNight, totalPrice, finalPrice, booking_status_id, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO bookings (id, reservation_id, room_id, check_in_date, check_out_date, number_of_nights, rate_per_night, total_price, final_price, booking_status_id, created_at, updated_at) VALUES
 (1, 1, 1, '2026-04-03', '2026-04-06', 3, 3500.00, 10500.00, 10500.00, (SELECT id FROM common_masters WHERE category='BOOKING_STATUS' AND code='CHECKED_OUT' LIMIT 1), '2026-04-01 10:00:00', NOW());
 
 -- Reservation 2 (May)
-INSERT IGNORE INTO reservations (id, guestId, checkInDate, checkOutDate, numberOfNights, numberOfAdults, numberOfRooms, reservation_status_id, ratePlanId, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO reservations (id, guest_id, check_in_date, check_out_date, number_of_nights, number_of_adults, number_of_rooms, reservation_status_id, rate_plan_id, created_at, updated_at) VALUES
 (2, 2, '2026-05-10', '2026-05-15', 5, 2, 1, (SELECT id FROM common_masters WHERE category='RESERVATION_STATUS' AND code='CONFIRMED' LIMIT 1), 2, '2026-05-01 11:00:00', NOW());
-INSERT IGNORE INTO bookings (id, reservationId, roomId, checkInDate, checkOutDate, numberOfNights, ratePerNight, totalPrice, finalPrice, booking_status_id, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO bookings (id, reservation_id, room_id, check_in_date, check_out_date, number_of_nights, rate_per_night, total_price, final_price, booking_status_id, created_at, updated_at) VALUES
 (2, 2, 4, '2026-05-10', '2026-05-15', 5, 9500.00, 47500.00, 47500.00, (SELECT id FROM common_masters WHERE category='BOOKING_STATUS' AND code='CHECKED_OUT' LIMIT 1), '2026-05-01 11:00:00', NOW());
 
 -- Reservation 3 (June)
-INSERT IGNORE INTO reservations (id, guestId, checkInDate, checkOutDate, numberOfNights, numberOfAdults, numberOfRooms, reservation_status_id, ratePlanId, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO reservations (id, guest_id, check_in_date, check_out_date, number_of_nights, number_of_adults, number_of_rooms, reservation_status_id, rate_plan_id, created_at, updated_at) VALUES
 (3, 3, '2026-06-15', '2026-06-20', 5, 2, 1, (SELECT id FROM common_masters WHERE category='RESERVATION_STATUS' AND code='CONFIRMED' LIMIT 1), 1, '2026-06-01 09:00:00', NOW());
-INSERT IGNORE INTO bookings (id, reservationId, roomId, checkInDate, checkOutDate, numberOfNights, ratePerNight, totalPrice, finalPrice, booking_status_id, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO bookings (id, reservation_id, room_id, check_in_date, check_out_date, number_of_nights, rate_per_night, total_price, final_price, booking_status_id, created_at, updated_at) VALUES
 (3, 3, 9, '2026-06-15', '2026-06-20', 5, 9500.00, 47500.00, 47500.00, (SELECT id FROM common_masters WHERE category='BOOKING_STATUS' AND code='CHECKED_OUT' LIMIT 1), '2026-06-01 09:00:00', NOW());
 
 -- Reservation 4 (July)
-INSERT IGNORE INTO reservations (id, guestId, checkInDate, checkOutDate, numberOfNights, numberOfAdults, numberOfRooms, reservation_status_id, ratePlanId, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO reservations (id, guest_id, check_in_date, check_out_date, number_of_nights, number_of_adults, number_of_rooms, reservation_status_id, rate_plan_id, created_at, updated_at) VALUES
 (4, 1, '2026-07-20', '2026-07-25', 5, 2, 1, (SELECT id FROM common_masters WHERE category='RESERVATION_STATUS' AND code='CONFIRMED' LIMIT 1), 1, '2026-07-01 10:00:00', NOW());
-INSERT IGNORE INTO bookings (id, reservationId, roomId, checkInDate, checkOutDate, numberOfNights, ratePerNight, totalPrice, finalPrice, booking_status_id, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO bookings (id, reservation_id, room_id, check_in_date, check_out_date, number_of_nights, rate_per_night, total_price, final_price, booking_status_id, created_at, updated_at) VALUES
 (4, 4, 4, '2026-07-20', '2026-07-25', 5, 9500.00, 47500.00, 47500.00, (SELECT id FROM common_masters WHERE category='BOOKING_STATUS' AND code='CHECKED_OUT' LIMIT 1), '2026-07-01 10:00:00', NOW());
+
 
 
 -- -------------------------------------------------------
@@ -352,7 +353,7 @@ INSERT IGNORE INTO roles (id, name, department_id, access_level, status, descrip
 -- -------------------------------------------------------
 -- USERS (Staff) - Linked to departments, roles, and hotels
 -- -------------------------------------------------------
-INSERT IGNORE INTO users (id, employeeId, fullName, username, email, phone, department_id, role_id, property_id, status, is_deleted, createdAt, updatedAt) VALUES
+INSERT IGNORE INTO users (id, employee_id, full_name, username, email, phone, department_id, role_id, property_id, status, is_deleted, created_at, updated_at) VALUES
 (1, 'EMP-101', 'Admin User', 'admin', 'admin@hms.com', '9800010001', 1, 1, 1, 'ACTIVE', 0, NOW(), NOW()),
 (2, 'EMP-102', 'Sarah Wilson', 'sarah', 'sarah@hms.com', '9800010002', 1, 2, 1, 'ACTIVE', 0, NOW(), NOW()),
 (3, 'EMP-103', 'John Doe', 'john', 'john@hms.com', '9800010003', 1, 3, 1, 'ACTIVE', 0, NOW(), NOW()),
