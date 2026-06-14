@@ -48,13 +48,22 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             User reportedBy = userRepository.findById(dto.getReportedById())
                     .orElseThrow(() -> new ResourceNotFoundException("User (Reporter) not found with ID: " + dto.getReportedById()));
 
+            CommonMaster status = null;
+            if (dto.getStatusId() != null) {
+                status = commonMasterRepository.findById(dto.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+            } else {
+                status = commonMasterRepository.findByCategoryAndCode("MAINTENANCE_STATUS", "OPEN")
+                        .orElseThrow(() -> new ResourceNotFoundException("Default OPEN status not found in master data"));
+            }
+
             MaintenanceRequest request = MaintenanceRequest.builder()
                     .room(room)
                     .repairIssue(dto.getRepairIssue())
                     .category(category)
                     .priority(priority)
                     .reportedBy(reportedBy)
-                    .status(dto.getStatus() != null ? dto.getStatus() : MaintenanceRequest.MaintenanceStatus.OPEN)
+                    .status(status)
                     .build();
 
             maintenanceRepository.save(request);
@@ -94,7 +103,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             request.setRepairIssue(dto.getRepairIssue());
             request.setRepairNotes(dto.getRepairNotes());
-            request.setStatus(dto.getStatus());
+            
+            if (dto.getStatusId() != null) {
+                CommonMaster status = commonMasterRepository.findById(dto.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                request.setStatus(status);
+            }
 
             if (dto.getAssignedToId() != null) {
                 User assignedTo = userRepository.findById(dto.getAssignedToId())
@@ -164,11 +178,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             MaintenanceRequest request = maintenanceRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Maintenance request not found with ID: " + id));
             
-            try {
-                request.setStatus(MaintenanceRequest.MaintenanceStatus.valueOf(status.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                return StandardResponse.error("Invalid status: " + status, "INVALID_INPUT", "Allowed statuses: OPEN, IN_PROGRESS, RESOLVED, CANCELLED");
-            }
+            CommonMaster statusEntry = commonMasterRepository.findById(Long.parseLong(status))
+                    .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + status));
+            
+            request.setStatus(statusEntry);
             
             MaintenanceRequest updatedRequest = maintenanceRepository.save(request);
             return StandardResponse.success(convertToDTO(updatedRequest), "Maintenance issue status updated successfully");
@@ -195,7 +208,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                 .assignedToId(request.getAssignedTo() != null ? request.getAssignedTo().getId() : null)
                 .assignedToName(request.getAssignedTo() != null ? request.getAssignedTo().getFullName() : null)
                 .repairNotes(request.getRepairNotes())
-                .status(request.getStatus())
+                .statusId(request.getStatus() != null ? request.getStatus().getId() : null)
+                .statusName(request.getStatus() != null ? request.getStatus().getValue() : null)
                 .reportedAt(request.getReportedAt())
                 .build();
     }

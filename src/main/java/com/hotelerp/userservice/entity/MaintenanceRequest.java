@@ -42,10 +42,9 @@ public class MaintenanceRequest {
     @Column(name = "repair_notes", columnDefinition = "TEXT")
     private String repairNotes;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @Builder.Default
-    private MaintenanceStatus status = MaintenanceStatus.OPEN;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private CommonMaster status;
 
     @Builder.Default
     @Column(name = "is_deleted")
@@ -61,15 +60,10 @@ public class MaintenanceRequest {
     protected void onCreate() {
         reportedAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null) status = MaintenanceStatus.OPEN;
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    public enum MaintenanceStatus {
-        OPEN, IN_PROGRESS, RESOLVED, CANCELLED
     }
 }

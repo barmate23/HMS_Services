@@ -128,7 +128,17 @@ INSERT IGNORE INTO common_masters (category, code, value, description, is_active
 ('BOOKING_STATUS', 'CONFIRMED',   'Confirmed',   'Booking is confirmed',               1, NOW(), NOW()),
 ('BOOKING_STATUS', 'CHECKED_IN',  'Checked In',  'Guest has checked in',              1, NOW(), NOW()),
 ('BOOKING_STATUS', 'CHECKED_OUT', 'Checked Out', 'Guest has checked out',             1, NOW(), NOW()),
-('BOOKING_STATUS', 'CANCELLED',   'Cancelled',   'Booking has been cancelled',         1, NOW(), NOW());
+('BOOKING_STATUS', 'CANCELLED',   'Cancelled',   'Booking has been cancelled',         1, NOW(), NOW()),
+
+-- -------------------------------------------------------
+-- 15. MAINTENANCE STATUS
+-- -------------------------------------------------------
+('MAINTENANCE_STATUS', 'OPEN',        'Open',        'Maintenance request is open',           1, NOW(), NOW()),
+('MAINTENANCE_STATUS', 'ASSIGNED',    'Assigned',    'Request assigned to a technician',      1, NOW(), NOW()),
+('MAINTENANCE_STATUS', 'IN_PROGRESS', 'In Progress', 'Work is currently in progress',         1, NOW(), NOW()),
+('MAINTENANCE_STATUS', 'ON_HOLD',     'On Hold',     'Work is temporarily on hold',           1, NOW(), NOW()),
+('MAINTENANCE_STATUS', 'COMPLETED',   'Completed',   'Repair work has been completed',        1, NOW(), NOW()),
+('MAINTENANCE_STATUS', 'CANCELLED',   'Cancelled',   'Request has been cancelled',            1, NOW(), NOW());
 
 -- =============================================================
 -- DEMO DATA FOR getDashboardData API
@@ -398,13 +408,15 @@ INSERT IGNORE INTO tasks (id, room_id, task_type, priority, assigned_user_id, st
 -- -------------------------------------------------------
 -- MAINTENANCE REQUESTS
 -- -------------------------------------------------------
-INSERT IGNORE INTO maintenance_requests (id, room_id, repair_issue, category_id, priority_id, reported_by_id, status, is_deleted, reported_at, updated_at) VALUES
+INSERT IGNORE INTO maintenance_requests (id, room_id, repair_issue, category_id, priority_id, reported_by_id, status_id, is_deleted, reported_at, updated_at) VALUES
 (1, 8, 'AC leaking water', 
     (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='MAINT' LIMIT 1),
-    (SELECT id FROM common_masters WHERE category='SOP_FREQUENCY' AND code='DAILY' LIMIT 1), 3, 'OPEN', 0, NOW(), NOW()),
+    (SELECT id FROM common_masters WHERE category='SOP_FREQUENCY' AND code='DAILY' LIMIT 1), 3, 
+    (SELECT id FROM common_masters WHERE category='MAINTENANCE_STATUS' AND code='IN_PROGRESS' LIMIT 1), 0, NOW(), NOW()),
 (2, 20,'TV remote not working', 
     (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='MAINT' LIMIT 1),
-    (SELECT id FROM common_masters WHERE category='SOP_FREQUENCY' AND code='DAILY' LIMIT 1), 3, 'IN_PROGRESS', 0, NOW(), NOW());
+    (SELECT id FROM common_masters WHERE category='SOP_FREQUENCY' AND code='DAILY' LIMIT 1), 3, 
+    (SELECT id FROM common_masters WHERE category='MAINTENANCE_STATUS' AND code='OPEN' LIMIT 1), 0, NOW(), NOW());
 
 -- -------------------------------------------------------
 -- LOST AND FOUND ITEMS

@@ -1,6 +1,5 @@
 package com.hotelerp.userservice.dto;
 
-import com.hotelerp.userservice.entity.MaintenanceRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +25,7 @@ public class MaintenanceDTO {
     private Long assignedToId;
     private String assignedToName;
     private String repairNotes;
-    private MaintenanceRequest.MaintenanceStatus status;
+    private Long statusId;
+    private String statusName;
     private LocalDateTime reportedAt;
 }

@@ -56,7 +56,7 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                                         .filter(t -> t.getStatus() != Task.TaskStatus.COMPLETED)
                                         .count();
                         int repairIssues = (int) allMaintenance.stream()
-                                        .filter(m -> m.getStatus() != MaintenanceRequest.MaintenanceStatus.RESOLVED)
+                                        .filter(m -> !isStatus(m.getStatus(), "COMPLETED"))
                                         .count();
                         int sopChecks = (int) allAuditLogs.size();
 
