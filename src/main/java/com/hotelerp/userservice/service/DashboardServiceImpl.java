@@ -20,7 +20,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final RoomRepository roomRepository;
     private final FloorRepository floorRepository;
-    private final RoomBookingRepository roomBookingRepository;
+    private final BookingRepository bookingRepository;
     private final PosOrderRepository posOrderRepository;
     private final MenuItemRepository menuItemRepository;
 
@@ -36,7 +36,7 @@ public class DashboardServiceImpl implements DashboardService {
             // 2. Fetch Data
             List<Room> allRooms = roomRepository.findAll();
             List<Floor> allFloors = floorRepository.findAll();
-            List<RoomBooking> bookings = roomBookingRepository.findAllInDateRange(startDate, endDate);
+            List<Booking> bookings = bookingRepository.findAllInDateRange(startDate, endDate);
             List<PosOrder> posOrders = posOrderRepository.findAllInDateRange(startDate, endDate);
 
             // 3. Summary Stats
@@ -49,7 +49,7 @@ public class DashboardServiceImpl implements DashboardService {
                     .count();
             
             BigDecimal fyBookingRevenue = bookings.stream()
-                    .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                    .map(b -> b.getFinalPrice() != null ? b.getFinalPrice() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             DashboardSummaryDTO summary = DashboardSummaryDTO.builder()
@@ -132,7 +132,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
     }
 
-    private List<MonthlyStatDTO> calculateMonthlyPerformance(List<RoomBooking> bookings, int startYear) {
+    private List<MonthlyStatDTO> calculateMonthlyPerformance(List<Booking> bookings, int startYear) {
         String[] months = {"APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"};
         List<MonthlyStatDTO> result = new ArrayList<>();
 
@@ -140,12 +140,12 @@ public class DashboardServiceImpl implements DashboardService {
             final int monthIndex = (i + 3) % 12 + 1; // April is 4, ..., March is 3
             final int year = (i < 9) ? startYear : startYear + 1;
             
-            List<RoomBooking> monthlyBookings = bookings.stream()
-                    .filter(b -> b.getBookingDate().getMonthValue() == monthIndex && b.getBookingDate().getYear() == year)
+            List<Booking> monthlyBookings = bookings.stream()
+                    .filter(b -> b.getCreatedAt().getMonthValue() == monthIndex && b.getCreatedAt().getYear() == year)
                     .collect(Collectors.toList());
 
             BigDecimal revenue = monthlyBookings.stream()
-                    .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
+                    .map(b -> b.getFinalPrice() != null ? b.getFinalPrice() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             result.add(MonthlyStatDTO.builder()

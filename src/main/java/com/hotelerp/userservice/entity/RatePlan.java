@@ -1,4 +1,4 @@
-package com.hotelerp.frontoffice.entity;
+package com.hotelerp.userservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
