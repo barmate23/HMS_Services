@@ -53,7 +53,7 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                                                         || isStatus(r.getHkStatus(), "under maintenance"))
                                         .count();
                         int openTasksCount = (int) allTasks.stream()
-                                        .filter(t -> t.getStatus() != Task.TaskStatus.COMPLETED)
+                                        .filter(t -> t.getStatus() == null || !"COMPLETED".equals(t.getStatus().getCode()))
                                         .count();
                         int repairIssues = (int) allMaintenance.stream()
                                         .filter(m -> !isStatus(m.getStatus(), "COMPLETED"))
@@ -85,19 +85,32 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                         // 3. Team Load
                         HkTeamLoadDTO teamLoad = HkTeamLoadDTO.builder()
                                         .pendingSubmissions((int) allTasks.stream()
-                                                        .filter(t -> t.getStatus() == Task.TaskStatus.PENDING).count())
+                                                        .filter(t -> t.getStatus() != null && "PENDING".equals(t.getStatus().getCode())).count())
                                         .inProgress((int) allTasks.stream()
-                                                        .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
+                                                        .filter(t -> t.getStatus() != null && "IN_PROGRESS".equals(t.getStatus().getCode()))
                                                         .count())
                                         .staffProfiles((int) userRepository.count()) // simplified
                                         .build();
 
                         // 4. Audit Readiness
+                        int pendingAudits = (int) allAuditLogs.stream()
+                                        .filter(a -> a.getStatus() != null && "PENDING".equals(a.getStatus().getCode()))
+                                        .count();
+                        int doneAudits = (int) allAuditLogs.stream()
+                                        .filter(a -> a.getStatus() != null && "DONE".equals(a.getStatus().getCode()))
+                                        .count();
+                        int recheckAudits = (int) allAuditLogs.stream()
+                                        .filter(a -> a.getStatus() != null && "RECHECK".equals(a.getStatus().getCode()))
+                                        .count();
+
                         HkAuditReadinessDTO auditReadiness = HkAuditReadinessDTO.builder()
                                         .activeSop("DAILY")
                                         .checkpoints(allCheckpoints.size())
                                         .roomsTracked((int) allAuditLogs.stream().map(RoomAuditLog::getRoom).distinct()
                                                         .count())
+                                        .pendingAudits(pendingAudits)
+                                        .doneAudits(doneAudits)
+                                        .recheckAudits(recheckAudits)
                                         .build();
 
                         // 5. Floor Room Board

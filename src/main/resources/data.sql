@@ -140,6 +140,22 @@ INSERT IGNORE INTO common_masters (category, code, value, description, is_active
 ('MAINTENANCE_STATUS', 'COMPLETED',   'Completed',   'Repair work has been completed',        1, NOW(), NOW()),
 ('MAINTENANCE_STATUS', 'CANCELLED',   'Cancelled',   'Request has been cancelled',            1, NOW(), NOW());
 
+-- -------------------------------------------------------
+-- 16. HOUSEKEEPING TASK STATUS  (Task.status)
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('HOUSEKEEPING_STATUS', 'PENDING',     'Pending',     'Task is created but not started',   1, NOW(), NOW()),
+('HOUSEKEEPING_STATUS', 'IN_PROGRESS', 'In Progress', 'Staff is working on the task',      1, NOW(), NOW()),
+('HOUSEKEEPING_STATUS', 'COMPLETED',   'Completed',   'Task has been finished',            1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 17. AUDIT STATUS  (RoomAuditLog.status)
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('AUDIT_STATUS', 'PENDING',  'Pending',  'Audit is scheduled but not yet performed', 1, NOW(), NOW()),
+('AUDIT_STATUS', 'DONE',     'Done',     'Audit completed with a failing score',      1, NOW(), NOW()),
+('AUDIT_STATUS', 'RECHECK',  'Recheck',  'Audit requires a follow-up inspection',    1, NOW(), NOW());
+
 -- =============================================================
 -- DEMO DATA FOR getDashboardData API
 -- Financial Year: FY 2026-27 (April 2026 to March 2027)
@@ -399,11 +415,11 @@ INSERT IGNORE INTO pos_bills (id, order_id, payment_method_id, bill_number, amou
 -- -------------------------------------------------------
 -- HOUSEKEEPING TASKS
 -- -------------------------------------------------------
-INSERT IGNORE INTO tasks (id, room_id, task_type, priority, assigned_user_id, status, is_deleted, created_at, updated_at) VALUES
-(1, 2, 'Cleaning', 'MEDIUM', 3, 'PENDING', 0,     NOW(), NOW()),
-(2, 5, 'Cleaning', 'HIGH',   3, 'IN_PROGRESS', 0, NOW(), NOW()),
-(3, 7, 'Cleaning', 'LOW',    3, 'COMPLETED', 0,   NOW(), NOW()),
-(4, 11,'Cleaning', 'HIGH',   3, 'PENDING', 0,     NOW(), NOW());
+INSERT IGNORE INTO tasks (id, room_id, task_type, priority, assigned_user_id, status_id, is_deleted, created_at, updated_at) VALUES
+(1, 2, 'Cleaning', 'MEDIUM', 3, (SELECT id FROM common_masters WHERE category='HOUSEKEEPING_STATUS' AND code='PENDING'     LIMIT 1), 0, NOW(), NOW()),
+(2, 5, 'Cleaning', 'HIGH',   3, (SELECT id FROM common_masters WHERE category='HOUSEKEEPING_STATUS' AND code='IN_PROGRESS' LIMIT 1), 0, NOW(), NOW()),
+(3, 7, 'Cleaning', 'LOW',    3, (SELECT id FROM common_masters WHERE category='HOUSEKEEPING_STATUS' AND code='COMPLETED'   LIMIT 1), 0, NOW(), NOW()),
+(4, 11,'Cleaning', 'HIGH',   3, (SELECT id FROM common_masters WHERE category='HOUSEKEEPING_STATUS' AND code='PENDING'     LIMIT 1), 0, NOW(), NOW());
 
 -- -------------------------------------------------------
 -- MAINTENANCE REQUESTS
@@ -444,6 +460,6 @@ INSERT IGNORE INTO sop_checkpoints (id, checkpoint_id, frequency_id, audit_area,
 -- -------------------------------------------------------
 -- ROOM AUDIT LOGS
 -- -------------------------------------------------------
-INSERT IGNORE INTO room_audit_logs (id, room_id, checkpoint_id, status, inspector_id, score, remarks, audit_date, created_at) VALUES
-(1, 1, 1, 'PASS', 2, 100, 'All clean', NOW(), NOW()),
-(2, 1, 2, 'FAIL', 2, 0, 'Stain found', NOW(), NOW());
+INSERT IGNORE INTO room_audit_logs (id, room_id, checkpoint_id, status_id, inspector_id, score, remarks, audit_date, created_at) VALUES
+(1, 1, 1, (SELECT id FROM common_masters WHERE category='AUDIT_STATUS' AND code='PASS' LIMIT 1), 2, 100, 'All clean', NOW(), NOW()),
+(2, 1, 2, (SELECT id FROM common_masters WHERE category='AUDIT_STATUS' AND code='FAIL' LIMIT 1), 2, 0, 'Stain found', NOW(), NOW());

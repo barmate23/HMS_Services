@@ -14,4 +14,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.createdAt BETWEEN :startDate AND :endDate AND b.isDeleted = false")
     List<Booking> findAllInDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    List<Booking> findByRoomIdAndIsDeletedFalse(Long roomId);
+
+    List<Booking> findByReservationId(Long reservationId);
 }

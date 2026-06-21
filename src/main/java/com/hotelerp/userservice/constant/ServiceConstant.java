@@ -6,6 +6,7 @@ public class ServiceConstant {
     public static final String CREATE_TASK = "/createTask";
     public static final String GET_TASK_BY_ID = "/getTaskById/{id}";
     public static final String GET_ALL_TASKS = "/getAllTasks";
+    public static final String GET_ACTIVE_TASKS = "/getActiveTasks";
     public static final String UPDATE_TASK = "/updateTask/{id}";
     public static final String DELETE_TASK = "/deleteTask/{id}";
     public static final String UPDATE_TASK_STATUS = "/updateTaskStatus/{id}";
@@ -31,6 +32,7 @@ public class ServiceConstant {
     public static final String CREATE_MAINTENANCE = "/createMaintenance";
     public static final String GET_MAINTENANCE_BY_ID = "/getMaintenanceById/{id}";
     public static final String GET_ALL_MAINTENANCE = "/getAllMaintenance";
+    public static final String GET_ACTIVE_MAINTENANCE = "/getActiveMaintenance";
     public static final String UPDATE_MAINTENANCE = "/updateMaintenance/{id}";
     public static final String DELETE_MAINTENANCE = "/deleteMaintenance/{id}";
     public static final String UPDATE_MAINTENANCE_STATUS = "/updateMaintenanceStatus/{id}";
@@ -63,7 +65,9 @@ public class ServiceConstant {
     public static final String CREATE_ORDER = "/createOrder";
     public static final String GET_ORDER_BY_ID = "/getOrderById/{id}";
     public static final String GET_ALL_ORDERS = "/getAllOrders";
+    public static final String GET_ACTIVE_POS_ORDERS = "/getActiveOrders";
     public static final String UPDATE_ORDER = "/updateOrder/{id}";
+    public static final String UPDATE_POS_ORDER_STATUS = "/updateOrderStatus/{id}";
 
     // Table Reservations
     public static final String BOOK_TABLE = "/bookTable";
@@ -87,6 +91,7 @@ public class ServiceConstant {
     public static final String UPDATE_LAUNDRY_ORDER = "/updateOrder/{id}";
     public static final String GET_ALL_LAUNDRY_ORDERS = "/getAllOrders";
     public static final String GET_LAUNDRY_ORDER_BY_ID = "/getOrderById/{id}";
+    public static final String GET_NON_DELIVERED_LAUNDRY_ORDERS = "/getNonDeliveredOrders";
     public static final String UPDATE_LAUNDRY_ORDER_STATUS = "/updateOrderStatus/{id}";
     public static final String DELETE_LAUNDRY_ORDER = "/deleteOrder/{id}";
 

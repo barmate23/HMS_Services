@@ -2,6 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.*;
+import com.hotelerp.userservice.dto.RoomAuditLogDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.HashMap;
@@ -25,7 +28,6 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private final RoomAuditLogRepository auditLogRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
-
 
     @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
@@ -64,10 +66,12 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     public StandardResponse<Void> createCheckpoint(SOPCheckpointDTO dto) {
         try {
             CommonMaster frequency = masterRepository.findById(dto.getFrequencyId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Frequency master data not found for ID: " + dto.getFrequencyId()));
-            
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Frequency master data not found for ID: " + dto.getFrequencyId()));
+
             CommonMaster responsibleRole = masterRepository.findById(dto.getResponsibleRoleId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Responsible Role master data not found for ID: " + dto.getResponsibleRoleId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Responsible Role master data not found for ID: " + dto.getResponsibleRoleId()));
 
             SOPCheckpoint checkpoint = SOPCheckpoint.builder()
                     .checkpointId(dto.getCheckpointId())
@@ -76,7 +80,7 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                     .responsibleRole(responsibleRole)
                     .description(dto.getDescription())
                     .build();
-            
+
             checkpointRepository.save(checkpoint);
             return StandardResponse.success("SOP checkpoint created successfully");
         } catch (ResourceNotFoundException e) {
@@ -120,15 +124,15 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
             if (logs.isEmpty()) {
                 return StandardResponse.success(null, "No audit history found for Room ID: " + roomId);
             }
-            
+
             RoomAuditLog latest = logs.get(0);
             Map<String, Object> status = new HashMap<>();
             status.put("roomId", roomId);
             status.put("lastAuditDate", latest.getAuditDate());
-            status.put("overallStatus", latest.getStatus());
+            status.put("overallStatus", latest.getStatus() != null ? latest.getStatus().getValue() : "PENDING");
             status.put("score", latest.getScore());
             status.put("inspector", latest.getInspector() != null ? latest.getInspector().getFullName() : "System");
-            
+
             return StandardResponse.success(status, "Room audit status fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching room audit status: ", e);
@@ -137,19 +141,22 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     }
 
     @Override
-    public StandardResponse<List<RoomAuditStatusDTO>> getAuditStatusByFloorAndFrequency(Long floorId, String frequencyCode) {
+    public StandardResponse<List<RoomAuditStatusDTO>> getAuditStatusByFloorAndFrequency(Long floorId,
+            String frequencyCode) {
         try {
             List<Room> rooms = roomRepository.findByFloorId(floorId);
             List<SOPCheckpoint> checkpoints = checkpointRepository.findByFrequencyCode(frequencyCode);
-            
+
             List<RoomAuditStatusDTO> statusList = rooms.stream().map(room -> {
                 List<RoomAuditLog> logs = auditLogRepository.findLatestByRoomId(room.getId());
                 RoomAuditLog latestOverall = logs.isEmpty() ? null : logs.get(0);
 
                 List<CheckpointStatusDTO> checkpointStatuses = checkpoints.stream().map(cp -> {
-                    List<RoomAuditLog> cpLogs = auditLogRepository.findLatestByRoomAndCheckpoint(room.getId(), cp.getId());
-                    String status = cpLogs.isEmpty() ? "PENDING" : cpLogs.get(0).getStatus();
-                    
+                    List<RoomAuditLog> cpLogs = auditLogRepository.findLatestByRoomAndCheckpoint(room.getId(),
+                            cp.getId());
+                    String status = cpLogs.isEmpty() || cpLogs.get(0).getStatus() == null ? "PENDING"
+                            : cpLogs.get(0).getStatus().getValue();
+
                     return CheckpointStatusDTO.builder()
                             .checkpointId(cp.getCheckpointId())
                             .auditArea(cp.getAuditArea())
@@ -163,8 +170,12 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                         .roomNumber(room.getRoomNumber())
                         .roomType(room.getRoomType() != null ? room.getRoomType().getName() : "Unknown")
                         .pmsStatus(room.getStatus() != null ? room.getStatus().getValue() : "VACANT")
-                        .hkStatus(latestOverall != null ? latestOverall.getStatus() : "UNCLEANED")
-                        .inspectorName(latestOverall != null && latestOverall.getInspector() != null ? latestOverall.getInspector().getFullName() : "Unassigned")
+                        .hkStatus(latestOverall != null && latestOverall.getStatus() != null
+                                ? latestOverall.getStatus().getValue()
+                                : "UNCLEANED")
+                        .inspectorName(latestOverall != null && latestOverall.getInspector() != null
+                                ? latestOverall.getInspector().getFullName()
+                                : "Unassigned")
                         .lastAuditDate(latestOverall != null ? latestOverall.getAuditDate() : null)
                         .overallScore(latestOverall != null ? latestOverall.getScore() : 0)
                         .checkpoints(checkpointStatuses)
@@ -184,18 +195,24 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
         try {
             Room room = roomRepository.findById(request.getRoomId())
                     .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.getRoomId()));
-            
+
             User inspector = userRepository.findById(request.getInspectorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Inspector user not found with ID: " + request.getInspectorId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Inspector user not found with ID: " + request.getInspectorId()));
 
             for (CheckpointAuditRequest auditRequest : request.getCheckpoints()) {
                 SOPCheckpoint checkpoint = checkpointRepository.findById(auditRequest.getCheckpointId())
-                        .orElseThrow(() -> new ResourceNotFoundException("SOP Checkpoint not found with ID: " + auditRequest.getCheckpointId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "SOP Checkpoint not found with ID: " + auditRequest.getCheckpointId()));
+
+                CommonMaster status = masterRepository.findByCategoryAndCode("AUDIT_STATUS", auditRequest.getStatus())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Audit status not found: " + auditRequest.getStatus()));
 
                 RoomAuditLog logEntry = RoomAuditLog.builder()
                         .room(room)
                         .checkpoint(checkpoint)
-                        .status(auditRequest.getStatus())
+                        .status(status)
                         .inspector(inspector)
                         .score(request.getOverallScore())
                         .remarks(auditRequest.getRemarks())
@@ -214,6 +231,67 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
         }
     }
 
+    @Override
+    @Transactional
+    public StandardResponse<Void> updateAuditStatus(Long auditLogId, String statusCode) {
+        try {
+            RoomAuditLog logEntry = auditLogRepository.findById(auditLogId)
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Room Audit Log not found with ID: " + auditLogId));
+
+            CommonMaster status = masterRepository.findByCategoryAndCode("AUDIT_STATUS", statusCode)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Status master data not found for code: " + statusCode));
+
+            logEntry.setStatus(status);
+            auditLogRepository.save(logEntry);
+            return StandardResponse.success("Audit status updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating audit status: ", e);
+            return StandardResponse.error("Failed to update status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    public StandardResponse<List<RoomAuditLogDTO>> getPendingAuditLogs() {
+        try {
+            LocalDateTime start = LocalDate.now().atStartOfDay();
+            LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+            List<String> codes = List.of("PENDING", "RECHECK");
+
+            List<RoomAuditLogDTO> dtos = auditLogRepository.findByAuditDateBetweenAndStatusCodeIn(start, end, codes)
+                    .stream()
+                    .map(this::convertToLogDTO)
+                    .collect(Collectors.toList());
+
+            return StandardResponse.success(dtos, "Today's pending and recheck audit logs fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching pending audit logs: ", e);
+            return StandardResponse.error("Failed to fetch pending audit logs", "INTERNAL_SERVER_ERROR",
+                    e.getMessage());
+        }
+    }
+
+    private RoomAuditLogDTO convertToLogDTO(RoomAuditLog auditLog) {
+        return RoomAuditLogDTO.builder()
+                .id(auditLog.getId())
+                .roomId(auditLog.getRoom().getId())
+                .roomNumber(auditLog.getRoom().getRoomNumber())
+                .checkpointId(auditLog.getCheckpoint().getId())
+                .checkpointName(auditLog.getCheckpoint().getCheckpointId())
+                .auditArea(auditLog.getCheckpoint().getAuditArea())
+                .statusId(auditLog.getStatus() != null ? auditLog.getStatus().getId() : null)
+                .statusName(auditLog.getStatus() != null ? auditLog.getStatus().getValue() : null)
+                .inspectorId(auditLog.getInspector() != null ? auditLog.getInspector().getId() : null)
+                .inspectorName(auditLog.getInspector() != null ? auditLog.getInspector().getFullName() : null)
+                .score(auditLog.getScore())
+                .remarks(auditLog.getRemarks())
+                .auditDate(auditLog.getAuditDate())
+                .build();
+    }
+
     private CommonMasterDTO convertToDTO(CommonMaster master) {
 
         CommonMasterDTO dto = new CommonMasterDTO();
@@ -229,19 +307,19 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
         SOPCheckpointDTO dto = new SOPCheckpointDTO();
         dto.setId(checkpoint.getId());
         dto.setCheckpointId(checkpoint.getCheckpointId());
-        
+
         if (checkpoint.getFrequency() != null) {
             dto.setFrequencyId(checkpoint.getFrequency().getId());
             dto.setFrequencyValue(checkpoint.getFrequency().getValue());
         }
-        
+
         dto.setAuditArea(checkpoint.getAuditArea());
-        
+
         if (checkpoint.getResponsibleRole() != null) {
             dto.setResponsibleRoleId(checkpoint.getResponsibleRole().getId());
             dto.setResponsibleRoleValue(checkpoint.getResponsibleRole().getValue());
         }
-        
+
         dto.setDescription(checkpoint.getDescription());
         return dto;
     }

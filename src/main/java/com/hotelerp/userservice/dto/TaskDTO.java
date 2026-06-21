@@ -21,5 +21,6 @@ public class TaskDTO {
     private String assignedUserName;
     private Integer estimatedMinutes;
     private String instructions;
-    private Task.TaskStatus status;
+    private Long statusId;
+    private String status;
 }

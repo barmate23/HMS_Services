@@ -46,12 +46,12 @@ public class StaffServiceImpl implements StaffService {
                         .collect(Collectors.toList());
 
                 long completedToday = userTasks.stream()
-                        .filter(t -> t.getStatus() == Task.TaskStatus.COMPLETED && 
+                        .filter(t -> t.getStatus() != null && "COMPLETED".equals(t.getStatus().getCode()) && 
                                     t.getUpdatedAt() != null && t.getUpdatedAt().isAfter(startOfDay))
                         .count();
 
                 List<Task> pendingTasks = userTasks.stream()
-                        .filter(t -> t.getStatus() != Task.TaskStatus.COMPLETED)
+                        .filter(t -> t.getStatus() == null || !"COMPLETED".equals(t.getStatus().getCode()))
                         .collect(Collectors.toList());
 
                 // Room Mapping Analysis
@@ -102,7 +102,8 @@ public class StaffServiceImpl implements StaffService {
                 .assignedUserName(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getFullName() : null)
                 .estimatedMinutes(task.getEstimatedMinutes())
                 .instructions(task.getInstructions())
-                .status(task.getStatus())
+                .statusId(task.getStatus() != null ? task.getStatus().getId() : null)
+                .status(task.getStatus() != null ? task.getStatus().getValue() : null)
                 .build();
     }
 }

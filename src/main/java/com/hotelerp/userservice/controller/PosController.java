@@ -49,6 +49,14 @@ public class PosController {
         return ResponseEntity.status(status).body(response);
     }
 
+    /** PATCH /updateOrderStatus/{id} - update only order status */
+    @PatchMapping(ServiceConstant.UPDATE_POS_ORDER_STATUS)
+    public ResponseEntity<StandardResponse<PosOrderDTO>> updateOrderStatus(@PathVariable Long id, @RequestParam Long statusId) {
+        StandardResponse<PosOrderDTO> response = posService.updateOrderStatus(id, statusId);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
     /** GET /getOrderById/{id} */
     @GetMapping(ServiceConstant.GET_ORDER_BY_ID)
     public ResponseEntity<StandardResponse<PosOrderDTO>> getOrderById(@PathVariable Long id) {
@@ -62,6 +70,13 @@ public class PosController {
     public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getAllOrders(
             @RequestParam(required = false) Long outletId) {
         StandardResponse<List<PosOrderDTO>> response = posService.getOrdersByOutlet(outletId);
+        return ResponseEntity.ok(response);
+    }
+
+    /** GET /getActiveOrders - fetch orders with status OPEN or KOT_SENT */
+    @GetMapping(ServiceConstant.GET_ACTIVE_POS_ORDERS)
+    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getActiveOrders() {
+        StandardResponse<List<PosOrderDTO>> response = posService.getActiveOrders();
         return ResponseEntity.ok(response);
     }
 

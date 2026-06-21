@@ -127,6 +127,12 @@ public class LaundryController {
         return ResponseEntity.status(status).body(response);
     }
 
+    @GetMapping(ServiceConstant.GET_NON_DELIVERED_LAUNDRY_ORDERS)
+    public ResponseEntity<StandardResponse<List<LaundryOrderDTO>>> getNonDeliveredOrders() {
+        StandardResponse<List<LaundryOrderDTO>> response = laundryService.getNonDeliveredOrders();
+        return ResponseEntity.ok(response);
+    }
+
     @PatchMapping(ServiceConstant.UPDATE_LAUNDRY_ORDER_STATUS)
     public ResponseEntity<StandardResponse<LaundryOrderDTO>> updateOrderStatus(@PathVariable Long id, @RequestParam String status) {
         StandardResponse<LaundryOrderDTO> response = laundryService.updateOrderStatus(id, status);

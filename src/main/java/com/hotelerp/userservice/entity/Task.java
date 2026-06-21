@@ -37,10 +37,9 @@ public class Task {
     @Column(name = "instructions", columnDefinition = "TEXT")
     private String instructions;
 
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TaskStatus status = TaskStatus.PENDING;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private CommonMaster status;
 
     @Builder.Default
     @Column(name = "is_deleted")
@@ -56,7 +55,6 @@ public class Task {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (status == null) status = TaskStatus.PENDING;
     }
 
     @PreUpdate
@@ -66,9 +64,5 @@ public class Task {
 
     public enum Priority {
         LOW, MEDIUM, HIGH
-    }
-
-    public enum TaskStatus {
-        PENDING, IN_PROGRESS, COMPLETED
     }
 }

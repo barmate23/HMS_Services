@@ -4,6 +4,7 @@ import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.CommonMasterDTO;
 import com.hotelerp.userservice.dto.SOPCheckpointDTO;
 import com.hotelerp.userservice.dto.RoomAuditStatusDTO;
+import com.hotelerp.userservice.dto.RoomAuditLogDTO;
 import com.hotelerp.userservice.dto.RoomAuditSaveRequest;
 
 import com.hotelerp.userservice.service.HousekeepingAuditService;
@@ -66,10 +67,23 @@ public class HousekeepingAuditController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/getPendingAuditLogs")
+    public ResponseEntity<StandardResponse<List<RoomAuditLogDTO>>> getPendingAuditLogs() {
+        StandardResponse<List<RoomAuditLogDTO>> response = auditService.getPendingAuditLogs();
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/saveRoomAudit")
     public ResponseEntity<StandardResponse<Void>> saveRoomAudit(@RequestBody RoomAuditSaveRequest request) {
         StandardResponse<Void> response = auditService.saveRoomAudit(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/updateAuditStatus/{id}")
+    public ResponseEntity<StandardResponse<Void>> updateAuditStatus(@PathVariable Long id, @RequestParam String status) {
+        StandardResponse<Void> response = auditService.updateAuditStatus(id, status);
+        HttpStatus httpStatus = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }
 

@@ -155,6 +155,20 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
+    public StandardResponse<List<MaintenanceDTO>> getActiveMaintenance() {
+        try {
+            List<String> activeCodes = List.of("OPEN", "IN_PROGRESS", "ASSIGNED");
+            List<MaintenanceDTO> dtos = maintenanceRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Active maintenance issues fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching active maintenance issues: ", e);
+            return StandardResponse.error("Failed to fetch active maintenance issues", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     @Transactional
     public StandardResponse<Void> deleteIssue(Long id) {
         try {

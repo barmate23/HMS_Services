@@ -38,6 +38,12 @@ public class MaintenanceController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping(ServiceConstant.GET_ACTIVE_MAINTENANCE)
+    public ResponseEntity<StandardResponse<List<MaintenanceDTO>>> getActiveMaintenance() {
+        StandardResponse<List<MaintenanceDTO>> response = maintenanceService.getActiveMaintenance();
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping(ServiceConstant.UPDATE_MAINTENANCE)
     public ResponseEntity<StandardResponse<MaintenanceDTO>> updateIssue(@PathVariable Long id, @RequestBody MaintenanceDTO dto) {
         StandardResponse<MaintenanceDTO> response = maintenanceService.updateIssue(id, dto);

@@ -27,6 +27,7 @@ public interface LaundryService {
     StandardResponse<LaundryOrderDTO> updateLaundryOrder(Long id, LaundryOrderDTO dto);
     StandardResponse<LaundryOrderDTO> getLaundryOrderById(Long id);
     StandardResponse<List<LaundryOrderDTO>> getAllLaundryOrders();
+    StandardResponse<List<LaundryOrderDTO>> getNonDeliveredOrders();
     StandardResponse<LaundryOrderDTO> updateOrderStatus(Long id, String status);
     StandardResponse<Void> deleteLaundryOrder(Long id);
 }

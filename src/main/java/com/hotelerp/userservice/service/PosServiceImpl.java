@@ -7,6 +7,7 @@ import com.hotelerp.userservice.dto.TableReservationDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
+import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class PosServiceImpl implements PosService {
     private final UserRepository userRepository;
     private final MenuItemRepository menuItemRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final FolioService folioService;
 
     @Override
     @Transactional
@@ -61,11 +63,9 @@ public class PosServiceImpl implements PosService {
                         .orElseThrow(() -> new ResourceNotFoundException("Server (User) not found with ID: " + dto.getServerId()));
             }
 
-            CommonMaster status = null;
-            if (dto.getStatusId() != null) {
-                status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
-            }
+            CommonMaster status = commonMasterRepository.findByCategoryAndCode("ORDER_STATUS", "OPEN")
+                    .orElseThrow(() -> new ResourceNotFoundException("Status 'OPEN' not found in master data"));
+
 
             PosOrder order = PosOrder.builder()
                     .outlet(outlet)
@@ -100,6 +100,14 @@ public class PosServiceImpl implements PosService {
             }
 
             posOrderRepository.save(order);
+
+            if (order.getRoom() != null) {
+                folioService.postChargeByRoom(order.getRoom().getId(),
+                        order.getTotalAmount(),
+                        "POS",
+                        "POS Order: " + order.getId() + " - " + order.getOutlet().getName());
+            }
+
             return StandardResponse.success("Order created successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -162,6 +170,27 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional
+    public StandardResponse<PosOrderDTO> updateOrderStatus(Long id, Long statusId) {
+        try {
+            PosOrder order = posOrderRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
+            CommonMaster status = commonMasterRepository.findById(statusId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + statusId));
+
+            order.setStatus(status);
+            PosOrder updatedOrder = posOrderRepository.save(order);
+            return StandardResponse.success(convertToDTO(updatedOrder), "Order status updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating order status: ", e);
+            return StandardResponse.error("Failed to update order status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     public StandardResponse<PosOrderDTO> getOrderById(Long id) {
         try {
             PosOrder order = posOrderRepository.findById(id)
@@ -172,6 +201,20 @@ public class PosServiceImpl implements PosService {
         } catch (Exception e) {
             log.error("Error fetching order: ", e);
             return StandardResponse.error("Failed to fetch order", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    public StandardResponse<List<PosOrderDTO>> getActiveOrders() {
+        try {
+            List<String> activeCodes = List.of("OPEN", "KOT_SENT");
+            List<PosOrderDTO> dtos = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Active orders fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching active orders: ", e);
+            return StandardResponse.error("Failed to fetch active orders", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
 

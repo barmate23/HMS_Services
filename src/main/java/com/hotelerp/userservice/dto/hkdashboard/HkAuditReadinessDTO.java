@@ -13,4 +13,7 @@ public class HkAuditReadinessDTO {
     private String activeSop;
     private int checkpoints;
     private int roomsTracked;
+    private int pendingAudits;
+    private int doneAudits;
+    private int recheckAudits;
 }

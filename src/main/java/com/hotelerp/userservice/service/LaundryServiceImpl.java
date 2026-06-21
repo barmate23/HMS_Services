@@ -15,6 +15,7 @@ import com.hotelerp.userservice.repository.LaundryOrderRepository;
 import com.hotelerp.userservice.repository.LaundryPriceMasterRepository;
 import com.hotelerp.userservice.repository.LaundryServiceCatalogRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
+import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class LaundryServiceImpl implements LaundryService {
     private final LaundryOrderItemRepository orderItemRepository;
     private final RoomRepository roomRepository;
     private final LaundryServiceCatalogRepository serviceCatalogRepository;
+    private final FolioService folioService;
 
     // Price Master APIs
 
@@ -244,6 +246,13 @@ public class LaundryServiceImpl implements LaundryService {
                 orderItemRepository.save(item);
             }
 
+            if ("Room".equalsIgnoreCase(order.getBillingOption())) {
+                folioService.postChargeByRoom(order.getRoom().getId(),
+                        java.math.BigDecimal.valueOf(order.getTotalAmount()),
+                        "Laundry",
+                        "Laundry Order: " + order.getOrderId());
+            }
+
             return StandardResponse.success(convertToDTO(order), "Laundry order created successfully");
         } catch (Exception e) {
             log.error("Error creating laundry order: ", e);
@@ -319,6 +328,14 @@ public class LaundryServiceImpl implements LaundryService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Orders fetched successfully");
+    }
+
+    @Override
+    public StandardResponse<List<LaundryOrderDTO>> getNonDeliveredOrders() {
+        List<LaundryOrderDTO> dtos = orderRepository.findByStatusNotAndIsDeletedFalse("DELIVERED").stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return StandardResponse.success(dtos, "Non-delivered orders fetched successfully");
     }
 
     @Override

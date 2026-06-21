@@ -11,4 +11,5 @@ import java.util.List;
 public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest, Long> {
     List<MaintenanceRequest> findByStatus(CommonMaster status);
     List<MaintenanceRequest> findByRoomId(Long roomId);
+    List<MaintenanceRequest> findByStatusCodeInAndIsDeletedFalse(java.util.List<String> codes);
 }

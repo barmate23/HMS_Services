@@ -9,6 +9,7 @@ public interface MaintenanceService {
     StandardResponse<MaintenanceDTO> updateIssue(Long id, MaintenanceDTO dto);
     StandardResponse<MaintenanceDTO> getIssueById(Long id);
     StandardResponse<List<MaintenanceDTO>> getAllIssues();
+    StandardResponse<List<MaintenanceDTO>> getActiveMaintenance();
     StandardResponse<Void> deleteIssue(Long id);
     StandardResponse<MaintenanceDTO> updateStatus(Long id, String status);
 }

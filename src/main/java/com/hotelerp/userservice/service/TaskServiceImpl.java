@@ -5,9 +5,11 @@ import com.hotelerp.userservice.dto.TaskDTO;
 import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.Task;
 import com.hotelerp.userservice.entity.User;
+import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.TaskRepository;
 import com.hotelerp.userservice.repository.UserRepository;
+import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,21 +27,39 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final CommonMasterRepository commonMasterRepository;
 
     @Override
     @Transactional
     public StandardResponse<Void> createTask(TaskDTO taskDTO) {
         try {
             Long roomId = taskDTO.getRoomId();
-            if (roomId == null) throw new IllegalArgumentException("Room ID must not be null");
-            
+            if (roomId == null)
+                throw new IllegalArgumentException("Room ID must not be null");
+
             Room room = roomRepository.findById(roomId)
                     .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + roomId));
 
             User assignedUser = null;
             if (taskDTO.getAssignedUserId() != null) {
                 assignedUser = userRepository.findById(taskDTO.getAssignedUserId())
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + taskDTO.getAssignedUserId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "User not found with ID: " + taskDTO.getAssignedUserId()));
+            }
+
+            CommonMaster status = null;
+            if (taskDTO.getStatusId() != null) {
+                status = commonMasterRepository.findById(taskDTO.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master not found with ID: " + taskDTO.getStatusId()));
+            } else if (taskDTO.getStatus() != null) {
+                status = commonMasterRepository
+                        .findByCategoryAndCode("HOUSEKEEPING_STATUS", taskDTO.getStatus().toUpperCase())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master not found with code: " + taskDTO.getStatus()));
+            } else {
+                status = commonMasterRepository.findByCategoryAndCode("HOUSEKEEPING_STATUS", "PENDING")
+                        .orElseThrow(() -> new ResourceNotFoundException("Default 'PENDING' status not found"));
             }
 
             Task task = Task.builder()
@@ -49,7 +69,7 @@ public class TaskServiceImpl implements TaskService {
                     .assignedHousekeeper(assignedUser)
                     .estimatedMinutes(taskDTO.getEstimatedMinutes())
                     .instructions(taskDTO.getInstructions())
-                    .status(taskDTO.getStatus() != null ? taskDTO.getStatus() : Task.TaskStatus.PENDING)
+                    .status(status)
                     .build();
 
             taskRepository.save(task);
@@ -71,7 +91,8 @@ public class TaskServiceImpl implements TaskService {
 
             if (taskDTO.getRoomId() != null) {
                 Room room = roomRepository.findById(taskDTO.getRoomId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + taskDTO.getRoomId()));
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Room not found with ID: " + taskDTO.getRoomId()));
                 task.setRoom(room);
             }
 
@@ -79,11 +100,24 @@ public class TaskServiceImpl implements TaskService {
             task.setPriority(taskDTO.getPriority());
             task.setEstimatedMinutes(taskDTO.getEstimatedMinutes());
             task.setInstructions(taskDTO.getInstructions());
-            task.setStatus(taskDTO.getStatus());
+
+            if (taskDTO.getStatusId() != null) {
+                CommonMaster status = commonMasterRepository.findById(taskDTO.getStatusId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master not found for ID: " + taskDTO.getStatusId()));
+                task.setStatus(status);
+            } else if (taskDTO.getStatus() != null) {
+                CommonMaster status = commonMasterRepository
+                        .findByCategoryAndCode("HOUSEKEEPING_STATUS", taskDTO.getStatus().toUpperCase())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master not found for code: " + taskDTO.getStatus()));
+                task.setStatus(status);
+            }
 
             if (taskDTO.getAssignedUserId() != null) {
                 User assignedUser = userRepository.findById(taskDTO.getAssignedUserId())
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + taskDTO.getAssignedUserId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "User not found with ID: " + taskDTO.getAssignedUserId()));
                 task.setAssignedHousekeeper(assignedUser);
             }
 
@@ -126,6 +160,20 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public StandardResponse<List<TaskDTO>> getActiveTasks() {
+        try {
+            List<String> activeCodes = List.of("PENDING", "IN_PROGRESS");
+            List<TaskDTO> dtos = taskRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Active tasks fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching active tasks: ", e);
+            return StandardResponse.error("Failed to fetch active tasks", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     @Transactional
     public StandardResponse<Void> deleteTask(Long id) {
         try {
@@ -148,13 +196,12 @@ public class TaskServiceImpl implements TaskService {
         try {
             Task task = taskRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + id));
-            
-            try {
-                task.setStatus(Task.TaskStatus.valueOf(status.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                return StandardResponse.error("Invalid status: " + status, "INVALID_INPUT", "Allowed statuses: PENDING, IN_PROGRESS, COMPLETED");
-            }
-            
+
+            CommonMaster statusMaster = commonMasterRepository
+                    .findByCategoryAndCode("HOUSEKEEPING_STATUS", status.toUpperCase())
+                    .orElseThrow(() -> new ResourceNotFoundException("Status master not found for code: " + status));
+
+            task.setStatus(statusMaster);
             Task updatedTask = taskRepository.save(task);
             return StandardResponse.success(convertToDTO(updatedTask), "Task status updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -174,10 +221,12 @@ public class TaskServiceImpl implements TaskService {
                 .taskType(task.getTaskType())
                 .priority(task.getPriority())
                 .assignedUserId(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getId() : null)
-                .assignedUserName(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getFullName() : null)
+                .assignedUserName(
+                        task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getFullName() : null)
                 .estimatedMinutes(task.getEstimatedMinutes())
                 .instructions(task.getInstructions())
-                .status(task.getStatus())
+                .statusId(task.getStatus() != null ? task.getStatus().getId() : null)
+                .status(task.getStatus() != null ? task.getStatus().getCode() : null)
                 .build();
     }
 }

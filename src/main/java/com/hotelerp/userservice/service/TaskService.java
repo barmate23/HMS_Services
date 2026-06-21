@@ -9,6 +9,7 @@ public interface TaskService {
     StandardResponse<TaskDTO> updateTask(Long id, TaskDTO taskDTO);
     StandardResponse<TaskDTO> getTaskById(Long id);
     StandardResponse<List<TaskDTO>> getAllTasks();
+    StandardResponse<List<TaskDTO>> getActiveTasks();
     StandardResponse<Void> deleteTask(Long id);
     StandardResponse<TaskDTO> updateStatus(Long id, String status);
 }

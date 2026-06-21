@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByRoomId(Long roomId);
-    List<Task> findByStatus(Task.TaskStatus status);
+    List<Task> findByStatusCodeInAndIsDeletedFalse(java.util.List<String> codes);
 }

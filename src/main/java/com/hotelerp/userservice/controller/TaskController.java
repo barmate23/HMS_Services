@@ -38,6 +38,12 @@ public class TaskController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping(ServiceConstant.GET_ACTIVE_TASKS)
+    public ResponseEntity<StandardResponse<List<TaskDTO>>> getActiveTasks() {
+        StandardResponse<List<TaskDTO>> response = taskService.getActiveTasks();
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping(ServiceConstant.UPDATE_TASK)
     public ResponseEntity<StandardResponse<TaskDTO>> updateTask(@PathVariable Long id, @RequestBody TaskDTO taskDTO) {
         StandardResponse<TaskDTO> response = taskService.updateTask(id, taskDTO);

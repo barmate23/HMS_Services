@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -13,4 +14,6 @@ public interface LaundryOrderRepository extends JpaRepository<LaundryOrder, Long
 
     @Query("SELECT MAX(CAST(SUBSTRING(l.orderId, 5) AS long)) FROM LaundryOrder l WHERE l.orderId LIKE 'LND-%'")
     Long findMaxOrderNumber();
+
+    List<LaundryOrder> findByStatusNotAndIsDeletedFalse(String status);
 }

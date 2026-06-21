@@ -24,8 +24,9 @@ public class RoomAuditLog {
     @JoinColumn(name = "checkpoint_id", nullable = false)
     private SOPCheckpoint checkpoint;
 
-    @Column(name = "status", nullable = false, length = 20)
-    private String status; // PASS, FAIL, RECHECK
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private CommonMaster status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inspector_id")

@@ -7,5 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
     java.util.List<Room> findByFloorId(Long floorId);
+    java.util.List<Room> findByIsDeletedFalse();
 }
 
