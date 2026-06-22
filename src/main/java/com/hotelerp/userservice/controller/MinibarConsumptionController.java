@@ -10,33 +10,33 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inventory/minibar")
+@RequestMapping("/api/hmsService/v1/inventory/minibar")
 @RequiredArgsConstructor
 public class MinibarConsumptionController {
 
     private final MinibarConsumptionService minibarConsumptionService;
 
-    @PostMapping("/post-consumption")
+    @PostMapping("/postConsumption")
     public ResponseEntity<StandardResponse<MinibarConsumptionDTO>> postConsumption(@RequestBody MinibarConsumptionDTO dto) {
         return ResponseEntity.ok(minibarConsumptionService.postConsumption(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/updateConsumption/{id}")
     public ResponseEntity<StandardResponse<MinibarConsumptionDTO>> updateConsumption(@PathVariable Long id, @RequestBody MinibarConsumptionDTO dto) {
         return ResponseEntity.ok(minibarConsumptionService.updateConsumption(id, dto));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/getConsumptionById/{id}")
     public ResponseEntity<StandardResponse<MinibarConsumptionDTO>> getConsumptionById(@PathVariable Long id) {
         return ResponseEntity.ok(minibarConsumptionService.getConsumptionById(id));
     }
 
-    @GetMapping
+    @GetMapping("/getAllConsumptions")
     public ResponseEntity<StandardResponse<List<MinibarConsumptionDTO>>> getAllConsumptions() {
         return ResponseEntity.ok(minibarConsumptionService.getAllConsumptions());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deleteConsumption/{id}")
     public ResponseEntity<StandardResponse<Void>> deleteConsumption(@PathVariable Long id) {
         return ResponseEntity.ok(minibarConsumptionService.deleteConsumption(id));
     }

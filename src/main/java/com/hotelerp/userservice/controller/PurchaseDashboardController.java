@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/purchase/dashboard")
+@RequestMapping("/api/hmsService/v1/purchase/dashboard")
 @RequiredArgsConstructor
 public class PurchaseDashboardController {
 
     private final PurchaseDashboardService dashboardService;
 
-    @GetMapping
+    @GetMapping("/getPurchaseDashboard")
     public ResponseEntity<StandardResponse<PurchaseDashboardDTO>> getDashboard() {
         return ResponseEntity.ok(dashboardService.getDashboardData());
     }

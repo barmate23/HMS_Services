@@ -11,18 +11,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/billing/invoices")
+@RequestMapping("/api/hmsService/v1/billing/invoices")
 @RequiredArgsConstructor
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
 
-    @GetMapping
+    @GetMapping("/getAllInvoices")
     public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
         return ResponseEntity.ok(invoiceService.getAllInvoices());
     }
 
-    @GetMapping("/{id}/download")
+    @GetMapping("/downloadInvoice/{id}")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id) {
         byte[] pdf = invoiceService.downloadInvoice(id);
         return ResponseEntity.ok()

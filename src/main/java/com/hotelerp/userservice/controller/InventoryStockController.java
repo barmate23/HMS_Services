@@ -10,39 +10,39 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inventory/stocks")
+@RequestMapping("/api/hmsService/v1/inventory/stocks")
 @RequiredArgsConstructor
 public class InventoryStockController {
 
     private final InventoryStockService inventoryStockService;
 
-    @PostMapping
+    @PostMapping("/createStockItem")
     public ResponseEntity<StandardResponse<InventoryStockDTO>> createStockItem(@RequestBody InventoryStockDTO dto) {
         return ResponseEntity.ok(inventoryStockService.createStockItem(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/updateStockItem/{id}")
     public ResponseEntity<StandardResponse<InventoryStockDTO>> updateStockItem(@PathVariable Long id, @RequestBody InventoryStockDTO dto) {
         return ResponseEntity.ok(inventoryStockService.updateStockItem(id, dto));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/getStockItemById/{id}")
     public ResponseEntity<StandardResponse<InventoryStockDTO>> getStockItemById(@PathVariable Long id) {
         return ResponseEntity.ok(inventoryStockService.getStockItemById(id));
     }
 
-    @GetMapping
+    @GetMapping("/getAllStockItems")
     public ResponseEntity<StandardResponse<List<InventoryStockDTO>>> getAllStockItems() {
         return ResponseEntity.ok(inventoryStockService.getAllStockItems());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deleteStockItem/{id}")
     public ResponseEntity<StandardResponse<Void>> deleteStockItem(@PathVariable Long id) {
         return ResponseEntity.ok(inventoryStockService.deleteStockItem(id));
     }
 
-    @PatchMapping("/{id}/status/{statusId}")
-    public ResponseEntity<StandardResponse<InventoryStockDTO>> updateStockStatus(@PathVariable Long id, @PathVariable Long statusId) {
+    @PostMapping("/updateStockStatus")
+    public ResponseEntity<StandardResponse<InventoryStockDTO>> updateStockStatus(@RequestParam Long id, @RequestParam Long statusId) {
         return ResponseEntity.ok(inventoryStockService.updateStockStatus(id, statusId));
     }
 }

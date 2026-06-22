@@ -8,33 +8,33 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/billing/folios")
+@RequestMapping("/api/hmsService/v1/billing/folios")
 @RequiredArgsConstructor
 public class FolioController {
 
     private final FolioService folioService;
 
-    @GetMapping("/{folioId}/ledger")
+    @GetMapping("/getLedgerByFolioId/{folioId}")
     public ResponseEntity<StandardResponse<FolioLedgerDTO>> getLedger(@PathVariable Long folioId) {
         return ResponseEntity.ok(folioService.getLedger(folioId));
     }
 
-    @PostMapping("/charges")
+    @PostMapping("/postCharge")
     public ResponseEntity<StandardResponse<Void>> postCharge(@RequestBody FolioPostingRequest request) {
         return ResponseEntity.ok(folioService.postCharge(request));
     }
 
-    @PostMapping("/payments")
+    @PostMapping("/collectFolioPayment")
     public ResponseEntity<StandardResponse<Void>> collectPayment(@RequestBody FolioPaymentRequest request) {
         return ResponseEntity.ok(folioService.collectPayment(request));
     }
 
-    @PostMapping("/{folioId}/settle")
+    @PostMapping("/generateInvoice/{folioId}")
     public ResponseEntity<StandardResponse<Void>> settleFolio(@PathVariable Long folioId) {
         return ResponseEntity.ok(folioService.settledFolio(folioId));
     }
 
-    @GetMapping("/active")
+    @GetMapping("/getActiveFolios")
     public ResponseEntity<StandardResponse<java.util.List<FolioLedgerDTO>>> getActiveFolios() {
         return ResponseEntity.ok(folioService.getActiveFolios());
     }

@@ -10,39 +10,39 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/inventory/purchase-requests")
+@RequestMapping("/api/hmsService/v1/inventory/purchase-requests")
 @RequiredArgsConstructor
 public class PurchaseRequestController {
 
     private final PurchaseRequestService purchaseRequestService;
 
-    @PostMapping
+    @PostMapping("/createPurchaseRequest")
     public ResponseEntity<StandardResponse<PurchaseRequestDTO>> create(@RequestBody PurchaseRequestDTO dto) {
         return ResponseEntity.ok(purchaseRequestService.createPurchaseRequest(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/updatePurchaseRequest/{id}")
     public ResponseEntity<StandardResponse<PurchaseRequestDTO>> update(@PathVariable Long id, @RequestBody PurchaseRequestDTO dto) {
         return ResponseEntity.ok(purchaseRequestService.updatePurchaseRequest(id, dto));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/getPurchaseRequestById/{id}")
     public ResponseEntity<StandardResponse<PurchaseRequestDTO>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(purchaseRequestService.getPurchaseRequestById(id));
     }
 
-    @GetMapping
+    @GetMapping("/getAllPurchaseRequest")
     public ResponseEntity<StandardResponse<List<PurchaseRequestDTO>>> getAll() {
         return ResponseEntity.ok(purchaseRequestService.getAllPurchaseRequests());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deletePurchaseRequest/{id}")
     public ResponseEntity<StandardResponse<Void>> delete(@PathVariable Long id) {
         return ResponseEntity.ok(purchaseRequestService.deletePurchaseRequest(id));
     }
 
-    @PatchMapping("/{id}/status/{statusId}")
-    public ResponseEntity<StandardResponse<PurchaseRequestDTO>> updateStatus(@PathVariable Long id, @PathVariable Long statusId) {
+    @PostMapping("/updatePurchaseRequestStatus")
+    public ResponseEntity<StandardResponse<PurchaseRequestDTO>> updateStatus(@RequestParam Long id, @RequestParam Long statusId) {
         return ResponseEntity.ok(purchaseRequestService.updateStatus(id, statusId));
     }
 }

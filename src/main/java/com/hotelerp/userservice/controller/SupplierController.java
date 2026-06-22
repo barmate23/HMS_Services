@@ -10,38 +10,38 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/purchase/suppliers")
+@RequestMapping("/api/hmsService/v1/purchase/suppliers")
 @RequiredArgsConstructor
 public class SupplierController {
 
     private final SupplierService supplierService;
 
-    @PostMapping
+    @PostMapping("/createSupplier")
     public ResponseEntity<StandardResponse<SupplierDTO>> create(@RequestBody SupplierDTO dto) {
         return ResponseEntity.ok(supplierService.createSupplier(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/updateSupplier/{id}")
     public ResponseEntity<StandardResponse<SupplierDTO>> update(@PathVariable Long id, @RequestBody SupplierDTO dto) {
         return ResponseEntity.ok(supplierService.updateSupplier(id, dto));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/getBySupplierId/{id}")
     public ResponseEntity<StandardResponse<SupplierDTO>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.getSupplierById(id));
     }
 
-    @GetMapping
+    @GetMapping("/getAllSupplier")
     public ResponseEntity<StandardResponse<List<SupplierDTO>>> getAll() {
         return ResponseEntity.ok(supplierService.getAllSuppliers());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deleteSupplier/{id}")
     public ResponseEntity<StandardResponse<Void>> delete(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.deleteSupplier(id));
     }
 
-    @PatchMapping("/{id}/status/{statusId}")
+    @PostMapping("/updateSupplierStatus")
     public ResponseEntity<StandardResponse<SupplierDTO>> updateStatus(@PathVariable Long id, @PathVariable Long statusId) {
         return ResponseEntity.ok(supplierService.updateStatus(id, statusId));
     }
