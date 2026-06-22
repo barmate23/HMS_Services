@@ -102,11 +102,15 @@ public class PosServiceImpl implements PosService {
             posOrderRepository.save(order);
 
             if (order.getRoom() != null) {
-                folioService.postChargeByRoom(order.getRoom().getId(),
+                StandardResponse<Void> folioResponse = folioService.postChargeByRoom(order.getRoom().getId(),
                         order.getTotalAmount(),
                         "POS",
                         "POS Order: " + order.getId() + " - " + order.getOutlet().getName());
+                if (!folioResponse.isSuccess()) {
+                    throw new RuntimeException("Failed to post charge to folio: " + folioResponse.getMessage());
+                }
             }
+
 
             return StandardResponse.success("Order created successfully");
         } catch (ResourceNotFoundException e) {

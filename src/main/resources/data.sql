@@ -463,3 +463,308 @@ INSERT IGNORE INTO sop_checkpoints (id, checkpoint_id, frequency_id, audit_area,
 INSERT IGNORE INTO room_audit_logs (id, room_id, checkpoint_id, status_id, inspector_id, score, remarks, audit_date, created_at) VALUES
 (1, 1, 1, (SELECT id FROM common_masters WHERE category='AUDIT_STATUS' AND code='PASS' LIMIT 1), 2, 100, 'All clean', NOW(), NOW()),
 (2, 1, 2, (SELECT id FROM common_masters WHERE category='AUDIT_STATUS' AND code='FAIL' LIMIT 1), 2, 0, 'Stain found', NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 18. INVENTORY CATEGORIES
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('STOCK_CATEGORY', 'HK_LINEN',      'Housekeeping Linen',  'Linen items like towels, bedsheets', 1, NOW(), NOW()),
+('STOCK_CATEGORY', 'GUEST_AMENITY', 'Guest Amenities',     'Soap, shampoo, dental kits, etc.',   1, NOW(), NOW()),
+('STOCK_CATEGORY', 'LAUNDRY_CONS', 'Laundry Consumable',  'Detergents and laundry chemicals',   1, NOW(), NOW()),
+('STOCK_CATEGORY', 'MINIBAR',      'Minibar',             'Beverages and snacks for minibar',    1, NOW(), NOW()),
+('STOCK_CATEGORY', 'CLEANING_CHEM', 'Cleaning Chemical',   'Floor cleaners, disinfectants',       1, NOW(), NOW()),
+('STOCK_CATEGORY', 'FB_DRY',        'F&B Dry Storage',     'Dry food items and groceries',        1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 19. STORES
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('STORE', 'MAIN_STORE',    'Main Store',    'Primary inventory storage area', 1, NOW(), NOW()),
+('STORE', 'HK_PANTRY',     'HK Pantry',     'Housekeeping pantry on floors',  1, NOW(), NOW()),
+('STORE', 'LAUNDRY_STORE', 'Laundry Store', 'Storage for laundry items',      1, NOW(), NOW()),
+('STORE', 'MINIBAR_STORE', 'Minibar Store', 'Storage for minibar stock',      1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 20. STOCK STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('STOCK_STATUS', 'OK',        'OK',        'Stock level is sufficient',      1, NOW(), NOW()),
+('STOCK_STATUS', 'LOW',       'LOW',       'Stock is below reorder level',   1, NOW(), NOW()),
+('STOCK_STATUS', 'OVERSTOCK', 'OVERSTOCK', 'Stock is above par level',       1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 21. SAMPLE INVENTORY STOCK
+-- -------------------------------------------------------
+INSERT IGNORE INTO inventory_stocks (item_code, item_name, category_id, store_id, on_hand, unit, reorder_level, par_level, unit_cost, status_id, is_deleted, created_at, updated_at) VALUES
+('HK-LIN-001', 'Bath Towel', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='HK_LINEN' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='MAIN_STORE' LIMIT 1),
+    82, 'Pcs', 60, 140, 220.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+('HK-AMN-014', 'Dental Kit', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='GUEST_AMENITY' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='HK_PANTRY' LIMIT 1),
+    24, 'Pcs', 40, 120, 18.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='LOW' LIMIT 1), 0, NOW(), NOW()),
+('LND-DET-003', 'Laundry Detergent', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='LAUNDRY_CONS' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='LAUNDRY_STORE' LIMIT 1),
+    38, 'Kg', 25, 70, 96.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+('MB-BEV-009', 'Soda Can', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1),
+    110, 'Can', 80, 180, 32.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+('HK-CHEM-007', 'Floor Cleaner', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='CLEANING_CHEM' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='MAIN_STORE' LIMIT 1),
+    11, 'Ltr', 18, 45, 145.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='LOW' LIMIT 1), 0, NOW(), NOW()),
+('FB-DRY-012', 'Coffee Sachet', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='GUEST_AMENITY' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='HK_PANTRY' LIMIT 1),
+    310, 'Pcs', 100, 240, 7.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OVERSTOCK' LIMIT 1), 0, NOW(), NOW()),
+('MB-FOD-022', 'Chocolate Bar', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1),
+    45, 'Pkt', 20, 60, 25.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+('MB-BEV-004', 'Mineral Water', 
+    (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1),
+    80, 'Btl', 40, 100, 15.00,
+    (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW());
+
+
+-- -------------------------------------------------------
+-- 22. MINIBAR STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('MINIBAR_STATUS', 'REFILL',   'Refill',   'Item needs to be replenished', 1, NOW(), NOW()),
+('MINIBAR_STATUS', 'BALANCED', 'Balanced', 'Stock matches par level',      1, NOW(), NOW()),
+('MINIBAR_STATUS', 'POSTED',   'Posted',   'Consumption posted to folio',  1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 24. PURCHASE REQUEST STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('PR_STATUS', 'DRAFT',     'Draft',     'Request is in draft state',      1, NOW(), NOW()),
+('PR_STATUS', 'SUBMITTED', 'Submitted', 'Request submitted for approval', 1, NOW(), NOW()),
+('PR_STATUS', 'APPROVED',  'Approved',  'Request has been approved',      1, NOW(), NOW()),
+('PR_STATUS', 'REJECTED',  'Rejected',  'Request has been rejected',      1, NOW(), NOW()),
+('PR_STATUS', 'ORDERED',   'Ordered',   'Purchase order raised',          1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 25. STOCK ISSUE STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('STOCK_ISSUE_STATUS', 'ISSUED', 'Issued', 'Stock has been issued',  1, NOW(), NOW()),
+('STOCK_ISSUE_STATUS', 'CLOSED', 'Closed', 'Issue record is closed', 1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 26. DEPARTMENT MASTERS (for inventory requests)
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('DEPARTMENT', 'HK',         'Housekeeping', 'Housekeeping department',      1, NOW(), NOW()),
+('DEPARTMENT', 'FB',         'F&B',          'Food and Beverage department', 1, NOW(), NOW()),
+('DEPARTMENT', 'LAUNDRY',    'Laundry',      'Laundry department',           1, NOW(), NOW()),
+('DEPARTMENT', 'MINIBAR',    'Minibar',      'Minibar department',           1, NOW(), NOW()),
+('DEPARTMENT', 'FRONTOFFICE','Front Office', 'Front Office department',      1, NOW(), NOW()),
+('DEPARTMENT', 'MAINT',      'Maintenance',  'Engineering and maintenance',  1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 27. SAMPLE PURCHASE REQUESTS
+-- -------------------------------------------------------
+INSERT IGNORE INTO purchase_requests (pr_number, department_id, requested_by, needed_by, expected_amount, justification, status_id, is_deleted, created_at, updated_at) VALUES
+('PR-1007',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='HK' LIMIT 1),
+    'Meena Pillai', '2026-06-18', 18450.00, 'Reorder stock for upcoming occupancy',
+    (SELECT id FROM common_masters WHERE category='PR_STATUS' AND code='APPROVED' LIMIT 1), 0, NOW(), NOW()),
+('PR-1008',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='LAUNDRY' LIMIT 1),
+    'Laundry Desk', '2026-06-17', 7200.00, 'Replenish laundry detergents',
+    (SELECT id FROM common_masters WHERE category='PR_STATUS' AND code='SUBMITTED' LIMIT 1), 0, NOW(), NOW()),
+('PR-1009',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='MINIBAR' LIMIT 1),
+    'Front Office', '2026-06-20', 12800.00, 'Minibar restocking for peak season',
+    (SELECT id FROM common_masters WHERE category='PR_STATUS' AND code='DRAFT' LIMIT 1), 0, NOW(), NOW());
+
+-- Purchase request items
+INSERT IGNORE INTO purchase_request_items (purchase_request_id, item_id, quantity, unit_price, created_at) VALUES
+((SELECT id FROM purchase_requests WHERE pr_number='PR-1007' LIMIT 1),
+    (SELECT id FROM inventory_stocks WHERE item_code='HK-LIN-001' LIMIT 1), 4, 220.00, NOW()),
+((SELECT id FROM purchase_requests WHERE pr_number='PR-1007' LIMIT 1),
+    (SELECT id FROM inventory_stocks WHERE item_code='HK-CHEM-007' LIMIT 1), 10, 145.00, NOW()),
+((SELECT id FROM purchase_requests WHERE pr_number='PR-1008' LIMIT 1),
+    (SELECT id FROM inventory_stocks WHERE item_code='LND-DET-003' LIMIT 1), 50, 96.00, NOW()),
+((SELECT id FROM purchase_requests WHERE pr_number='PR-1009' LIMIT 1),
+    (SELECT id FROM inventory_stocks WHERE item_code='MB-BEV-009' LIMIT 1), 200, 32.00, NOW()),
+((SELECT id FROM purchase_requests WHERE pr_number='PR-1009' LIMIT 1),
+    (SELECT id FROM inventory_stocks WHERE item_code='MB-FOD-022' LIMIT 1), 100, 25.00, NOW());
+
+-- -------------------------------------------------------
+-- 28. SAMPLE STORE ISSUES
+-- -------------------------------------------------------
+INSERT IGNORE INTO store_issues (issue_number, department_id, issued_to, item_id, quantity, issue_note, issue_date, status_id, is_deleted, created_at, updated_at) VALUES
+('ISS-2401',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='HK' LIMIT 1),
+    'Floor Pantry - Floor 1',
+    (SELECT id FROM inventory_stocks WHERE item_code='HK-LIN-001' LIMIT 1),
+    10, 'Daily replenishment for Floor 1', '2026-06-15',
+    (SELECT id FROM common_masters WHERE category='STOCK_ISSUE_STATUS' AND code='ISSUED' LIMIT 1), 0, NOW(), NOW()),
+('ISS-2402',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='HK' LIMIT 1),
+    'HK Supervisor - Floor 2',
+    (SELECT id FROM inventory_stocks WHERE item_code='HK-AMN-014' LIMIT 1),
+    20, 'Guest amenity restock', '2026-06-15',
+    (SELECT id FROM common_masters WHERE category='STOCK_ISSUE_STATUS' AND code='ISSUED' LIMIT 1), 0, NOW(), NOW()),
+('ISS-2403',
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='LAUNDRY' LIMIT 1),
+    'Laundry Room',
+    (SELECT id FROM inventory_stocks WHERE item_code='LND-DET-003' LIMIT 1),
+    5, 'Weekly laundry consumable issue', '2026-06-14',
+    (SELECT id FROM common_masters WHERE category='STOCK_ISSUE_STATUS' AND code='CLOSED' LIMIT 1), 0, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 23. SAMPLE MINIBAR CONSUMPTIONS
+-- -------------------------------------------------------
+INSERT IGNORE INTO minibar_consumptions (room_id, item_id, par_level, current_qty, consumed_qty, charge_amount, status_id, remarks, is_deleted, created_at, updated_at) VALUES
+(1, (SELECT id FROM inventory_stocks WHERE item_code='MB-BEV-009' LIMIT 1), 2, 1, 1, 95.00, 
+    (SELECT id FROM common_masters WHERE category='MINIBAR_STATUS' AND code='REFILL' LIMIT 1), 'Refill needed', 0, NOW(), NOW()),
+(6, (SELECT id FROM inventory_stocks WHERE item_code='MB-FOD-022' LIMIT 1), 2, 2, 0, 30.00, 
+    (SELECT id FROM common_masters WHERE category='MINIBAR_STATUS' AND code='BALANCED' LIMIT 1), 'Checked', 0, NOW(), NOW()),
+(10, (SELECT id FROM inventory_stocks WHERE item_code='MB-BEV-004' LIMIT 1), 4, 2, 2, 120.00, 
+    (SELECT id FROM common_masters WHERE category='MINIBAR_STATUS' AND code='POSTED' LIMIT 1), 'Posted to room folio', 0, NOW(), NOW());
+-- -------------------------------------------------------
+-- 29. SUPPLIER STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('SUPPLIER_STATUS', 'ACTIVE',   'Active',   'Supplier is active and operational', 1, NOW(), NOW()),
+('SUPPLIER_STATUS', 'ON_HOLD',  'On Hold',  'Supplier is temporarily on hold',    1, NOW(), NOW()),
+('SUPPLIER_STATUS', 'INACTIVE', 'Inactive', 'Supplier is deactivated',            1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 30. SUPPLIER CATEGORY
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('SUPPLIER_CATEGORY', 'HK_SUPPLIES',  'Housekeeping Supplies', 'Linen, amenities, cleaning items', 1, NOW(), NOW()),
+('SUPPLIER_CATEGORY', 'FB_ITEMS',     'F&B Items',             'Food and beverage supplies',       1, NOW(), NOW()),
+('SUPPLIER_CATEGORY', 'MINIBAR',      'Minibar Goods',         'Minibar products and snacks',      1, NOW(), NOW()),
+('SUPPLIER_CATEGORY', 'LAUNDRY',      'Laundry Chemicals',     'Laundry consumables',              1, NOW(), NOW()),
+('SUPPLIER_CATEGORY', 'ENGINEERING',  'Engineering Parts',     'Maintenance and repair parts',     1, NOW(), NOW()),
+('SUPPLIER_CATEGORY', 'GENERAL',      'General',               'General purpose supplier',         1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 31. PAYMENT TERMS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('PAYMENT_TERMS', 'IMMEDIATE', 'Immediate',  'Payment due immediately on delivery', 1, NOW(), NOW()),
+('PAYMENT_TERMS', '7_DAYS',    '7 Days',     'Payment due within 7 days',           1, NOW(), NOW()),
+('PAYMENT_TERMS', '15_DAYS',   '15 Days',    'Payment due within 15 days',          1, NOW(), NOW()),
+('PAYMENT_TERMS', '30_DAYS',   '30 Days',    'Payment due within 30 days',          1, NOW(), NOW()),
+('PAYMENT_TERMS', '45_DAYS',   '45 Days',    'Payment due within 45 days',          1, NOW(), NOW()),
+('PAYMENT_TERMS', '60_DAYS',   '60 Days',    'Payment due within 60 days',          1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 32. SAMPLE SUPPLIERS
+-- -------------------------------------------------------
+INSERT IGNORE INTO suppliers (supplier_name, category_id, contact_person, phone, email, payment_terms_id, supplier_address, city, state, pin_code, gstin, pan, credit_limit, bank_name, account_number, ifsc_code, status_id, is_deleted, created_at, updated_at) VALUES
+('Fresh Linen Co.',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_CATEGORY' AND code='HK_SUPPLIES' LIMIT 1),
+    'Ramesh Kumar', '+91-9800111001', 'billing@freshlinen.com',
+    (SELECT id FROM common_masters WHERE category='PAYMENT_TERMS' AND code='30_DAYS' LIMIT 1),
+    '14, Textile Park, Sector 5', 'Mumbai', 'Maharashtra', '400005',
+    '27AABCF1234A1Z5', 'AABCF1234A', 150000.00,
+    'HDFC Bank', '001234567890', 'HDFC0001234',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_STATUS' AND code='ACTIVE' LIMIT 1), 0, NOW(), NOW()),
+('CleanPro Hospitality Supplies',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_CATEGORY' AND code='HK_SUPPLIES' LIMIT 1),
+    'Priya Verma', '+91-9800111002', 'orders@cleanpro.in',
+    (SELECT id FROM common_masters WHERE category='PAYMENT_TERMS' AND code='7_DAYS' LIMIT 1),
+    '7, Chemical Complex, MIDC', 'Pune', 'Maharashtra', '411019',
+    '27ZZZCL5678B2Z6', 'ZZZCL5678B', 80000.00,
+    'ICICI Bank', '004567891011', 'ICIC0002345',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_STATUS' AND code='ACTIVE' LIMIT 1), 0, NOW(), NOW()),
+('MiniBar Traders',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_CATEGORY' AND code='MINIBAR' LIMIT 1),
+    'Suresh Pillai', '+91-9800111003', 'supply@minibartraders.com',
+    (SELECT id FROM common_masters WHERE category='PAYMENT_TERMS' AND code='15_DAYS' LIMIT 1),
+    '23, Beverage Park, Andheri East', 'Mumbai', 'Maharashtra', '400069',
+    '27MBTRD9012C3Z7', 'MBTRD9012C', 60000.00,
+    'SBI', '007890123456', 'SBIN0003456',
+    (SELECT id FROM common_masters WHERE category='SUPPLIER_STATUS' AND code='ON_HOLD' LIMIT 1), 0, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 33. PURCHASE ORDER STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('PO_STATUS', 'DRAFT',              'Draft',              'PO is in draft state',               1, NOW(), NOW()),
+('PO_STATUS', 'APPROVED',           'Approved',           'PO has been approved',               1, NOW(), NOW()),
+('PO_STATUS', 'SENT_TO_SUPPLIER',   'Sent to Supplier',   'PO sent to supplier',                1, NOW(), NOW()),
+('PO_STATUS', 'PARTIALLY_RECEIVED', 'Partially Received', 'Some items have been received',       1, NOW(), NOW()),
+('PO_STATUS', 'RECEIVED',           'Received',           'All items received',                  1, NOW(), NOW()),
+('PO_STATUS', 'CANCELLED',          'Cancelled',          'PO has been cancelled',               1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 34. SAMPLE PURCHASE ORDERS
+-- -------------------------------------------------------
+INSERT IGNORE INTO purchase_orders (po_number, supplier_id, department_id, expected_date, item_count, po_note, total_amount, status_id, is_deleted, created_at, updated_at) VALUES
+('PO-2409',
+    (SELECT id FROM suppliers WHERE supplier_name='Fresh Linen Co.' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='HK' LIMIT 1),
+    '2026-06-18', 5, 'Urgent linen restock for peak season', 86400.00,
+    (SELECT id FROM common_masters WHERE category='PO_STATUS' AND code='APPROVED' LIMIT 1), 0, NOW(), NOW()),
+('PO-2410',
+    (SELECT id FROM suppliers WHERE supplier_name='CleanPro Hospitality Supplies' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='LAUNDRY' LIMIT 1),
+    '2026-06-17', 3, 'Monthly laundry chemical order', 28600.00,
+    (SELECT id FROM common_masters WHERE category='PO_STATUS' AND code='PARTIALLY_RECEIVED' LIMIT 1), 0, NOW(), NOW()),
+('PO-2411',
+    (SELECT id FROM suppliers WHERE supplier_name='MiniBar Traders' LIMIT 1),
+    (SELECT id FROM common_masters WHERE category='DEPARTMENT' AND code='MINIBAR' LIMIT 1),
+    '2026-06-20', 8, 'Minibar stock replenishment', 41250.00,
+    (SELECT id FROM common_masters WHERE category='PO_STATUS' AND code='DRAFT' LIMIT 1), 0, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 35. VENDOR BILL STATUS
+-- -------------------------------------------------------
+INSERT IGNORE INTO common_masters (category, code, value, description, is_active, created_at, updated_at) VALUES
+('VENDOR_BILL_STATUS', 'PENDING',  'Pending',  'Bill is pending for approval', 1, NOW(), NOW()),
+('VENDOR_BILL_STATUS', 'APPROVED', 'Approved', 'Bill has been approved',      1, NOW(), NOW()),
+('VENDOR_BILL_STATUS', 'PAID',     'Paid',     'Bill has been paid',          1, NOW(), NOW()),
+('VENDOR_BILL_STATUS', 'DISPUTED', 'Disputed', 'Bill is in dispute',          1, NOW(), NOW()),
+('VENDOR_BILL_STATUS', 'CANCELLED','Cancelled','Bill has been cancelled',      1, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 36. SAMPLE GRN (INWARD STOCK)
+-- -------------------------------------------------------
+INSERT IGNORE INTO inward_stocks (grn_number, purchase_order_id, received_by, received_date, accepted_value, variance_note, is_deleted, created_at, updated_at) VALUES
+('GRN-3301',
+    (SELECT id FROM purchase_orders WHERE po_number='PO-2410' LIMIT 1),
+    'Store Keeper', '2026-06-15', 18400.00, '1 ITEM PENDING', 0, NOW(), NOW()),
+('GRN-3300',
+    (SELECT id FROM purchase_orders WHERE po_number='PO-2409' LIMIT 1),
+    'Store Keeper', '2026-06-14', 55200.00, 'NO VARIANCE', 0, NOW(), NOW());
+
+-- -------------------------------------------------------
+-- 37. SAMPLE VENDOR BILLS
+-- -------------------------------------------------------
+INSERT IGNORE INTO vendor_bills (bill_number, supplier_id, purchase_order_id, bill_date, due_date, amount_before_tax, tax_amount, total_amount, status_id, is_deleted, created_at, updated_at) VALUES
+('VB-5101',
+    (SELECT id FROM suppliers WHERE supplier_name='Fresh Linen Co.' LIMIT 1),
+    (SELECT id FROM purchase_orders WHERE po_number='PO-2409' LIMIT 1),
+    '2026-06-14', '2026-07-14', 55200.00, 9936.00, 65136.00,
+    (SELECT id FROM common_masters WHERE category='VENDOR_BILL_STATUS' AND code='APPROVED' LIMIT 1), 0, NOW(), NOW()),
+('VB-5102',
+    (SELECT id FROM suppliers WHERE supplier_name='CleanPro Hospitality Supplies' LIMIT 1),
+    (SELECT id FROM purchase_orders WHERE po_number='PO-2410' LIMIT 1),
+    '2026-06-15', '2026-06-30', 18400.00, 3312.00, 21712.00,
+    (SELECT id FROM common_masters WHERE category='VENDOR_BILL_STATUS' AND code='PENDING' LIMIT 1), 0, NOW(), NOW()),
+('VB-5103',
+    (SELECT id FROM suppliers WHERE supplier_name='MiniBar Traders' LIMIT 1),
+    (SELECT id FROM purchase_orders WHERE po_number='PO-2407' LIMIT 1),
+    '2026-06-12', '2026-06-19', 15850.00, 2853.00, 18703.00,
+    (SELECT id FROM common_masters WHERE category='VENDOR_BILL_STATUS' AND code='DISPUTED' LIMIT 1), 0, NOW(), NOW());
+

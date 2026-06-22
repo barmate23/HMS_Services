@@ -247,11 +247,15 @@ public class LaundryServiceImpl implements LaundryService {
             }
 
             if ("Room".equalsIgnoreCase(order.getBillingOption())) {
-                folioService.postChargeByRoom(order.getRoom().getId(),
+                StandardResponse<Void> folioResponse = folioService.postChargeByRoom(order.getRoom().getId(),
                         java.math.BigDecimal.valueOf(order.getTotalAmount()),
                         "Laundry",
                         "Laundry Order: " + order.getOrderId());
+                if (!folioResponse.isSuccess()) {
+                    throw new RuntimeException("Failed to post charge to folio: " + folioResponse.getMessage());
+                }
             }
+
 
             return StandardResponse.success(convertToDTO(order), "Laundry order created successfully");
         } catch (Exception e) {
