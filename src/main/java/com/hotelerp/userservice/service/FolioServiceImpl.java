@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -94,7 +95,24 @@ public class FolioServiceImpl implements FolioService {
     @Transactional
     public StandardResponse<Void> postCharge(FolioPostingRequest request) {
         try {
-            Folio folio = folioRepository.findById(request.getFolioId())
+            Long folioId = request.getFolioId();
+
+            if (request.getRoomId() != null) {
+                LocalDate today = LocalDate.now();
+                Booking booking = bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
+                        .orElseThrow(() -> new RuntimeException("No active booking found for room " + request.getRoomId() + " on " + today));
+                
+                Folio folioByRoom = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
+                        .orElseThrow(() -> new RuntimeException("Folio not found for reservation of room " + request.getRoomId()));
+                
+                folioId = folioByRoom.getId();
+            }
+
+            if (folioId == null) {
+                throw new RuntimeException("Folio ID or Room ID is required");
+            }
+
+            Folio folio = folioRepository.findById(folioId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
             // Basic tax calculation logic for demonstration

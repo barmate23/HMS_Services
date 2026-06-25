@@ -18,4 +18,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByRoomIdAndIsDeletedFalse(Long roomId);
 
     List<Booking> findByReservationId(Long reservationId);
+
+    @Query("SELECT b FROM Booking b WHERE b.room.id = :roomId AND b.isDeleted = false AND :date >= b.checkInDate AND :date < b.checkOutDate")
+    java.util.Optional<Booking> findActiveByRoomAndDate(@Param("roomId") Long roomId, @Param("date") java.time.LocalDate date);
 }
