@@ -44,7 +44,7 @@ public class PurchaseRequestDTO {
         private Long itemId;
         private String itemName;
         private String itemCode;
-        private Integer quantity;
+        private java.math.BigDecimal requiredQuantity;
         private BigDecimal unitPrice;
     }
 }

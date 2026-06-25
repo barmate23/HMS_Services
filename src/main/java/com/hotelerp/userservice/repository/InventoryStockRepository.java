@@ -12,20 +12,16 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
     List<InventoryStock> findByIsDeletedFalse();
     Optional<InventoryStock> findByIdAndIsDeletedFalse(Long id);
     List<InventoryStock> findByStoreIdAndIsDeletedFalse(Long storeId);
-    List<InventoryStock> findByCategoryIdAndIsDeletedFalse(Long categoryId);
+    List<InventoryStock> findByItemConfigCategoryIdAndIsDeletedFalse(Long categoryId);
     
     long countByIsDeletedFalse();
     
-    // Low stock: onHand <= reorderLevel
-    List<InventoryStock> findByOnHandLessThanEqualAndIsDeletedFalse(java.math.BigDecimal threshold); 
-    // Actually the logic is item-specific. Jpa doesn't easily compare two columns without @Query.
-    
-    @org.springframework.data.jpa.repository.Query("SELECT COUNT(s) FROM InventoryStock s WHERE s.onHand <= s.reorderLevel AND s.isDeleted = false")
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(s) FROM InventoryStock s JOIN s.itemConfig ic WHERE s.onHand <= ic.reorderLevel AND s.isDeleted = false")
     long countLowStockItems();
     
-    @org.springframework.data.jpa.repository.Query("SELECT s FROM InventoryStock s WHERE s.onHand <= s.reorderLevel AND s.isDeleted = false")
+    @org.springframework.data.jpa.repository.Query("SELECT s FROM InventoryStock s JOIN s.itemConfig ic WHERE s.onHand <= ic.reorderLevel AND s.isDeleted = false")
     List<InventoryStock> findLowStockItems();
     
-    @org.springframework.data.jpa.repository.Query("SELECT SUM(s.onHand * s.unitCost) FROM InventoryStock s WHERE s.isDeleted = false")
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(s.onHand * ic.unitCost) FROM InventoryStock s JOIN s.itemConfig ic WHERE s.isDeleted = false")
     java.math.BigDecimal calculateTotalStockValue();
 }

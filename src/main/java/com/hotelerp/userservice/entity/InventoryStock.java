@@ -17,15 +17,9 @@ public class InventoryStock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "item_code", nullable = false, unique = true)
-    private String itemCode;
-
-    @Column(name = "item_name", nullable = false)
-    private String itemName;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private CommonMaster category;
+    @JoinColumn(name = "item_config_id", nullable = false)
+    private ItemConfig itemConfig;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
@@ -33,18 +27,6 @@ public class InventoryStock {
 
     @Column(name = "on_hand", precision = 19, scale = 2)
     private BigDecimal onHand;
-
-    @Column(name = "unit")
-    private String unit;
-
-    @Column(name = "reorder_level", precision = 19, scale = 2)
-    private BigDecimal reorderLevel;
-
-    @Column(name = "par_level", precision = 19, scale = 2)
-    private BigDecimal parLevel;
-
-    @Column(name = "unit_cost", precision = 19, scale = 2)
-    private BigDecimal unitCost;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status_id")

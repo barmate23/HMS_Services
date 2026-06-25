@@ -6,6 +6,8 @@ import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.InventoryStock;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.InventoryStockRepository;
+import com.hotelerp.userservice.repository.ItemConfigRepository;
+import com.hotelerp.userservice.entity.ItemConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,25 +24,23 @@ public class InventoryStockServiceImpl implements InventoryStockService {
 
     private final InventoryStockRepository inventoryStockRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final ItemConfigRepository itemConfigRepository;
 
     @Override
     @Transactional
     public StandardResponse<InventoryStockDTO> createStockItem(InventoryStockDTO dto) {
         try {
-            InventoryStock stock = InventoryStock.builder()
-                    .itemCode(dto.getItemCode())
-                    .itemName(dto.getItemName())
-                    .onHand(dto.getOnHand() != null ? dto.getOnHand() : BigDecimal.ZERO)
-                    .unit(dto.getUnit())
-                    .reorderLevel(dto.getReorderLevel())
-                    .parLevel(dto.getParLevel())
-                    .unitCost(dto.getUnitCost())
-                    .build();
-
-            if (dto.getCategoryId() != null) {
-                stock.setCategory(commonMasterRepository.findById(dto.getCategoryId())
-                        .orElseThrow(() -> new RuntimeException("Category not found")));
+            if (dto.getItemConfigId() == null) {
+                return StandardResponse.error("Item Config ID is required", "BAD_REQUEST", "Item Config ID is null");
             }
+
+            ItemConfig itemConfig = itemConfigRepository.findById(dto.getItemConfigId())
+                    .orElseThrow(() -> new RuntimeException("Item Config not found"));
+
+            InventoryStock stock = InventoryStock.builder()
+                    .itemConfig(itemConfig)
+                    .onHand(dto.getOnHand() != null ? dto.getOnHand() : BigDecimal.ZERO)
+                    .build();
 
             if (dto.getStoreId() != null) {
                 stock.setStore(commonMasterRepository.findById(dto.getStoreId())
@@ -67,17 +67,13 @@ public class InventoryStockServiceImpl implements InventoryStockService {
             InventoryStock stock = inventoryStockRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new RuntimeException("Stock item not found"));
 
-            stock.setItemName(dto.getItemName());
-            stock.setOnHand(dto.getOnHand());
-            stock.setUnit(dto.getUnit());
-            stock.setReorderLevel(dto.getReorderLevel());
-            stock.setParLevel(dto.getParLevel());
-            stock.setUnitCost(dto.getUnitCost());
-
-            if (dto.getCategoryId() != null) {
-                stock.setCategory(commonMasterRepository.findById(dto.getCategoryId())
-                        .orElseThrow(() -> new RuntimeException("Category not found")));
+            if (dto.getItemConfigId() != null) {
+                ItemConfig itemConfig = itemConfigRepository.findById(dto.getItemConfigId())
+                        .orElseThrow(() -> new RuntimeException("Item Config not found"));
+                stock.setItemConfig(itemConfig);
             }
+
+            stock.setOnHand(dto.getOnHand());
 
             if (dto.getStoreId() != null) {
                 stock.setStore(commonMasterRepository.findById(dto.getStoreId())
@@ -128,7 +124,7 @@ public class InventoryStockServiceImpl implements InventoryStockService {
                     .orElseThrow(() -> new RuntimeException("Stock item not found"));
             stock.setIsDeleted(true);
             inventoryStockRepository.save(stock);
-            return StandardResponse.success("Stock item deleted successfully");
+            return StandardResponse.success(null, "Stock item deleted successfully");
         } catch (Exception e) {
             return StandardResponse.error("Failed to delete stock item", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
@@ -154,24 +150,26 @@ public class InventoryStockServiceImpl implements InventoryStockService {
     }
 
     private InventoryStockDTO convertToDTO(InventoryStock stock) {
+        com.hotelerp.userservice.entity.ItemConfig item = stock.getItemConfig();
         BigDecimal value = BigDecimal.ZERO;
-        if (stock.getOnHand() != null && stock.getUnitCost() != null) {
-            value = stock.getOnHand().multiply(stock.getUnitCost());
+        if (stock.getOnHand() != null && item != null && item.getUnitCost() != null) {
+            value = stock.getOnHand().multiply(item.getUnitCost());
         }
 
         return InventoryStockDTO.builder()
                 .id(stock.getId())
-                .itemCode(stock.getItemCode())
-                .itemName(stock.getItemName())
-                .categoryId(stock.getCategory() != null ? stock.getCategory().getId() : null)
-                .categoryName(stock.getCategory() != null ? stock.getCategory().getValue() : null)
+                .itemConfigId(item != null ? item.getId() : null)
+                .itemCode(item != null ? item.getItemCode() : null)
+                .itemName(item != null ? item.getItemName() : null)
+                .categoryId(item != null && item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item != null && item.getCategory() != null ? item.getCategory().getValue() : null)
                 .storeId(stock.getStore() != null ? stock.getStore().getId() : null)
                 .storeName(stock.getStore() != null ? stock.getStore().getValue() : null)
                 .onHand(stock.getOnHand())
-                .unit(stock.getUnit())
-                .reorderLevel(stock.getReorderLevel())
-                .parLevel(stock.getParLevel())
-                .unitCost(stock.getUnitCost())
+                .unit(item != null && item.getUom() != null ? item.getUom().getValue() : null)
+                .reorderLevel(item != null ? item.getReorderLevel() : null)
+                .parLevel(item != null ? item.getMaxStockLevel() : null)
+                .unitCost(item != null ? item.getUnitCost() : null)
                 .totalValue(value)
                 .statusId(stock.getStatus() != null ? stock.getStatus().getId() : null)
                 .statusName(stock.getStatus() != null ? stock.getStatus().getValue() : null)

@@ -57,7 +57,7 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
                         room.getId(),
                         dto.getChargeAmount(),
                         "Minibar",
-                        "Minibar Consumption: " + item.getItemName() + " x " + dto.getConsumedQty()
+                        "Minibar Consumption: " + item.getItemConfig().getItemName() + " x " + dto.getConsumedQty()
                 );
                 
                 if (!folioResponse.isSuccess()) {
@@ -145,8 +145,8 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
                 .roomId(c.getRoom().getId())
                 .roomNumber(c.getRoom().getRoomNumber())
                 .itemId(c.getItem().getId())
-                .itemName(c.getItem().getItemName())
-                .itemCode(c.getItem().getItemCode())
+                .itemName(c.getItem().getItemConfig().getItemName())
+                .itemCode(c.getItem().getItemConfig().getItemCode())
                 .parLevel(c.getParLevel())
                 .currentQty(c.getCurrentQty())
                 .consumedQty(c.getConsumedQty())

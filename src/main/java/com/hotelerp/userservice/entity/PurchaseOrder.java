@@ -21,6 +21,9 @@ public class PurchaseOrder {
     @Column(name = "po_number", nullable = false, unique = true)
     private String poNumber;
 
+    @Column(name = "po_date")
+    private LocalDate poDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
@@ -44,6 +47,25 @@ public class PurchaseOrder {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status_id")
     private CommonMaster status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pr_id")
+    private PurchaseRequest purchaseRequest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "delivery_store_id")
+    private CommonMaster deliveryStore;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_terms_id")
+    private CommonMaster paymentTerms;
+
+    @Column(name = "requested_by")
+    private String requestedBy;
+
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<PurchaseOrderLine> lines = new java.util.ArrayList<>();
 
     @Builder.Default
     @Column(name = "is_deleted")

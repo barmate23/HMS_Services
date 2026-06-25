@@ -49,10 +49,10 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
             List<InventoryDashboardDTO.ReorderItemDTO> reorderWatch = inventoryStockRepository.findLowStockItems().stream()
                     .map(item -> InventoryDashboardDTO.ReorderItemDTO.builder()
                             .itemId(item.getId())
-                            .itemName(item.getItemName())
+                            .itemName(item.getItemConfig().getItemName())
                             .storeName(item.getStore() != null ? item.getStore().getValue() : "N/A")
                             .onHand(item.getOnHand())
-                            .unit(item.getUnit())
+                            .unit(item.getItemConfig().getUnitCost().toString())
                             .status("LOW")
                             .build())
                     .collect(Collectors.toList());
@@ -62,9 +62,9 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
                     .map(issue -> InventoryDashboardDTO.StoreMovementDTO.builder()
                             .issueNo(issue.getIssueNumber())
                             .department(issue.getDepartment() != null ? issue.getDepartment().getValue() : "N/A")
-                            .itemName(issue.getItem() != null ? issue.getItem().getItemName() : "N/A")
+                            .itemName(issue.getItem() != null ? issue.getItem().getItemConfig().getItemName() : "N/A")
                             .quantity(issue.getQuantity())
-                            .unit(issue.getItem() != null ? issue.getItem().getUnit() : "")
+                            .unit(issue.getItem() != null ? issue.getItem().getItemConfig().getUnitCost().toString() : "")
                             .build())
                     .collect(Collectors.toList());
 

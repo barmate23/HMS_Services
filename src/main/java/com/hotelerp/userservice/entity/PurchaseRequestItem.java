@@ -25,10 +25,10 @@ public class PurchaseRequestItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
-    private InventoryStock item;
+    private ItemConfig item;
 
-    @Column(name = "quantity")
-    private Integer quantity;
+    @Column(name = "required_quantity", precision = 19, scale = 2)
+    private java.math.BigDecimal requiredQuantity;
 
     @Column(name = "unit_price", precision = 19, scale = 2)
     private BigDecimal unitPrice;

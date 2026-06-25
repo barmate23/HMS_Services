@@ -22,7 +22,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
 
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final CommonMasterRepository commonMasterRepository;
-    private final InventoryStockRepository inventoryStockRepository;
+    private final ItemConfigRepository itemConfigRepository;
 
     private String generatePrNumber() {
         String ts = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
@@ -60,12 +60,12 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
                 List<PurchaseRequestItem> items = new ArrayList<>();
                 for (PurchaseRequestDTO.PurchaseRequestItemDTO itemDTO : dto.getItems()) {
-                    InventoryStock stock = inventoryStockRepository.findByIdAndIsDeletedFalse(itemDTO.getItemId())
+                    ItemConfig config = itemConfigRepository.findById(itemDTO.getItemId())
                             .orElseThrow(() -> new RuntimeException("Item not found: " + itemDTO.getItemId()));
                     items.add(PurchaseRequestItem.builder()
                             .purchaseRequest(pr)
-                            .item(stock)
-                            .quantity(itemDTO.getQuantity())
+                            .item(config)
+                            .requiredQuantity(itemDTO.getRequiredQuantity())
                             .unitPrice(itemDTO.getUnitPrice())
                             .build());
                 }
@@ -105,12 +105,12 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             if (dto.getItems() != null) {
                 pr.getItems().clear();
                 for (PurchaseRequestDTO.PurchaseRequestItemDTO itemDTO : dto.getItems()) {
-                    InventoryStock stock = inventoryStockRepository.findByIdAndIsDeletedFalse(itemDTO.getItemId())
+                    ItemConfig config = itemConfigRepository.findById(itemDTO.getItemId())
                             .orElseThrow(() -> new RuntimeException("Item not found: " + itemDTO.getItemId()));
                     pr.getItems().add(PurchaseRequestItem.builder()
                             .purchaseRequest(pr)
-                            .item(stock)
-                            .quantity(itemDTO.getQuantity())
+                            .item(config)
+                            .requiredQuantity(itemDTO.getRequiredQuantity())
                             .unitPrice(itemDTO.getUnitPrice())
                             .build());
                 }
@@ -185,7 +185,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                         .itemId(i.getItem().getId())
                         .itemName(i.getItem().getItemName())
                         .itemCode(i.getItem().getItemCode())
-                        .quantity(i.getQuantity())
+                        .requiredQuantity(i.getRequiredQuantity())
                         .unitPrice(i.getUnitPrice())
                         .build())
                 .collect(Collectors.toList());
