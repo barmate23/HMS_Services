@@ -46,6 +46,12 @@ public class ItemConfig {
     @Column(name = "max_stock_level", precision = 19, scale = 2)
     private BigDecimal maxStockLevel;
 
+    @Column(name = "minimum_qty", precision = 19, scale = 2)
+    private BigDecimal minimumQty;
+
+    @Column(name = "maximum_qty", precision = 19, scale = 2)
+    private BigDecimal maximumQty;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

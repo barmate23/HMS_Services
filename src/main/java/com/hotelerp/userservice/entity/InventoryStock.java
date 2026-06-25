@@ -28,6 +28,12 @@ public class InventoryStock {
     @Column(name = "on_hand", precision = 19, scale = 2)
     private BigDecimal onHand;
 
+    @Column(name = "minimum_qty", precision = 19, scale = 2)
+    private BigDecimal minimumQty;
+
+    @Column(name = "maximum_qty", precision = 19, scale = 2)
+    private BigDecimal maximumQty;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status_id")
     private CommonMaster status;

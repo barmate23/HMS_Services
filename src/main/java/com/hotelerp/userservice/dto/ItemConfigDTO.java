@@ -28,6 +28,8 @@ public class ItemConfigDTO {
     
     private BigDecimal reorderLevel;
     private BigDecimal maxStockLevel;
+    private BigDecimal minimumQty;
+    private BigDecimal maximumQty;
     
     private String description;
     private Boolean isActive;

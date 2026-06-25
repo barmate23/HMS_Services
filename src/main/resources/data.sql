@@ -506,48 +506,48 @@ INSERT IGNORE INTO common_masters (category, code, value, description, is_active
 -- -------------------------------------------------------
 -- 22. ITEM CONFIGURATIONS
 -- -------------------------------------------------------
-INSERT IGNORE INTO item_configs (id, item_code, item_name, category_id, uom_id, unit_cost, gst_tax_rate, hsn_sac_code, reorder_level, max_stock_level, description, is_active, created_at, updated_at) VALUES
+INSERT IGNORE INTO item_configs (id, item_code, item_name, category_id, uom_id, unit_cost, gst_tax_rate, hsn_sac_code, reorder_level, max_stock_level, minimum_qty, maximum_qty, description, is_active, created_at, updated_at) VALUES
 (1, 'HK-LIN-001', 'Bath Towel', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='HK_LINEN' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='PCS' LIMIT 1), 
-    200.00, 12.00, '6302', 50, 140, 'Premium white cotton bath towel', 1, NOW(), NOW()),
+    200.00, 12.00, '6302', 50, 140, 20.00, 150.00, 'Premium white cotton bath towel', 1, NOW(), NOW()),
 (2, 'HK-AMN-014', 'Dental Kit', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='GUEST_AMENITY' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='PCS' LIMIT 1), 
-    15.00, 18.00, '9603', 200, 500, 'Disposable toothbrush and paste kit', 1, NOW(), NOW()),
+    15.00, 18.00, '9603', 200, 500, 100.00, 600.00, 'Disposable toothbrush and paste kit', 1, NOW(), NOW()),
 (3, 'LND-DET-003', 'Laundry Detergent', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='LAUNDRY_CONS' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='KG' LIMIT 1), 
-    80.00, 18.00, '3402', 30, 70, 'Industrial grade laundry detergent', 1, NOW(), NOW()),
+    80.00, 18.00, '3402', 30, 70, 10.00, 100.00, 'Industrial grade laundry detergent', 1, NOW(), NOW()),
 (4, 'MB-BEV-009', 'Soda Can', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='CAN' LIMIT 1), 
-    25.00, 28.00, '2202', 100, 250, '330ml carbonated beverage', 1, NOW(), NOW()),
+    25.00, 28.00, '2202', 100, 250, 50.00, 300.00, '330ml carbonated beverage', 1, NOW(), NOW()),
 (5, 'HK-CHEM-007', 'Floor Cleaner', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='CLEANING_CHEM' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='LTR' LIMIT 1), 
-    110.00, 18.00, '3402', 20, 45, 'Multi-surface floor disinfectant', 1, NOW(), NOW()),
+    110.00, 18.00, '3402', 20, 45, 10.00, 50.00, 'Multi-surface floor disinfectant', 1, NOW(), NOW()),
 (6, 'FB-DRY-012', 'Coffee Sachet', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='GUEST_AMENITY' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='PCS' LIMIT 1), 
-    6.00, 5.00, '2101', 500, 1200, 'Instant coffee sachet 2g', 1, NOW(), NOW()),
+    6.00, 5.00, '2101', 500, 1200, 300.00, 1500.00, 'Instant coffee sachet 2g', 1, NOW(), NOW()),
 (7, 'MB-FOD-022', 'Chocolate Bar', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='PKT' LIMIT 1), 
-    25.00, 18.00, '1806', 40, 100, 'Premium milk chocolate bar', 1, NOW(), NOW()),
+    25.00, 18.00, '1806', 40, 100, 20.00, 120.00, 'Premium milk chocolate bar', 1, NOW(), NOW()),
 (8, 'MB-BEV-004', 'Mineral Water', 
     (SELECT id FROM common_masters WHERE category='STOCK_CATEGORY' AND code='MINIBAR' LIMIT 1),
     (SELECT id FROM common_masters WHERE category='UOM' AND code='BTL' LIMIT 1), 
-    15.00, 12.00, '2201', 100, 300, '500ml purified drinking water', 1, NOW(), NOW());
+    15.00, 12.00, '2201', 100, 300, 50.00, 350.00, '500ml purified drinking water', 1, NOW(), NOW());
 
 -- -------------------------------------------------------
 -- 23. SAMPLE INVENTORY STOCK
 -- -------------------------------------------------------
-INSERT IGNORE INTO inventory_stocks (id, item_config_id, store_id, on_hand, status_id, is_deleted, created_at, updated_at) VALUES
-(1, 1, (SELECT id FROM common_masters WHERE category='STORE' AND code='MAIN_STORE' LIMIT 1), 82, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
-(2, 2, (SELECT id FROM common_masters WHERE category='STORE' AND code='HK_PANTRY' LIMIT 1), 24, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='LOW' LIMIT 1), 0, NOW(), NOW()),
-(3, 3, (SELECT id FROM common_masters WHERE category='STORE' AND code='LAUNDRY_STORE' LIMIT 1), 38, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
-(4, 4, (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1), 110, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+INSERT IGNORE INTO inventory_stocks (id, item_config_id, store_id, on_hand, minimum_qty, maximum_qty, status_id, is_deleted, created_at, updated_at) VALUES
+(1, 1, (SELECT id FROM common_masters WHERE category='STORE' AND code='MAIN_STORE' LIMIT 1), 82, 20.00, 150.00, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+(2, 2, (SELECT id FROM common_masters WHERE category='STORE' AND code='HK_PANTRY' LIMIT 1), 24, 100.00, 600.00, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='LOW' LIMIT 1), 0, NOW(), NOW()),
+(3, 3, (SELECT id FROM common_masters WHERE category='STORE' AND code='LAUNDRY_STORE' LIMIT 1), 38, 10.00, 100.00, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
+(4, 4, (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1), 110, 50.00, 300.00, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),
 (5, 5, (SELECT id FROM common_masters WHERE category='STORE' AND code='MAIN_STORE' LIMIT 1), 11, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='LOW' LIMIT 1), 0, NOW(), NOW()),
 (6, 6, (SELECT id FROM common_masters WHERE category='STORE' AND code='HK_PANTRY' LIMIT 1), 310, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OVERSTOCK' LIMIT 1), 0, NOW(), NOW()),
 (7, 7, (SELECT id FROM common_masters WHERE category='STORE' AND code='MINIBAR_STORE' LIMIT 1), 45, (SELECT id FROM common_masters WHERE category='STOCK_STATUS' AND code='OK' LIMIT 1), 0, NOW(), NOW()),

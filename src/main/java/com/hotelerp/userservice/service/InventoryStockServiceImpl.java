@@ -74,6 +74,8 @@ public class InventoryStockServiceImpl implements InventoryStockService {
             }
 
             stock.setOnHand(dto.getOnHand());
+            stock.setMinimumQty(dto.getMinimumQty());
+            stock.setMaximumQty(dto.getMaximumQty());
 
             if (dto.getStoreId() != null) {
                 stock.setStore(commonMasterRepository.findById(dto.getStoreId())
@@ -166,6 +168,8 @@ public class InventoryStockServiceImpl implements InventoryStockService {
                 .storeId(stock.getStore() != null ? stock.getStore().getId() : null)
                 .storeName(stock.getStore() != null ? stock.getStore().getValue() : null)
                 .onHand(stock.getOnHand())
+                .minimumQty(stock.getMinimumQty())
+                .maximumQty(stock.getMaximumQty())
                 .unit(item != null && item.getUom() != null ? item.getUom().getValue() : null)
                 .reorderLevel(item != null ? item.getReorderLevel() : null)
                 .parLevel(item != null ? item.getMaxStockLevel() : null)

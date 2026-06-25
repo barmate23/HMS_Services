@@ -49,6 +49,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                     .hsnSacCode(dto.getHsnSacCode())
                     .reorderLevel(dto.getReorderLevel())
                     .maxStockLevel(dto.getMaxStockLevel())
+                    .minimumQty(dto.getMinimumQty())
+                    .maximumQty(dto.getMaximumQty())
                     .description(dto.getDescription())
                     .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                     .build();
@@ -88,6 +90,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
             item.setHsnSacCode(dto.getHsnSacCode());
             item.setReorderLevel(dto.getReorderLevel());
             item.setMaxStockLevel(dto.getMaxStockLevel());
+            item.setMinimumQty(dto.getMinimumQty());
+            item.setMaximumQty(dto.getMaximumQty());
             item.setDescription(dto.getDescription());
             if (dto.getIsActive() != null) {
                 item.setIsActive(dto.getIsActive());
@@ -167,6 +171,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                 .hsnSacCode(item.getHsnSacCode())
                 .reorderLevel(item.getReorderLevel())
                 .maxStockLevel(item.getMaxStockLevel())
+                .minimumQty(item.getMinimumQty())
+                .maximumQty(item.getMaximumQty())
                 .description(item.getDescription())
                 .isActive(item.getIsActive())
                 .createdAt(item.getCreatedAt())

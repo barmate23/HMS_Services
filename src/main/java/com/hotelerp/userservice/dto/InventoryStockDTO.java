@@ -25,6 +25,8 @@ public class InventoryStockDTO {
     private String storeName;
     
     private BigDecimal onHand;
+    private BigDecimal minimumQty;
+    private BigDecimal maximumQty;
     private String unit;
     private BigDecimal reorderLevel;
     private BigDecimal parLevel;
