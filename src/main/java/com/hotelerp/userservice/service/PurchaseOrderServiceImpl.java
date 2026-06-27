@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final SupplierRepository supplierRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final DepartmentRepository departmentRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final ItemConfigRepository itemConfigRepository;
     private final PurchaseOrderLineRepository purchaseOrderLineRepository;
@@ -44,13 +46,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     .build();
 
             if (dto.getDepartmentId() != null) {
-                po.setDepartment(commonMasterRepository.findById(dto.getDepartmentId())
+                po.setDepartment(departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found")));
-            }
-
-            if (dto.getPrId() != null) {
-                po.setPurchaseRequest(purchaseRequestRepository.findById(dto.getPrId())
-                        .orElseThrow(() -> new RuntimeException("Purchase Request not found")));
             }
 
             if (dto.getDeliveryStoreId() != null) {
@@ -120,8 +117,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
 
             if (dto.getPrId() != null) {
-                po.setPurchaseRequest(purchaseRequestRepository.findById(dto.getPrId())
-                        .orElseThrow(() -> new RuntimeException("Purchase Request not found")));
+                po.setPurchaseRequest(dto.getPrId()
+                        .stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")));
             }
 
             if (dto.getDeliveryStoreId() != null) {
@@ -135,7 +134,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
 
             if (dto.getDepartmentId() != null) {
-                po.setDepartment(commonMasterRepository.findById(dto.getDepartmentId())
+                po.setDepartment(departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found")));
             }
 
@@ -244,10 +243,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .supplierId(po.getSupplier().getId())
                 .supplierName(po.getSupplier().getSupplierName())
                 .departmentId(po.getDepartment() != null ? po.getDepartment().getId() : null)
-                .departmentName(po.getDepartment() != null ? po.getDepartment().getValue() : null)
+                .departmentName(po.getDepartment() != null ? po.getDepartment().getName() : null)
                 .expectedDate(po.getExpectedDate())
-                .prId(po.getPurchaseRequest() != null ? po.getPurchaseRequest().getId() : null)
-                .prNumber(po.getPurchaseRequest() != null ? po.getPurchaseRequest().getPrNumber() : null)
+                .prId(po.getPurchaseRequest() != null ? Arrays.stream(po.getPurchaseRequest().split(","))
+                        .map(String::trim)
+                        .map(Long::valueOf)
+                        .collect(Collectors.toList()) : null)
                 .deliveryStoreId(po.getDeliveryStore() != null ? po.getDeliveryStore().getId() : null)
                 .deliveryStoreName(po.getDeliveryStore() != null ? po.getDeliveryStore().getValue() : null)
                 .paymentTermsId(po.getPaymentTerms() != null ? po.getPaymentTerms().getId() : null)

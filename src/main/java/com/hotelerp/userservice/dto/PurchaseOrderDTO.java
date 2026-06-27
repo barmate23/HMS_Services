@@ -27,7 +27,7 @@ public class PurchaseOrderDTO {
     private LocalDate poDate;
     private LocalDate expectedDate;
     
-    private Long prId;
+    private List<Long> prId;
     private String prNumber;
 
     private Long deliveryStoreId;

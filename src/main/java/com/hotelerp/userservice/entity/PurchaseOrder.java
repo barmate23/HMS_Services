@@ -30,7 +30,7 @@ public class PurchaseOrder {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
-    private CommonMaster department;
+    private Department department;
 
     @Column(name = "expected_date")
     private LocalDate expectedDate;
@@ -48,9 +48,7 @@ public class PurchaseOrder {
     @JoinColumn(name = "status_id")
     private CommonMaster status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pr_id")
-    private PurchaseRequest purchaseRequest;
+    private String purchaseRequest;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_store_id")
