@@ -114,6 +114,7 @@ public class InventoryStockServiceImpl implements InventoryStockService {
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Stock items fetched successfully");
         } catch (Exception e) {
+            e.printStackTrace();
             return StandardResponse.error("Failed to fetch stock items", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }

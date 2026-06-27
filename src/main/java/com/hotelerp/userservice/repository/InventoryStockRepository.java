@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface InventoryStockRepository extends JpaRepository<InventoryStock, Long> {
     List<InventoryStock> findByIsDeletedFalse();
     Optional<InventoryStock> findByIdAndIsDeletedFalse(Long id);
+    List<InventoryStock> findByItemConfigIdAndIsDeletedFalse(Long itemConfigId);
     List<InventoryStock> findByStoreIdAndIsDeletedFalse(Long storeId);
     List<InventoryStock> findByItemConfigCategoryIdAndIsDeletedFalse(Long categoryId);
     

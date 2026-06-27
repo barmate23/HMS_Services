@@ -36,7 +36,7 @@ public class VendorController {
         return ResponseEntity.ok(vendorBillService.getAllVendorBills());
     }
 
-    @DeleteMapping("/deleteVendorBill")
+    @DeleteMapping("/deleteVendorBill/{id}")
     public ResponseEntity<StandardResponse<Void>> delete(@PathVariable Long id) {
         return ResponseEntity.ok(vendorBillService.deleteVendorBill(id));
     }

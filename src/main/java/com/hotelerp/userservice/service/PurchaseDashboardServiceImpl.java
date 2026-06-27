@@ -58,6 +58,7 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
                                     .status(po.getStatus().getValue())
                                     .statusCode(po.getStatus().getCode())
                                     .build())
+                            .sorted(Comparator.comparing(PurchaseDashboardDTO.PendingProcurementDTO::getExpectedDate, Comparator.nullsLast(Comparator.naturalOrder())))
                             .collect(Collectors.toList());
 
             // ── 3. Reorder & Low Stock Alerts ───────────────────────────────────
@@ -103,7 +104,7 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
             long approvedCount     = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("APPROVED");
             long partialCount      = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("PARTIALLY_RECEIVED");
             long closedCount       = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("CLOSED");
-            long totalPos          = purchaseOrderRepository.countByStatus_CodeNotInAndIsDeletedFalse(List.of());
+            long totalPos          = draftCount + approvedCount + partialCount + closedCount;
 
             PurchaseDashboardDTO.ProcurementPipeline pipeline = PurchaseDashboardDTO.ProcurementPipeline.builder()
                     .totalPos(totalPos)

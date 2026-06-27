@@ -2,6 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.VendorBillDTO;
+import com.hotelerp.userservice.dto.VendorBillLineDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class VendorBillServiceImpl implements VendorBillService {
     private final SupplierRepository supplierRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final ItemConfigRepository itemConfigRepository;
 
     @Override
     @Transactional
@@ -52,8 +54,23 @@ public class VendorBillServiceImpl implements VendorBillService {
                 commonMasterRepository.findByCategoryAndCode("VENDOR_BILL_STATUS", "PENDING")
                         .ifPresent(bill::setStatus);
             }
+            final VendorBill finalBill = bill;
+            if (dto.getLines() != null && !dto.getLines().isEmpty()) {
+                List<VendorBillLine> lines = dto.getLines().stream().map(lineDto -> {
+                    ItemConfig item = itemConfigRepository.findById(lineDto.getItemId())
+                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDto.getItemId()));
+                    return VendorBillLine.builder()
+                            .vendorBill(finalBill)
+                            .item(item)
+                            .receivedQuantity(lineDto.getReceivedQuantity())
+                            .rate(lineDto.getRate())
+                            .totalAmount(lineDto.getTotalAmount())
+                            .build();
+                }).collect(Collectors.toList());
+                finalBill.getLines().addAll(lines);
+            }
 
-            bill = vendorBillRepository.save(bill);
+            bill = vendorBillRepository.save(finalBill);
             return StandardResponse.success(convertToDTO(bill), "Vendor Bill created successfully");
         } catch (Exception e) {
             log.error("Error creating Vendor Bill: ", e);
@@ -90,6 +107,22 @@ public class VendorBillServiceImpl implements VendorBillService {
             if (dto.getStatusId() != null) {
                 bill.setStatus(commonMasterRepository.findById(dto.getStatusId())
                         .orElseThrow(() -> new RuntimeException("Status not found")));
+            }
+            if (dto.getLines() != null) {
+                bill.getLines().clear();
+                VendorBill finalRef = bill;
+                List<VendorBillLine> newLines = dto.getLines().stream().map(lineDto -> {
+                    ItemConfig item = itemConfigRepository.findById(lineDto.getItemId())
+                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDto.getItemId()));
+                    return VendorBillLine.builder()
+                            .vendorBill(finalRef)
+                            .item(item)
+                            .receivedQuantity(lineDto.getReceivedQuantity())
+                            .rate(lineDto.getRate())
+                            .totalAmount(lineDto.getTotalAmount())
+                            .build();
+                }).collect(Collectors.toList());
+                bill.getLines().addAll(newLines);
             }
 
             bill = vendorBillRepository.save(bill);
@@ -171,6 +204,20 @@ public class VendorBillServiceImpl implements VendorBillService {
                 .statusCode(bill.getStatus() != null ? bill.getStatus().getCode() : null)
                 .createdAt(bill.getCreatedAt())
                 .updatedAt(bill.getUpdatedAt())
+                .lines(bill.getLines() != null ? bill.getLines().stream().map(this::convertLineToDTO).collect(Collectors.toList()) : new java.util.ArrayList<>())
+                .build();
+    }
+
+    private VendorBillLineDTO convertLineToDTO(VendorBillLine line) {
+        return VendorBillLineDTO.builder()
+                .id(line.getId())
+                .vendorBillId(line.getVendorBill() != null ? line.getVendorBill().getId() : null)
+                .itemId(line.getItem() != null ? line.getItem().getId() : null)
+                .itemName(line.getItem() != null ? line.getItem().getItemName() : null)
+                .receivedQuantity(line.getReceivedQuantity())
+                .rate(line.getRate())
+                .totalAmount(line.getTotalAmount())
+                .createdAt(line.getCreatedAt())
                 .build();
     }
 }

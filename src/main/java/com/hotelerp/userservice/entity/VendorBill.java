@@ -5,6 +5,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "vendor_bills")
@@ -51,6 +53,10 @@ public class VendorBill {
     @Builder.Default
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
+
+    @OneToMany(mappedBy = "vendorBill", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<VendorBillLine> lines = new ArrayList<>();
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

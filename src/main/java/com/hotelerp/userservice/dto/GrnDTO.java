@@ -25,6 +25,8 @@ public class GrnDTO {
     private LocalDate receivedDate;
     private BigDecimal acceptedValue;
     private String varianceNote;
+    
+    private VendorBillDTO vendorBill;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

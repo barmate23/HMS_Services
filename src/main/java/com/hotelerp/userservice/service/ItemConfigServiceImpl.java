@@ -4,8 +4,10 @@ import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.ItemConfigDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.ItemConfig;
+import com.hotelerp.userservice.entity.InventoryStock;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.ItemConfigRepository;
+import com.hotelerp.userservice.repository.InventoryStockRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
 
     private final ItemConfigRepository itemConfigRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final InventoryStockRepository inventoryStockRepository;
 
     @Override
     @Transactional
@@ -56,6 +60,14 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                     .build();
 
             ItemConfig savedItem = itemConfigRepository.save(item);
+
+            InventoryStock stock = InventoryStock.builder()
+                    .itemConfig(savedItem)
+                    .onHand(BigDecimal.ZERO)
+                    .minimumQty(dto.getMinimumQty())
+                    .maximumQty(dto.getMaximumQty())
+                    .build();
+            inventoryStockRepository.save(stock);
             return StandardResponse.success(convertToDTO(savedItem), "Item created successfully");
         } catch (Exception e) {
             log.error("Error creating item: ", e);

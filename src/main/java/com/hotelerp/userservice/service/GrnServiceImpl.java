@@ -4,6 +4,9 @@ import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.GrnDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
+import com.hotelerp.userservice.service.VendorBillService;
+import com.hotelerp.userservice.dto.VendorBillDTO;
+import com.hotelerp.userservice.dto.VendorBillLineDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,8 @@ public class GrnServiceImpl implements GrnService {
 
     private final GrnRepository grnRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final VendorBillService vendorBillService;
+    private final InventoryStockRepository inventoryStockRepository;
 
     @Override
     @Transactional
@@ -37,6 +43,25 @@ public class GrnServiceImpl implements GrnService {
                     .build();
 
             grn = grnRepository.save(grn);
+
+            if (dto.getVendorBill() != null) {
+                // Attach correct PO context logically
+                dto.getVendorBill().setPurchaseOrderId(po.getId()); 
+                StandardResponse<VendorBillDTO> vbResponse = vendorBillService.createVendorBill(dto.getVendorBill());
+                if (vbResponse != null && vbResponse.getData() != null && vbResponse.getData().getLines() != null) {
+                    for (VendorBillLineDTO line : vbResponse.getData().getLines()) {
+                        if (line.getItemId() != null && line.getReceivedQuantity() != null) {
+                            List<InventoryStock> stocks = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
+                            for (InventoryStock stock : stocks) {
+                                BigDecimal current = stock.getOnHand() != null ? stock.getOnHand() : BigDecimal.ZERO;
+                                stock.setOnHand(current.add(line.getReceivedQuantity()));
+                                inventoryStockRepository.save(stock);
+                            }
+                        }
+                    }
+                }
+            }
+
             return StandardResponse.success(convertToDTO(grn), "GRN created successfully");
         } catch (Exception e) {
             log.error("Error creating GRN: ", e);

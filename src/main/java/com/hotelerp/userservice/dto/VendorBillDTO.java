@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -35,4 +37,7 @@ public class VendorBillDTO {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    @Builder.Default
+    private List<VendorBillLineDTO> lines = new ArrayList<>();
 }
