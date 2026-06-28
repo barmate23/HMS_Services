@@ -27,6 +27,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ItemConfigRepository itemConfigRepository;
     private final PurchaseOrderLineRepository purchaseOrderLineRepository;
 
+    private String generatePoNumber() {
+        long count = purchaseOrderRepository.count();
+        return "PO-" + (count + 1);
+    }
+
     @Override
     @Transactional
     public StandardResponse<PurchaseOrderDTO> createPurchaseOrder(PurchaseOrderDTO dto) {
@@ -35,13 +40,14 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     .orElseThrow(() -> new RuntimeException("Supplier not found"));
 
             PurchaseOrder po = PurchaseOrder.builder()
-                    .poNumber(dto.getPoNumber())
+                    .poNumber(generatePoNumber())
                     .poDate(dto.getPoDate())
                     .supplier(supplier)
                     .expectedDate(dto.getExpectedDate())
                     .itemCount(dto.getItemCount())
                     .poNote(dto.getPoNote())
                     .totalAmount(dto.getTotalAmount())
+                    .shippingFreightRate(dto.getShippingFreightRate())
                     .requestedBy(dto.getRequestedBy())
                     .build();
 
@@ -109,6 +115,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             po.setItemCount(dto.getItemCount());
             po.setPoNote(dto.getPoNote());
             po.setTotalAmount(dto.getTotalAmount());
+            po.setShippingFreightRate(dto.getShippingFreightRate());
             po.setRequestedBy(dto.getRequestedBy());
 
             if (dto.getSupplierId() != null) {
@@ -257,6 +264,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .itemCount(po.getItemCount())
                 .poNote(po.getPoNote())
                 .totalAmount(po.getTotalAmount())
+                .shippingFreightRate(po.getShippingFreightRate())
                 .lines(lineDTOs)
                 .statusId(po.getStatus() != null ? po.getStatus().getId() : null)
                 .statusName(po.getStatus() != null ? po.getStatus().getValue() : null)

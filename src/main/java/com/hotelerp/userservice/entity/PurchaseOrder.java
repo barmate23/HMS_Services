@@ -44,6 +44,9 @@ public class PurchaseOrder {
     @Column(name = "total_amount", precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "shipping_freight_rate", precision = 19, scale = 2)
+    private BigDecimal shippingFreightRate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status_id")
     private CommonMaster status;

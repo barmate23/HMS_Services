@@ -25,8 +25,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private final ItemConfigRepository itemConfigRepository;
 
     private String generatePrNumber() {
-        String ts = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
-        return "PR-" + ts.substring(4, 10);
+        long count = purchaseRequestRepository.count();
+        return "PR-" + (count + 1);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     public StandardResponse<PurchaseRequestDTO> createPurchaseRequest(PurchaseRequestDTO dto) {
         try {
             PurchaseRequest pr = PurchaseRequest.builder()
-                    .prNumber(dto.getPrNumber())
+                    .prNumber(generatePrNumber())
                     .requestedBy(dto.getRequestedBy())
                     .neededBy(dto.getNeededBy())
                     .expectedAmount(dto.getExpectedAmount())

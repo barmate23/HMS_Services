@@ -26,6 +26,11 @@ public class GrnServiceImpl implements GrnService {
     private final VendorBillService vendorBillService;
     private final InventoryStockRepository inventoryStockRepository;
 
+    private String generateGrnNumber() {
+        long count = grnRepository.count();
+        return "GRN-" + (count + 1);
+    }
+
     @Override
     @Transactional
     public StandardResponse<GrnDTO> createGrn(GrnDTO dto) {
@@ -34,7 +39,7 @@ public class GrnServiceImpl implements GrnService {
                     .orElseThrow(() -> new RuntimeException("Purchase Order not found"));
 
             Grn grn = Grn.builder()
-                    .grnNumber(dto.getGrnNumber())
+                    .grnNumber(generateGrnNumber())
                     .purchaseOrder(po)
                     .receivedBy(dto.getReceivedBy())
                     .receivedDate(dto.getReceivedDate())

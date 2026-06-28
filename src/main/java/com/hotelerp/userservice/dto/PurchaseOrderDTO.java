@@ -41,6 +41,7 @@ public class PurchaseOrderDTO {
     private Integer itemCount;
     private String poNote;
     private BigDecimal totalAmount;
+    private BigDecimal shippingFreightRate;
 
     private List<PurchaseOrderLineDTO> lines;
 
