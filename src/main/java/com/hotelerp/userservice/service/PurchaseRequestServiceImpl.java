@@ -34,7 +34,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     public StandardResponse<PurchaseRequestDTO> createPurchaseRequest(PurchaseRequestDTO dto) {
         try {
             PurchaseRequest pr = PurchaseRequest.builder()
-                    .prNumber(generatePrNumber())
+                    .prNumber(dto.getPrNumber())
                     .requestedBy(dto.getRequestedBy())
                     .neededBy(dto.getNeededBy())
                     .expectedAmount(dto.getExpectedAmount())
