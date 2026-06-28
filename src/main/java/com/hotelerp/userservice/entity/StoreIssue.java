@@ -22,7 +22,7 @@ public class StoreIssue {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
-    private CommonMaster department;
+    private Department department;
 
     @Column(name = "issued_to")
     private String issuedTo;

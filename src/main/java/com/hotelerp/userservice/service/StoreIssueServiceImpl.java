@@ -21,6 +21,7 @@ public class StoreIssueServiceImpl implements StoreIssueService {
 
     private final StoreIssueRepository storeIssueRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final DepartmentRepository departmentRepository;
     private final InventoryStockRepository inventoryStockRepository;
 
     private String generateIssueNumber() {
@@ -45,7 +46,7 @@ public class StoreIssueServiceImpl implements StoreIssueService {
                     .build();
 
             if (dto.getDepartmentId() != null) {
-                issue.setDepartment(commonMasterRepository.findById(dto.getDepartmentId())
+                issue.setDepartment(departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found")));
             }
 
@@ -85,7 +86,7 @@ public class StoreIssueServiceImpl implements StoreIssueService {
             issue.setIssueDate(dto.getIssueDate());
 
             if (dto.getDepartmentId() != null) {
-                issue.setDepartment(commonMasterRepository.findById(dto.getDepartmentId())
+                issue.setDepartment(departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found")));
             }
 
@@ -167,7 +168,7 @@ public class StoreIssueServiceImpl implements StoreIssueService {
                 .id(i.getId())
                 .issueNumber(i.getIssueNumber())
                 .departmentId(i.getDepartment() != null ? i.getDepartment().getId() : null)
-                .departmentName(i.getDepartment() != null ? i.getDepartment().getValue() : null)
+                .departmentName(i.getDepartment() != null ? i.getDepartment().getName() : null)
                 .issuedTo(i.getIssuedTo())
                 .itemId(i.getItem().getId())
                 .itemName(i.getItem().getItemConfig().getItemName())
