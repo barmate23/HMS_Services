@@ -125,7 +125,7 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
                                 ? issue.getItem().getItemConfig().getUom().getValue() : "";
                         return InventoryDashboardDTO.StoreMovementDTO.builder()
                                 .issueNo(issue.getIssueNumber())
-                                .department(issue.getDepartment() != null ? issue.getDepartment().getValue() : "N/A")
+                                .department(issue.getDepartment() != null ? issue.getDepartment().getName() : "N/A")
                                 .itemName(issue.getItem() != null && issue.getItem().getItemConfig() != null ? issue.getItem().getItemConfig().getItemName() : "N/A")
                                 .quantity(issue.getQuantity())
                                 .unit(uom)
