@@ -2,6 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.DiningTableDTO;
+import com.hotelerp.userservice.dto.DiningTableWithoutOutletDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.DiningTable;
 import com.hotelerp.userservice.entity.Outlet;
@@ -31,7 +32,8 @@ public class DiningTableServiceImpl implements DiningTableService {
     public StandardResponse<Void> createTable(DiningTableDTO dto) {
         try {
             Long outletId = dto.getOutletId();
-            if (outletId == null) throw new IllegalArgumentException("Outlet ID must not be null");
+            if (outletId == null)
+                throw new IllegalArgumentException("Outlet ID must not be null");
 
             Outlet outlet = outletRepository.findById(outletId)
                     .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + outletId));
@@ -39,13 +41,15 @@ public class DiningTableServiceImpl implements DiningTableService {
             CommonMaster section = null;
             if (dto.getSectionId() != null) {
                 section = commonMasterRepository.findById(dto.getSectionId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Section master data not found for ID: " + dto.getSectionId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Section master data not found for ID: " + dto.getSectionId()));
             }
 
             CommonMaster status = null;
             if (dto.getStatusId() != null) {
                 status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master data not found for ID: " + dto.getStatusId()));
             }
 
             DiningTable table = DiningTable.builder()
@@ -75,7 +79,8 @@ public class DiningTableServiceImpl implements DiningTableService {
 
             if (dto.getOutletId() != null) {
                 Outlet outlet = outletRepository.findById(dto.getOutletId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + dto.getOutletId()));
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Outlet not found with ID: " + dto.getOutletId()));
                 table.setOutlet(outlet);
             }
 
@@ -84,13 +89,15 @@ public class DiningTableServiceImpl implements DiningTableService {
 
             if (dto.getSectionId() != null) {
                 CommonMaster section = commonMasterRepository.findById(dto.getSectionId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Section master data not found for ID: " + dto.getSectionId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Section master data not found for ID: " + dto.getSectionId()));
                 table.setSection(section);
             }
 
             if (dto.getStatusId() != null) {
                 CommonMaster status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master data not found for ID: " + dto.getStatusId()));
                 table.setStatus(status);
             }
 
@@ -119,9 +126,9 @@ public class DiningTableServiceImpl implements DiningTableService {
     }
 
     @Override
-    public StandardResponse<List<DiningTableDTO>> getTablesByOutlet(Long outletId) {
+    public StandardResponse<List<DiningTableWithoutOutletDTO>> getTablesByOutlet(Long outletId) {
         try {
-            List<DiningTableDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
+            List<DiningTableWithoutOutletDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
                     .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
@@ -174,10 +181,20 @@ public class DiningTableServiceImpl implements DiningTableService {
                 .sectionName(table.getSection() != null ? table.getSection().getValue() : null)
                 .statusId(table.getStatus() != null ? table.getStatus().getId() : null)
                 .statusName(table.getStatus() != null ? table.getStatus().getValue() : null)
-                .serverId(table.getServer() != null ? table.getServer().getId() : null)
-                .serverName(table.getServer() != null ? table.getServer().getFullName() : null)
                 .linkedTableId(table.getLinkedTable() != null ? table.getLinkedTable().getId() : null)
                 .linkedTableNumber(table.getLinkedTable() != null ? table.getLinkedTable().getTableNumber() : null)
+                .build();
+    }
+
+    private DiningTableWithoutOutletDTO convertToWithoutOutletDTO(DiningTable table) {
+        return DiningTableWithoutOutletDTO.builder()
+                .id(table.getId())
+                .tableNumber(table.getTableNumber())
+                .covers(table.getCovers())
+                .sectionId(table.getSection() != null ? table.getSection().getId() : null)
+                .sectionName(table.getSection() != null ? table.getSection().getValue() : null)
+                .statusId(table.getStatus() != null ? table.getStatus().getId() : null)
+                .statusName(table.getStatus() != null ? table.getStatus().getValue() : null)
                 .build();
     }
 }

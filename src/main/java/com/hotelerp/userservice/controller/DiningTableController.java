@@ -2,6 +2,7 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.DiningTableDTO;
+import com.hotelerp.userservice.dto.DiningTableWithoutOutletDTO;
 import com.hotelerp.userservice.service.DiningTableService;
 import com.hotelerp.userservice.constant.ServiceConstant;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +34,14 @@ public class DiningTableController {
     }
 
     @GetMapping(ServiceConstant.GET_ALL_TABLES)
-    public ResponseEntity<StandardResponse<List<DiningTableDTO>>> getAllTables(@RequestParam(required = false) Long outletId) {
-        StandardResponse<List<DiningTableDTO>> response;
+    public ResponseEntity<StandardResponse<?>> getAllTables(@RequestParam(required = false) Long outletId) {
         if (outletId != null) {
-            response = tableService.getTablesByOutlet(outletId);
+            StandardResponse<List<DiningTableWithoutOutletDTO>> response = tableService.getTablesByOutlet(outletId);
+            return ResponseEntity.ok(response);
         } else {
-            response = tableService.getAllTables();
+            StandardResponse<List<DiningTableDTO>> response = tableService.getAllTables();
+            return ResponseEntity.ok(response);
         }
-        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_TABLE)
