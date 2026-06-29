@@ -73,10 +73,10 @@ public class PosController {
         return ResponseEntity.ok(response);
     }
 
-    /** GET /getActiveOrders - fetch orders with status OPEN or KOT_SENT */
     @GetMapping(ServiceConstant.GET_ACTIVE_POS_ORDERS)
-    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getActiveOrders() {
-        StandardResponse<List<PosOrderDTO>> response = posService.getActiveOrders();
+    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getActiveOrders(
+            @RequestParam(required = false) Long tableId) {
+        StandardResponse<List<PosOrderDTO>> response = posService.getActiveOrders(tableId);
         return ResponseEntity.ok(response);
     }
 

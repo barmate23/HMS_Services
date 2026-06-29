@@ -209,10 +209,16 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
-    public StandardResponse<List<PosOrderDTO>> getActiveOrders() {
+    public StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId) {
         try {
             List<String> activeCodes = List.of("OPEN", "KOT_SENT");
-            List<PosOrderDTO> dtos = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+            List<PosOrder> orders;
+            if (tableId != null) {
+                orders = posOrderRepository.findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(tableId, activeCodes);
+            } else {
+                orders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes);
+            }
+            List<PosOrderDTO> dtos = orders.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Active orders fetched successfully");

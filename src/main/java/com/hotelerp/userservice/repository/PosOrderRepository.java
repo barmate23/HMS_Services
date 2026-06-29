@@ -18,4 +18,5 @@ public interface PosOrderRepository extends JpaRepository<PosOrder, Long> {
     List<PosOrder> findAllInDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     List<PosOrder> findByStatusCodeInAndIsDeletedFalse(List<String> codes);
+    List<PosOrder> findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(Long tableId, List<String> codes);
 }
