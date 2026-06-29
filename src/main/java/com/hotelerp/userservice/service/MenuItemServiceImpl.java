@@ -168,6 +168,27 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
+    public StandardResponse<List<MenuItemDTO>> getMenuItemsByFilter(Long categoryId, Long subcategoryId) {
+        try {
+            List<MenuItem> items;
+            if (categoryId != null && subcategoryId != null) {
+                items = menuItemRepository.findByCategoryIdAndSubcategoryIdAndIsDeletedFalse(categoryId, subcategoryId);
+            } else if (categoryId != null) {
+                items = menuItemRepository.findByCategoryIdAndIsDeletedFalse(categoryId);
+            } else if (subcategoryId != null) {
+                items = menuItemRepository.findBySubcategoryIdAndIsDeletedFalse(subcategoryId);
+            } else {
+                items = menuItemRepository.findByIsDeletedFalse();
+            }
+            List<MenuItemDTO> dtos = items.stream().map(this::convertToDTO).collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Menu items fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching menu items by filter: ", e);
+            return StandardResponse.error("Failed to fetch menu items", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     @Transactional
     public StandardResponse<Void> deleteMenuItem(Long id) {
         try {

@@ -33,9 +33,14 @@ public class MenuItemController {
     }
 
     @GetMapping(ServiceConstant.GET_ALL_MENU)
-    public ResponseEntity<StandardResponse<List<MenuItemDTO>>> getAllMenuItems(@RequestParam(required = false) Long outletId) {
+    public ResponseEntity<StandardResponse<List<MenuItemDTO>>> getAllMenuItems(
+            @RequestParam(required = false) Long outletId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long subcategoryId) {
         StandardResponse<List<MenuItemDTO>> response;
-        if (outletId != null) {
+        if (categoryId != null || subcategoryId != null) {
+            response = menuItemService.getMenuItemsByFilter(categoryId, subcategoryId);
+        } else if (outletId != null) {
             response = menuItemService.getMenuItemsByOutlet(outletId);
         } else {
             response = menuItemService.getAllMenuItems();

@@ -10,5 +10,6 @@ public interface MenuItemService {
     StandardResponse<MenuItemDTO> getMenuItemById(Long id);
     StandardResponse<List<MenuItemDTO>> getMenuItemsByOutlet(Long outletId);
     StandardResponse<List<MenuItemDTO>> getAllMenuItems();
+    StandardResponse<List<MenuItemDTO>> getMenuItemsByFilter(Long categoryId, Long subcategoryId);
     StandardResponse<Void> deleteMenuItem(Long id);
 }

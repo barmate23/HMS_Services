@@ -11,4 +11,8 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByOutletId(Long outletId);
     List<MenuItem> findByCategoryId(Long categoryId);
     List<MenuItem> findByCategoryValue(String categoryValue);
+    List<MenuItem> findByCategoryIdAndIsDeletedFalse(Long categoryId);
+    List<MenuItem> findBySubcategoryIdAndIsDeletedFalse(Long subcategoryId);
+    List<MenuItem> findByCategoryIdAndSubcategoryIdAndIsDeletedFalse(Long categoryId, Long subcategoryId);
+    List<MenuItem> findByIsDeletedFalse();
 }
