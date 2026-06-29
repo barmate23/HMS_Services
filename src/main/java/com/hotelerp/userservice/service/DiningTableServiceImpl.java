@@ -126,30 +126,19 @@ public class DiningTableServiceImpl implements DiningTableService {
     }
 
     @Override
-    public StandardResponse<List<DiningTableWithoutOutletDTO>> getTablesByOutlet(Long outletId) {
+    public StandardResponse<List<DiningTableWithoutOutletDTO>> getAllTables(Long outletId) {
         try {
-            List<DiningTableWithoutOutletDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
+            List<DiningTable> tables = (outletId != null)
+                    ? diningTableRepository.findByOutletId(outletId)
+                    : diningTableRepository.findAll();
+            List<DiningTableWithoutOutletDTO> dtos = tables.stream()
                     .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
                     .map(this::convertToWithoutOutletDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Dining tables fetched successfully");
         } catch (Exception e) {
-            log.error("Error fetching dining tables by outlet: ", e);
+            log.error("Error fetching dining tables: ", e);
             return StandardResponse.error("Failed to fetch dining tables", "INTERNAL_SERVER_ERROR", e.getMessage());
-        }
-    }
-
-    @Override
-    public StandardResponse<List<DiningTableDTO>> getAllTables() {
-        try {
-            List<DiningTableDTO> dtos = diningTableRepository.findAll().stream()
-                    .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-            return StandardResponse.success(dtos, "All dining tables fetched successfully");
-        } catch (Exception e) {
-            log.error("Error fetching all dining tables: ", e);
-            return StandardResponse.error("Failed to fetch all dining tables", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
 

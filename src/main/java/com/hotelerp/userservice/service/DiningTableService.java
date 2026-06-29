@@ -9,7 +9,6 @@ public interface DiningTableService {
     StandardResponse<Void> createTable(DiningTableDTO dto);
     StandardResponse<DiningTableDTO> updateTable(Long id, DiningTableDTO dto);
     StandardResponse<DiningTableDTO> getTableById(Long id);
-    StandardResponse<List<DiningTableWithoutOutletDTO>> getTablesByOutlet(Long outletId);
-    StandardResponse<List<DiningTableDTO>> getAllTables();
+    StandardResponse<List<DiningTableWithoutOutletDTO>> getAllTables(Long outletId);
     StandardResponse<Void> deleteTable(Long id);
 }

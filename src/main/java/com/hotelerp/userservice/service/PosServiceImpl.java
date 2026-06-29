@@ -49,6 +49,18 @@ public class PosServiceImpl implements PosService {
             if (dto.getTableId() != null) {
                 table = diningTableRepository.findById(dto.getTableId())
                         .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + dto.getTableId()));
+
+                // Block if table already has an active order
+                List<String> activeCodes = List.of("OPEN", "KOT_SENT");
+                List<PosOrder> activeOrders = posOrderRepository
+                        .findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(dto.getTableId(), activeCodes);
+                if (!activeOrders.isEmpty()) {
+                    return StandardResponse.error(
+                            "Table " + table.getTableNumber() + " already has an active order. Please close it before creating a new one.",
+                            "ACTIVE_ORDER_EXISTS",
+                            "Active order ID: " + activeOrders.get(0).getId()
+                    );
+                }
             }
 
             Room room = null;

@@ -34,14 +34,10 @@ public class DiningTableController {
     }
 
     @GetMapping(ServiceConstant.GET_ALL_TABLES)
-    public ResponseEntity<StandardResponse<?>> getAllTables(@RequestParam(required = false) Long outletId) {
-        if (outletId != null) {
-            StandardResponse<List<DiningTableWithoutOutletDTO>> response = tableService.getTablesByOutlet(outletId);
-            return ResponseEntity.ok(response);
-        } else {
-            StandardResponse<List<DiningTableDTO>> response = tableService.getAllTables();
-            return ResponseEntity.ok(response);
-        }
+    public ResponseEntity<StandardResponse<List<DiningTableWithoutOutletDTO>>> getAllTables(
+            @RequestParam(required = false) Long outletId) {
+        StandardResponse<List<DiningTableWithoutOutletDTO>> response = tableService.getAllTables(outletId);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(ServiceConstant.UPDATE_TABLE)
