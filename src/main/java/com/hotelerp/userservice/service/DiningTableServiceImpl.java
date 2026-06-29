@@ -130,7 +130,7 @@ public class DiningTableServiceImpl implements DiningTableService {
         try {
             List<DiningTableWithoutOutletDTO> dtos = diningTableRepository.findByOutletId(outletId).stream()
                     .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                    .map(this::convertToDTO)
+                    .map(this::convertToWithoutOutletDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Dining tables fetched successfully");
         } catch (Exception e) {
