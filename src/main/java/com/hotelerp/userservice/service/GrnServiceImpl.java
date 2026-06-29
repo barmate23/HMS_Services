@@ -52,9 +52,9 @@ public class GrnServiceImpl implements GrnService {
             if (dto.getVendorBill() != null) {
                 // Attach correct PO context logically
                 dto.getVendorBill().setPurchaseOrderId(po.getId()); 
-                StandardResponse<VendorBillDTO> vbResponse = vendorBillService.createVendorBill(dto.getVendorBill());
-                if (vbResponse != null && vbResponse.getData() != null && vbResponse.getData().getLines() != null) {
-                    for (VendorBillLineDTO line : vbResponse.getData().getLines()) {
+               // StandardResponse<VendorBillDTO> vbResponse = vendorBillService.createVendorBill(dto.getVendorBill());
+                if (dto.getVendorBill().getLines() != null ) {
+                    for (VendorBillLineDTO line : dto.getVendorBill().getLines()) {
                         if (line.getItemId() != null && line.getReceivedQuantity() != null) {
                             List<InventoryStock> stocks = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
                             for (InventoryStock stock : stocks) {
