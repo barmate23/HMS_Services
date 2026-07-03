@@ -48,7 +48,7 @@ public class FolioServiceImpl implements FolioService {
                         .date(p.getPostingDate())
                         .source(p.getSource())
                         .description(p.getDescription())
-                        .debit(p.getTotalAmount())
+                        .debit(p.getDebitAmount())
                         .tax(p.getTaxAmount())
                         .paid(p.getPaidAmount())
                         .credit(BigDecimal.ZERO)

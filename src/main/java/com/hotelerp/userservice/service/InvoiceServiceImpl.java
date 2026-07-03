@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.service;
 
+import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.billing.InvoiceDTO;
 import com.hotelerp.userservice.entity.Folio;
 import com.hotelerp.userservice.entity.Invoice;
@@ -20,29 +21,38 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final FolioRepository folioRepository;
 
     @Override
-    public InvoiceDTO generateInvoice(Long folioId) {
-        Folio folio = folioRepository.findById(folioId)
-                .orElseThrow(() -> new RuntimeException("Folio not found"));
+    public StandardResponse<InvoiceDTO> generateInvoice(Long folioId) {
+        try {
+            Folio folio = folioRepository.findById(folioId)
+                    .orElseThrow(() -> new RuntimeException("Folio not found"));
 
-        Invoice invoice = Invoice.builder()
-                .folio(folio)
-                .invoiceNumber("INV-2026-" + (1000 + folioId))
-                .status("PAID")
-                .issuedAt(LocalDateTime.now())
-                .totalAmount(folio.getTotalCharges())
-                .taxAmount(folio.getTaxAmount())
-                .build();
+            Invoice invoice = Invoice.builder()
+                    .folio(folio)
+                    .invoiceNumber("INV-2026-" + (1000 + folioId))
+                    .status("PAID")
+                    .issuedAt(LocalDateTime.now())
+                    .totalAmount(folio.getTotalCharges())
+                    .taxAmount(folio.getTaxAmount())
+                    .build();
 
-        invoice = invoiceRepository.save(invoice);
+            invoice = invoiceRepository.save(invoice);
 
-        return mapToDTO(invoice);
+            return StandardResponse.success(mapToDTO(invoice), "Invoice generated successfully");
+        } catch (Exception e) {
+            return StandardResponse.error(e.getMessage(), "INVOICE_GENERATE_ERROR", e.getMessage());
+        }
     }
 
     @Override
-    public List<InvoiceDTO> getAllInvoices() {
-        return invoiceRepository.findAll().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public StandardResponse<List<InvoiceDTO>> getAllInvoices() {
+        try {
+            List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(invoices, "Invoices fetched successfully");
+        } catch (Exception e) {
+            return StandardResponse.error(e.getMessage(), "INVOICE_FETCH_ERROR", e.getMessage());
+        }
     }
 
     @Override

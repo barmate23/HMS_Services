@@ -71,8 +71,18 @@ public class ServiceConstant {
     public static final String UPDATE_KOT_STATUS       = "/updateKotStatus/{id}";
 
     // Table Reservations
-    public static final String BOOK_TABLE = "/bookTable";
-    public static final String GET_TABLE_RESERVATIONS = "/getTableReservations/{tableId}";
+    public static final String BOOK_TABLE              = "/bookTable";
+    public static final String GET_TABLE_RESERVATIONS  = "/getTableReservations/{tableId}";
+
+    // POS Billing
+    public static final String CREATE_BILL             = "/createBill";
+    public static final String GET_BILL_BY_ID          = "/getBillById/{id}";
+    public static final String GET_BILL_BY_ORDER_ID    = "/getBillByOrderId/{orderId}";
+    public static final String GET_ALL_BILLS           = "/getAllBills";
+    public static final String GET_BILLS_BY_STATUS     = "/getBillsByStatus";
+    public static final String UPDATE_BILL             = "/updateBill/{id}";
+    public static final String VOID_BILL               = "/voidBill/{id}";
+    public static final String DELETE_BILL             = "/deleteBill/{id}";
 
     // Laundry Management
     public static final String CREATE_LAUNDRY_PRICE_MASTER = "/createPriceMaster";
