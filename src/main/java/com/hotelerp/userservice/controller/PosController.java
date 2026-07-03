@@ -49,12 +49,21 @@ public class PosController {
         return ResponseEntity.status(status).body(response);
     }
 
-    /** PATCH /updateOrderStatus/{id} - update only order status */
+    /** PATCH /updateOrderStatus/{id}?statusId= – update Order Status (OPEN → BILLED / CLOSED) */
     @PatchMapping(ServiceConstant.UPDATE_POS_ORDER_STATUS)
     public ResponseEntity<StandardResponse<PosOrderDTO>> updateOrderStatus(@PathVariable Long id, @RequestParam Long statusId) {
         StandardResponse<PosOrderDTO> response = posService.updateOrderStatus(id, statusId);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
+    }
+
+    /** PATCH /updateKotStatus/{id}?kotStatusId= – update KOT Status via CommonMaster ID (KOT_STATUS category) */
+    @PatchMapping(ServiceConstant.UPDATE_KOT_STATUS)
+    public ResponseEntity<StandardResponse<PosOrderDTO>> updateKotStatus(@PathVariable Long id,
+                                                                          @RequestParam Long kotStatusId) {
+        StandardResponse<PosOrderDTO> response = posService.updateKotStatus(id, kotStatusId);
+        HttpStatus httpStatus = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(httpStatus).body(response);
     }
 
     /** GET /getOrderById/{id} */

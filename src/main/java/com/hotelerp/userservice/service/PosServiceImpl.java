@@ -42,24 +42,26 @@ public class PosServiceImpl implements PosService {
             CommonMaster orderType = null;
             if (dto.getOrderTypeId() != null) {
                 orderType = commonMasterRepository.findById(dto.getOrderTypeId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Order type master data not found for ID: " + dto.getOrderTypeId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Order type master data not found for ID: " + dto.getOrderTypeId()));
             }
 
             DiningTable table = null;
             if (dto.getTableId() != null) {
                 table = diningTableRepository.findById(dto.getTableId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + dto.getTableId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Dining table not found with ID: " + dto.getTableId()));
 
                 // Block if table already has an active order
-                List<String> activeCodes = List.of("OPEN", "KOT_SENT");
+                List<String> activeCodes = List.of("OPEN");
                 List<PosOrder> activeOrders = posOrderRepository
                         .findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(dto.getTableId(), activeCodes);
                 if (!activeOrders.isEmpty()) {
                     return StandardResponse.error(
-                            "Table " + table.getTableNumber() + " already has an active order. Please close it before creating a new one.",
+                            "Table " + table.getTableNumber()
+                                    + " already has an active order. Please close it before creating a new one.",
                             "ACTIVE_ORDER_EXISTS",
-                            "Active order ID: " + activeOrders.get(0).getId()
-                    );
+                            "Active order ID: " + activeOrders.get(0).getId());
                 }
             }
 
@@ -72,12 +74,15 @@ public class PosServiceImpl implements PosService {
             User server = null;
             if (dto.getServerId() != null) {
                 server = userRepository.findById(dto.getServerId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Server (User) not found with ID: " + dto.getServerId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Server (User) not found with ID: " + dto.getServerId()));
             }
 
             CommonMaster status = commonMasterRepository.findByCategoryAndCode("ORDER_STATUS", "OPEN")
                     .orElseThrow(() -> new ResourceNotFoundException("Status 'OPEN' not found in master data"));
 
+            CommonMaster defaultKotStatus = commonMasterRepository.findByCategoryAndCode("KOT_STATUS", "NOT_SENT")
+                    .orElseThrow(() -> new ResourceNotFoundException("KOT status 'NOT_SENT' not found in master data"));
 
             PosOrder order = PosOrder.builder()
                     .outlet(outlet)
@@ -88,6 +93,7 @@ public class PosServiceImpl implements PosService {
                     .server(server)
                     .covers(dto.getCovers())
                     .status(status)
+                    .kotStatus(defaultKotStatus)
                     .notes(dto.getNotes())
                     .build();
 
@@ -95,7 +101,8 @@ public class PosServiceImpl implements PosService {
                 BigDecimal total = BigDecimal.ZERO;
                 for (PosOrderItemDTO itemDto : dto.getItems()) {
                     MenuItem menuItem = menuItemRepository.findById(itemDto.getMenuItemId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with ID: " + itemDto.getMenuItemId()));
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Menu item not found with ID: " + itemDto.getMenuItemId()));
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
                     PosOrderItem orderItem = PosOrderItem.builder()
@@ -123,7 +130,6 @@ public class PosServiceImpl implements PosService {
                 }
             }
 
-
             return StandardResponse.success("Order created successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -142,24 +148,30 @@ public class PosServiceImpl implements PosService {
 
             if (dto.getStatusId() != null) {
                 CommonMaster status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master data not found for ID: " + dto.getStatusId()));
                 order.setStatus(status);
             }
             if (dto.getServerId() != null) {
                 User server = userRepository.findById(dto.getServerId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Server (User) not found with ID: " + dto.getServerId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Server (User) not found with ID: " + dto.getServerId()));
                 order.setServer(server);
             }
-            if (dto.getNotes() != null) order.setNotes(dto.getNotes());
-            if (dto.getCovers() != null) order.setCovers(dto.getCovers());
-            if (dto.getGuestName() != null) order.setGuestName(dto.getGuestName());
+            if (dto.getNotes() != null)
+                order.setNotes(dto.getNotes());
+            if (dto.getCovers() != null)
+                order.setCovers(dto.getCovers());
+            if (dto.getGuestName() != null)
+                order.setGuestName(dto.getGuestName());
 
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
                 order.getItems().clear();
                 BigDecimal total = BigDecimal.ZERO;
                 for (PosOrderItemDTO itemDto : dto.getItems()) {
                     MenuItem menuItem = menuItemRepository.findById(itemDto.getMenuItemId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with ID: " + itemDto.getMenuItemId()));
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Menu item not found with ID: " + itemDto.getMenuItemId()));
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
                     PosOrderItem orderItem = PosOrderItem.builder()
@@ -193,7 +205,8 @@ public class PosServiceImpl implements PosService {
                     .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
 
             CommonMaster status = commonMasterRepository.findById(statusId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + statusId));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Status master data not found for ID: " + statusId));
 
             order.setStatus(status);
             PosOrder updatedOrder = posOrderRepository.save(order);
@@ -203,6 +216,35 @@ public class PosServiceImpl implements PosService {
         } catch (Exception e) {
             log.error("Error updating order status: ", e);
             return StandardResponse.error("Failed to update order status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public StandardResponse<PosOrderDTO> updateKotStatus(Long id, Long kotStatusId) {
+        try {
+            PosOrder order = posOrderRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + id));
+
+            CommonMaster kotStatus = commonMasterRepository.findById(kotStatusId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "KOT status master data not found for ID: " + kotStatusId));
+
+            if (!"KOT_STATUS".equals(kotStatus.getCategory())) {
+                return StandardResponse.error(
+                        "Master ID " + kotStatusId + " does not belong to category 'KOT_STATUS'",
+                        "INVALID_KOT_STATUS",
+                        null);
+            }
+
+            order.setKotStatus(kotStatus);
+            PosOrder updated = posOrderRepository.save(order);
+            return StandardResponse.success(convertToDTO(updated), "KOT status updated to " + kotStatus.getValue());
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating KOT status: ", e);
+            return StandardResponse.error("Failed to update KOT status", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
 
@@ -267,13 +309,15 @@ public class PosServiceImpl implements PosService {
             User server = null;
             if (dto.getServerId() != null) {
                 server = userRepository.findById(dto.getServerId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Server (User) not found with ID: " + dto.getServerId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Server (User) not found with ID: " + dto.getServerId()));
             }
 
             CommonMaster status = null;
             if (dto.getStatusId() != null) {
                 status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Status master data not found for ID: " + dto.getStatusId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status master data not found for ID: " + dto.getStatusId()));
             }
 
             TableReservation reservation = TableReservation.builder()
@@ -304,7 +348,8 @@ public class PosServiceImpl implements PosService {
             return StandardResponse.success(dtos, "Table reservations fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching reservations: ", e);
-            return StandardResponse.error("Failed to fetch table reservations", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to fetch table reservations", "INTERNAL_SERVER_ERROR",
+                    e.getMessage());
         }
     }
 
@@ -336,6 +381,8 @@ public class PosServiceImpl implements PosService {
                 .covers(order.getCovers())
                 .statusId(order.getStatus() != null ? order.getStatus().getId() : null)
                 .statusName(order.getStatus() != null ? order.getStatus().getValue() : null)
+                .kotStatusId(order.getKotStatus() != null ? order.getKotStatus().getId() : null)
+                .kotStatusName(order.getKotStatus() != null ? order.getKotStatus().getValue() : null)
                 .notes(order.getNotes())
                 .totalAmount(order.getTotalAmount())
                 .items(itemDTOs)

@@ -47,7 +47,15 @@ public class PosOrder {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "status_id")
-    private CommonMaster status; // OPEN, CLOSED, CANCELLED
+    private CommonMaster status; // ORDER_STATUS: OPEN, BILLED, CLOSED
+
+    /**
+     * KOT (Kitchen Order Ticket) status — sourced from CommonMaster (category = KOT_STATUS).
+     * Values: KOT_NOT_SENT | KOT_SENT
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kot_status_id")
+    private CommonMaster kotStatus; // KOT_STATUS: KOT_NOT_SENT, KOT_SENT
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;

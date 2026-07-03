@@ -68,6 +68,7 @@ public class ServiceConstant {
     public static final String GET_ACTIVE_POS_ORDERS = "/getActiveOrders";
     public static final String UPDATE_ORDER = "/updateOrder/{id}";
     public static final String UPDATE_POS_ORDER_STATUS = "/updateOrderStatus/{id}";
+    public static final String UPDATE_KOT_STATUS       = "/updateKotStatus/{id}";
 
     // Table Reservations
     public static final String BOOK_TABLE = "/bookTable";

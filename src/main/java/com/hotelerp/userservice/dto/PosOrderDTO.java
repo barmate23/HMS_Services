@@ -27,7 +27,9 @@ public class PosOrderDTO {
     private String serverName;
     private Integer covers;
     private Long statusId;
-    private String statusName;
+    private String statusName;       // ORDER_STATUS: OPEN | BILLED | CLOSED
+    private Long kotStatusId;        // KOT_STATUS id from CommonMaster
+    private String kotStatusName;    // KOT_NOT_SENT | KOT_SENT
     private String notes;
     private BigDecimal totalAmount;
     private List<PosOrderItemDTO> items;

@@ -10,6 +10,7 @@ public interface PosService {
     StandardResponse<Void> createOrder(PosOrderDTO dto);
     StandardResponse<PosOrderDTO> updateOrder(Long id, PosOrderDTO dto);
     StandardResponse<PosOrderDTO> updateOrderStatus(Long id, Long statusId);
+    StandardResponse<PosOrderDTO> updateKotStatus(Long id, Long kotStatusId);
     StandardResponse<PosOrderDTO> getOrderById(Long id);
     StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId);
     StandardResponse<List<PosOrderDTO>> getOrdersByOutlet(Long outletId);
