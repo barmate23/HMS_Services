@@ -10,8 +10,8 @@ public interface FolioService {
     StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source, String description);
     StandardResponse<Void> collectPayment(FolioPaymentRequest request);
 
-    StandardResponse<Void> settledFolio(Long folioId);
     StandardResponse<Long> createFolioForReservation(Long reservationId);
     StandardResponse<List<FolioLedgerDTO>> getActiveFolios();
+    StandardResponse<List<FolioPaymentDTO>> getAllPayments();
 }
 

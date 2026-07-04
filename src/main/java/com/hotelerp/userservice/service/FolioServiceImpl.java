@@ -48,9 +48,9 @@ public class FolioServiceImpl implements FolioService {
                         .date(p.getPostingDate())
                         .source(p.getSource())
                         .description(p.getDescription())
-                        .debit(p.getDebitAmount())
+                        .debit(p.getChargeAmount())
                         .tax(p.getTaxAmount())
-                        .paid(p.getPaidAmount())
+                        .paid(BigDecimal.ZERO)
                         .credit(BigDecimal.ZERO)
                         .build());
             }
@@ -125,24 +125,21 @@ public class FolioServiceImpl implements FolioService {
 
             BigDecimal taxAmount = request.getAmount().multiply(taxRate);
             BigDecimal totalAmount = request.getAmount().add(taxAmount);
-            BigDecimal paidAmount = request.getPaidAmount() != null ? request.getPaidAmount() : BigDecimal.ZERO;
 
             FolioPosting posting = FolioPosting.builder()
                     .folio(folio)
                     .postingDate(LocalDateTime.now())
                     .source(request.getSource())
                     .description(request.getDescription())
-                    .debitAmount(request.getAmount())
+                    .chargeAmount(request.getAmount())
                     .taxAmount(taxAmount)
                     .totalAmount(totalAmount)
-                    .paidAmount(paidAmount)
                     .build();
 
             folioPostingRepository.save(posting);
 
             folio.setTotalCharges(folio.getTotalCharges().add(totalAmount));
             folio.setTaxAmount(folio.getTaxAmount().add(taxAmount));
-            folio.setTotalPayments(folio.getTotalPayments().add(paidAmount));
             folio.setBalance(folio.getTotalCharges().subtract(folio.getTotalPayments()));
             folioRepository.save(folio);
             
@@ -205,6 +202,11 @@ public class FolioServiceImpl implements FolioService {
             folio.setTotalPayments(folio.getTotalPayments().add(request.getAmount()));
             folio.setBalance(folio.getTotalCharges().subtract(folio.getTotalPayments()));
             folioRepository.save(folio);
+
+            StandardResponse<InvoiceDTO> invoiceResponse = invoiceService.generateInvoice(request.getFolioId());
+            if (!invoiceResponse.isSuccess()) {
+                throw new RuntimeException("Invoice generation failed: " + invoiceResponse.getMessage());
+            }
             
             return StandardResponse.success("Payment collected successfully");
         } catch (Exception e) {
@@ -214,25 +216,11 @@ public class FolioServiceImpl implements FolioService {
     }
 
 
+
+
+
     @Override
     @Transactional
-    public StandardResponse<Void> settledFolio(Long folioId) {
-        try {
-            if (!folioRepository.existsById(folioId)) {
-                throw new RuntimeException("Folio not found");
-            }
-
-            invoiceService.generateInvoice(folioId);
-            return StandardResponse.success("Folio settled and invoice generated successfully");
-        } catch (Exception e) {
-            log.error("Error settling folio: ", e);
-            return StandardResponse.error("Failed to settle folio", "INTERNAL_SERVER_ERROR", e.getMessage());
-        }
-    }
-
-
-
-    @Override
     public StandardResponse<Long> createFolioForReservation(Long reservationId) {
         try {
             Reservation res = reservationRepository.findById(reservationId)
@@ -248,6 +236,22 @@ public class FolioServiceImpl implements FolioService {
                     .build();
 
             Long id = folioRepository.save(folio).getId();
+
+            List<Booking> bookings = bookingRepository.findByReservationId(reservationId);
+            BigDecimal totalBookingAmount = bookings.stream()
+                    .map(Booking::getFinalPrice)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (totalBookingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                postCharge(FolioPostingRequest.builder()
+                        .folioId(id)
+                        .source("Reservation")
+                        .amount(totalBookingAmount)
+                        .description("Room stay charges")
+                        .build());
+            }
+
             return StandardResponse.success(id, "Folio created successfully");
         } catch (Exception e) {
             log.error("Error creating folio: ", e);
@@ -285,6 +289,50 @@ public class FolioServiceImpl implements FolioService {
                 .taxAmount(folio.getTaxAmount())
                 .balance(folio.getBalance())
                 .status(folio.getStatus() != null ? folio.getStatus().getValue() : "OPEN")
+                .build();
+    }
+
+    @Override
+    public StandardResponse<List<FolioPaymentDTO>> getAllPayments() {
+        try {
+            List<FolioPaymentDTO> list = folioPaymentRepository.findByIsDeletedFalse().stream()
+                    .map(this::convertToPaymentDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(list, "Folio payments fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching folio payments: ", e);
+            return StandardResponse.error("Failed to fetch folio payments", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    private FolioPaymentDTO convertToPaymentDTO(FolioPayment payment) {
+        Folio folio = payment.getFolio();
+        Reservation res = folio != null ? folio.getReservation() : null;
+        String guestName = "Unknown";
+        String roomNumber = "";
+
+        if (res != null) {
+            if (res.getGuest() != null) {
+                guestName = res.getGuest().getFirstName() + " " + res.getGuest().getLastName();
+            }
+            List<Booking> bookings = bookingRepository.findByReservationId(res.getId());
+            roomNumber = bookings.stream()
+                    .map(b -> b.getRoom() != null ? b.getRoom().getRoomNumber() : "")
+                    .filter(r -> !r.isEmpty())
+                    .collect(Collectors.joining(", "));
+        }
+
+        return FolioPaymentDTO.builder()
+                .id(payment.getId())
+                .folioId(folio != null ? folio.getId() : null)
+                .folioNumber(folio != null ? folio.getFolioNumber() : "")
+                .guestName(guestName)
+                .roomNumber(roomNumber)
+                .mode(payment.getPaymentMode())
+                .referenceNumber(payment.getReferenceNumber())
+                .notes(payment.getNotes())
+                .amount(payment.getAmount())
+                .paymentDate(payment.getPaymentDate())
                 .build();
     }
 }

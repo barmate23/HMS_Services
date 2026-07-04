@@ -29,13 +29,14 @@ public class FolioController {
         return ResponseEntity.ok(folioService.collectPayment(request));
     }
 
-    @PostMapping("/generateInvoice/{folioId}")
-    public ResponseEntity<StandardResponse<Void>> settleFolio(@PathVariable Long folioId) {
-        return ResponseEntity.ok(folioService.settledFolio(folioId));
-    }
 
     @GetMapping("/getActiveFolios")
     public ResponseEntity<StandardResponse<java.util.List<FolioLedgerDTO>>> getActiveFolios() {
         return ResponseEntity.ok(folioService.getActiveFolios());
+    }
+
+    @GetMapping("/getAllPayments")
+    public ResponseEntity<StandardResponse<java.util.List<FolioPaymentDTO>>> getAllPayments() {
+        return ResponseEntity.ok(folioService.getAllPayments());
     }
 }

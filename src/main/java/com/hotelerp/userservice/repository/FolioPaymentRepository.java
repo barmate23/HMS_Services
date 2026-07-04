@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface FolioPaymentRepository extends JpaRepository<FolioPayment, Long> {
     List<FolioPayment> findByFolioIdAndIsDeletedFalse(Long folioId);
+    List<FolioPayment> findByIsDeletedFalse();
 }
