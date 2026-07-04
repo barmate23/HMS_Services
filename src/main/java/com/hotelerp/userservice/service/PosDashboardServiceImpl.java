@@ -86,20 +86,20 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .map(entry -> OutletRevenueDTO.builder()
                                                         .outletName(entry.getKey())
                                                         .billCount(entry.getValue().size())
-                                                        .totalAmount(entry.getValue().stream().map(PosBill::getAmount)
+                                                        .totalAmount(entry.getValue().stream().map(PosBill::getGrossAmount)
                                                                         .filter(Objects::nonNull)
                                                                         .reduce(BigDecimal.ZERO, BigDecimal::add))
                                                         .build())
                                         .collect(Collectors.toList());
 
-                        BigDecimal totalRevenue = settledBills.stream().map(PosBill::getAmount).filter(Objects::nonNull)
+                        BigDecimal totalRevenue = settledBills.stream().map(PosBill::getGrossAmount).filter(Objects::nonNull)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                         Map<String, List<PosBill>> paymentsByMethod = settledBills.stream()
                                         .filter(b -> b.getPaymentMethod() != null)
                                         .collect(Collectors.groupingBy(b -> b.getPaymentMethod().getValue()));
 
                         List<PaymentSplitDTO> paymentSplit = paymentsByMethod.entrySet().stream().map(entry -> {
-                                BigDecimal amount = entry.getValue().stream().map(PosBill::getAmount)
+                                BigDecimal amount = entry.getValue().stream().map(PosBill::getGrossAmount)
                                                 .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
                                 double percent = totalRevenue.compareTo(BigDecimal.ZERO) > 0
                                                 ? amount.divide(totalRevenue, 4, RoundingMode.HALF_UP)
@@ -139,7 +139,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         BigDecimal openBillsAmount = allBills.stream()
                                         .filter(b -> b.getStatus() != null
                                                         && "PENDING".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .map(PosBill::getAmount).filter(Objects::nonNull)
+                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         int roomPostingPending = (int) settledBills.stream().filter(b -> b.getPaymentMethod() != null
@@ -147,7 +147,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         BigDecimal roomPostingAmount = settledBills.stream()
                                         .filter(b -> b.getPaymentMethod() != null && "ROOM_CHARGE"
                                                         .equalsIgnoreCase(b.getPaymentMethod().getValue()))
-                                        .map(PosBill::getAmount).filter(Objects::nonNull)
+                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         int voidsCount = (int) allBills.stream().filter(
@@ -156,7 +156,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         BigDecimal voidsAmount = allBills.stream()
                                         .filter(b -> b.getStatus() != null
                                                         && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .map(PosBill::getAmount).filter(Objects::nonNull)
+                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         BillingWatchDTO billingWatch = BillingWatchDTO.builder()
