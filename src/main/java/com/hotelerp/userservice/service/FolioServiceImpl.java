@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FolioServiceImpl implements FolioService {
 
-
     private final FolioRepository folioRepository;
     private final FolioPostingRepository folioPostingRepository;
     private final FolioPaymentRepository folioPaymentRepository;
@@ -48,28 +47,17 @@ public class FolioServiceImpl implements FolioService {
                         .date(p.getPostingDate())
                         .source(p.getSource())
                         .description(p.getDescription())
-                        .debit(p.getChargeAmount())
-                        .tax(p.getTaxAmount())
-                        .paid(BigDecimal.ZERO)
-                        .credit(BigDecimal.ZERO)
-                        .build());
-            }
-
-            for (FolioPayment p : payments) {
-                entries.add(FolioLedgerDTO.LedgerEntryDTO.builder()
-                        .date(p.getPaymentDate())
-                        .source("Payment")
-                        .description(p.getPaymentMode() + (p.getReferenceNumber() != null ? " - " + p.getReferenceNumber() : ""))
-                        .debit(BigDecimal.ZERO)
-                        .tax(BigDecimal.ZERO)
-                        .credit(p.getAmount())
+                        .grossAmount(p.getChargeAmount())
+                        .taxAmount(p.getTaxAmount())
                         .build());
             }
 
             entries.sort(Comparator.comparing(FolioLedgerDTO.LedgerEntryDTO::getDate));
 
             Reservation res = folio.getReservation();
-            String guestName = res != null && res.getGuest() != null ? res.getGuest().getFirstName() + " " + res.getGuest().getLastName() : "Unknown";
+            String guestName = res != null && res.getGuest() != null
+                    ? res.getGuest().getFirstName() + " " + res.getGuest().getLastName()
+                    : "Unknown";
 
             FolioLedgerDTO ledger = FolioLedgerDTO.builder()
                     .folioId(folio.getId())
@@ -90,7 +78,6 @@ public class FolioServiceImpl implements FolioService {
         }
     }
 
-
     @Override
     @Transactional
     public StandardResponse<Void> postCharge(FolioPostingRequest request) {
@@ -100,11 +87,14 @@ public class FolioServiceImpl implements FolioService {
             if (request.getRoomId() != null) {
                 LocalDate today = LocalDate.now();
                 Booking booking = bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
-                        .orElseThrow(() -> new RuntimeException("No active booking found for room " + request.getRoomId() + " on " + today));
-                
-                Folio folioByRoom = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
-                        .orElseThrow(() -> new RuntimeException("Folio not found for reservation of room " + request.getRoomId()));
-                
+                        .orElseThrow(() -> new RuntimeException(
+                                "No active booking found for room " + request.getRoomId() + " on " + today));
+
+                Folio folioByRoom = folioRepository
+                        .findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Folio not found for reservation of room " + request.getRoomId()));
+
                 folioId = folioByRoom.getId();
             }
 
@@ -142,7 +132,7 @@ public class FolioServiceImpl implements FolioService {
             folio.setTaxAmount(folio.getTaxAmount().add(taxAmount));
             folio.setBalance(folio.getTotalCharges().subtract(folio.getTotalPayments()));
             folioRepository.save(folio);
-            
+
             return StandardResponse.success("Charge posted successfully");
         } catch (Exception e) {
             log.error("Error posting charge: ", e);
@@ -150,10 +140,10 @@ public class FolioServiceImpl implements FolioService {
         }
     }
 
-
     @Override
     @Transactional
-    public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source, String description) {
+    public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source,
+            String description) {
         try {
             Booking booking = bookingRepository.findByRoomIdAndIsDeletedFalse(roomId).stream()
                     .findFirst()
@@ -179,7 +169,6 @@ public class FolioServiceImpl implements FolioService {
             return StandardResponse.error("Failed to post charge by room", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
-
 
     @Override
     @Transactional
@@ -207,17 +196,13 @@ public class FolioServiceImpl implements FolioService {
             if (!invoiceResponse.isSuccess()) {
                 throw new RuntimeException("Invoice generation failed: " + invoiceResponse.getMessage());
             }
-            
+
             return StandardResponse.success("Payment collected successfully");
         } catch (Exception e) {
             log.error("Error collecting payment: ", e);
             return StandardResponse.error("Failed to collect payment", "INTERNAL_SERVER_ERROR", e.getMessage());
         }
     }
-
-
-
-
 
     @Override
     @Transactional
@@ -259,7 +244,6 @@ public class FolioServiceImpl implements FolioService {
         }
     }
 
-
     @Override
     public StandardResponse<List<FolioLedgerDTO>> getActiveFolios() {
         try {
@@ -273,12 +257,12 @@ public class FolioServiceImpl implements FolioService {
         }
     }
 
-
     private FolioLedgerDTO convertToSummaryDTO(Folio folio) {
         Reservation res = folio.getReservation();
-        String guestName = res != null && res.getGuest() != null ? 
-                res.getGuest().getFirstName() + " " + res.getGuest().getLastName() : "Unknown";
-        
+        String guestName = res != null && res.getGuest() != null
+                ? res.getGuest().getFirstName() + " " + res.getGuest().getLastName()
+                : "Unknown";
+
         return FolioLedgerDTO.builder()
                 .folioId(folio.getId())
                 .folioNumber(folio.getFolioNumber())

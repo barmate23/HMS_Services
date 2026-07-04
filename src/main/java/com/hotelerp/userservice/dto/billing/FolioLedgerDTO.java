@@ -30,9 +30,8 @@ public class FolioLedgerDTO {
         private LocalDateTime date;
         private String source;
         private String description;
-        private BigDecimal debit;
-        private BigDecimal tax;
-        private BigDecimal paid;
-        private BigDecimal credit;
+        private BigDecimal grossAmount;
+        private BigDecimal taxAmount;
+
     }
 }
