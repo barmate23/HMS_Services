@@ -264,7 +264,7 @@ public class FolioServiceImpl implements FolioService {
     @Override
     public StandardResponse<List<FolioLedgerDTO>> getActiveFolios() {
         try {
-            List<FolioLedgerDTO> list = folioRepository.findActiveByDate(java.time.LocalDate.now()).stream()
+            List<FolioLedgerDTO> list = folioRepository.findAllOpenFolios(java.time.LocalDate.now()).stream()
                     .map(this::convertToSummaryDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Active folios fetched successfully");

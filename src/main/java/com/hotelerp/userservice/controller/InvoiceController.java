@@ -2,6 +2,7 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.billing.InvoiceDTO;
+import com.hotelerp.userservice.dto.billing.InvoiceDetailDTO;
 import com.hotelerp.userservice.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +34,17 @@ public class InvoiceController {
         return ResponseEntity.status(status).body(response);
     }
 
+    /**
+     * GET /api/hmsService/v1/billing/invoices/{invoiceId}/detail
+     * Returns the full invoice data required to render the Tax Invoice PDF.
+     */
+    @GetMapping("/{invoiceId}/detail")
+    public ResponseEntity<StandardResponse<InvoiceDetailDTO>> getInvoiceDetail(@PathVariable Long invoiceId) {
+        StandardResponse<InvoiceDetailDTO> response = invoiceService.getInvoiceDetail(invoiceId);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+        return ResponseEntity.status(status).body(response);
+    }
+
     @GetMapping("/downloadInvoice/{id}")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id) {
         byte[] pdf = invoiceService.downloadInvoice(id);
@@ -42,3 +54,4 @@ public class InvoiceController {
                 .body(pdf);
     }
 }
+
