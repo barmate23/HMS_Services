@@ -38,7 +38,7 @@ public class InvoiceController {
      * GET /api/hmsService/v1/billing/invoices/{invoiceId}/detail
      * Returns the full invoice data required to render the Tax Invoice PDF.
      */
-    @GetMapping("/{invoiceId}/detail")
+    @GetMapping("/getInvoiceDocumentDatails/{invoiceId}")
     public ResponseEntity<StandardResponse<InvoiceDetailDTO>> getInvoiceDetail(@PathVariable Long invoiceId) {
         StandardResponse<InvoiceDetailDTO> response = invoiceService.getInvoiceDetail(invoiceId);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
@@ -54,4 +54,3 @@ public class InvoiceController {
                 .body(pdf);
     }
 }
-
