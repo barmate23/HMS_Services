@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class FolioServiceImpl implements FolioService {
 
     private final FolioRepository folioRepository;
+    private final CommonMasterRepository commonMasterRepository;
     private final FolioPostingRepository folioPostingRepository;
     private final FolioPaymentRepository folioPaymentRepository;
     private final ReservationRepository reservationRepository;
@@ -177,6 +179,7 @@ public class FolioServiceImpl implements FolioService {
             Folio folio = folioRepository.findById(request.getFolioId())
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
+            Optional<CommonMaster> folioStatus = commonMasterRepository.findByCategoryAndCode("FOLIO_STATUS", "CLOSE");
             FolioPayment payment = FolioPayment.builder()
                     .folio(folio)
                     .paymentDate(LocalDateTime.now())
@@ -190,7 +193,9 @@ public class FolioServiceImpl implements FolioService {
 
             folio.setTotalPayments(folio.getTotalPayments().add(request.getAmount()));
             folio.setBalance(folio.getTotalCharges().subtract(folio.getTotalPayments()));
+            folio.setStatus(folioStatus.get());
             folioRepository.save(folio);
+
 
             StandardResponse<InvoiceDTO> invoiceResponse = invoiceService.generateInvoice(request.getFolioId());
             if (!invoiceResponse.isSuccess()) {
