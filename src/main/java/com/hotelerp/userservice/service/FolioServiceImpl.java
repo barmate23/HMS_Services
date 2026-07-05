@@ -32,6 +32,7 @@ public class FolioServiceImpl implements FolioService {
     private final ReservationRepository reservationRepository;
     private final BookingRepository bookingRepository;
     private final InvoiceService invoiceService;
+    private final InvoiceRepository invoiceRepository;
 
     @Override
     public StandardResponse<FolioLedgerDTO> getLedger(Long folioId) {
@@ -178,6 +179,17 @@ public class FolioServiceImpl implements FolioService {
         try {
             Folio folio = folioRepository.findById(request.getFolioId())
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
+
+            // Check if an invoice has already been generated for this folio
+            Optional<Invoice> existingInvoice = invoiceRepository.findByFolioIdAndIsDeletedFalse(request.getFolioId());
+            if (existingInvoice.isPresent()) {
+                Invoice inv = existingInvoice.get();
+                return StandardResponse.error(
+                        "Invoice '" + inv.getInvoiceNumber() + "' has already been generated for this folio. Payment cannot be collected again.",
+                        "INVOICE_ALREADY_GENERATED",
+                        "Invoice already exists for folio ID: " + request.getFolioId()
+                );
+            }
 
             Optional<CommonMaster> folioStatus = commonMasterRepository.findByCategoryAndCode("FOLIO_STATUS", "CLOSE");
             FolioPayment payment = FolioPayment.builder()
