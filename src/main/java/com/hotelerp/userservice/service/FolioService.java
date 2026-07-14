@@ -7,6 +7,7 @@ import java.util.List;
 public interface FolioService {
     StandardResponse<FolioLedgerDTO> getLedger(Long folioId);
     StandardResponse<Void> postCharge(FolioPostingRequest request);
+    StandardResponse<Void> postToFolio(PostToFolioRequest request);
     StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source, String description);
     StandardResponse<Void> collectPayment(FolioPaymentRequest request);
 

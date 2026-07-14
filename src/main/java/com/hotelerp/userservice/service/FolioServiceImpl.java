@@ -145,6 +145,39 @@ public class FolioServiceImpl implements FolioService {
 
     @Override
     @Transactional
+    public StandardResponse<Void> postToFolio(PostToFolioRequest request) {
+        try {
+            Long roomId = request.getRoomId();
+            if (roomId == null) {
+                throw new RuntimeException("Room ID is required");
+            }
+
+            LocalDate today = LocalDate.now();
+            Booking booking = bookingRepository.findActiveByRoomAndDate(roomId, today)
+                    .orElseThrow(() -> new RuntimeException(
+                            "No active booking found for room " + roomId + " on " + today));
+
+            Folio folio = folioRepository
+                    .findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Folio not found for reservation of room " + roomId));
+
+            // Delegate to postCharge with the resolved folioId
+            return postCharge(FolioPostingRequest.builder()
+                    .folioId(folio.getId())
+                    .source(request.getSource())
+                    .amount(request.getAmount())
+                    .taxType(request.getTaxType())
+                    .description(request.getDescription())
+                    .build());
+        } catch (Exception e) {
+            log.error("Error posting to folio: ", e);
+            return StandardResponse.error("Failed to post to folio", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
     public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source,
             String description) {
         try {

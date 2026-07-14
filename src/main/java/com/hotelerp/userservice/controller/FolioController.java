@@ -24,6 +24,11 @@ public class FolioController {
         return ResponseEntity.ok(folioService.postCharge(request));
     }
 
+    @PostMapping("/postToFolio")
+    public ResponseEntity<StandardResponse<Void>> postToFolio(@RequestBody PostToFolioRequest request) {
+        return ResponseEntity.ok(folioService.postToFolio(request));
+    }
+
     @PostMapping("/collectFolioPayment")
     public ResponseEntity<StandardResponse<Void>> collectPayment(@RequestBody FolioPaymentRequest request) {
         return ResponseEntity.ok(folioService.collectPayment(request));
