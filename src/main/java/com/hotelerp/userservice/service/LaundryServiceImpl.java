@@ -10,12 +10,14 @@ import com.hotelerp.userservice.entity.LaundryOrderItem;
 import com.hotelerp.userservice.entity.LaundryPriceMaster;
 import com.hotelerp.userservice.entity.LaundryServiceCatalog;
 import com.hotelerp.userservice.entity.Room;
+import com.hotelerp.userservice.entity.GstRule;
 import com.hotelerp.userservice.repository.LaundryOrderItemRepository;
 import com.hotelerp.userservice.repository.LaundryOrderRepository;
 import com.hotelerp.userservice.repository.LaundryPriceMasterRepository;
 import com.hotelerp.userservice.repository.LaundryServiceCatalogRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.BookingRepository;
+import com.hotelerp.userservice.repository.GstRuleRepository;
 import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class LaundryServiceImpl implements LaundryService {
     private final LaundryServiceCatalogRepository serviceCatalogRepository;
     private final FolioService folioService;
     private final BookingRepository bookingRepository;
+    private final GstRuleRepository gstRuleRepository;
 
     // Price Master APIs
 
@@ -204,14 +207,15 @@ public class LaundryServiceImpl implements LaundryService {
 
             java.time.LocalDate today = java.time.LocalDate.now();
             boolean hasActiveBooking = bookingRepository.findActiveByRoomAndDate(room.getId(), today).isPresent();
-            boolean isRoomOccupied = room.getStatus() != null && 
-                    ("OCCUPIED".equalsIgnoreCase(room.getStatus().getValue()) || "RESERVED".equalsIgnoreCase(room.getStatus().getValue()));
-
-            if (!hasActiveBooking && !isRoomOccupied) {
+            if (!hasActiveBooking) {
                 String floorNo = (room.getFloor() != null && room.getFloor().getFloorNumber() != null) ? room.getFloor().getFloorNumber() : "N/A";
                 String roomNo = room.getRoomNumber() != null ? room.getRoomNumber() : "N/A";
-                return StandardResponse.error(floorNo + " - " + roomNo + " is Empty", "ROOM_EMPTY", null);
+                return StandardResponse.error("Room " + floorNo + " - " + roomNo + " is not booked", "ROOM_NOT_BOOKED", null);
             }
+
+            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndIsActiveTrue("Laundry")
+                    .map(r -> r.getIgstRate().doubleValue())
+                    .orElse(0.0);
 
             String orderId = generateOrderId();
             List<String> selectedServices = selectedServices(dto);
@@ -227,13 +231,15 @@ public class LaundryServiceImpl implements LaundryService {
                     .expectedDelivery(dto.getExpectedDelivery())
                     .specialInstructions(dto.getSpecialInstructions())
                     .status(dto.getStatus() != null ? dto.getStatus() : "PENDING")
+                    .gstPercent(gstPercent)
                     .build();
 
             double totalAmount = 0;
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Item not found in Price Master: " + itemDto.getPriceMasterId()));
-                double unitPrice = getPriceForServices(priceMaster, selectedServices);
+                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 totalAmount += unitPrice * itemDto.getQuantity();
             }
 
@@ -245,7 +251,8 @@ public class LaundryServiceImpl implements LaundryService {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Item not found in Price Master"));
 
-                double unitPrice = getPriceForServices(priceMaster, selectedServices);
+                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
@@ -284,6 +291,10 @@ public class LaundryServiceImpl implements LaundryService {
             LaundryOrder order = orderRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
 
+            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndIsActiveTrue("Laundry")
+                    .map(r -> r.getIgstRate().doubleValue())
+                    .orElse(0.0);
+
             List<String> selectedServices = selectedServices(dto);
             order.setServiceType(joinServices(selectedServices));
             order.setBillingOption(dto.getBillingOption());
@@ -297,12 +308,14 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double unitPrice = getPriceForServices(priceMaster, selectedServices);
+                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 totalAmount += unitPrice * itemDto.getQuantity();
             }
 
             // Update total and save order first
             order.setTotalAmount(totalAmount);
+            order.setGstPercent(gstPercent);
             order = orderRepository.save(order);
 
             // Clear old items and save new ones using repository
@@ -310,7 +323,8 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double unitPrice = getPriceForServices(priceMaster, selectedServices);
+                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
@@ -425,6 +439,7 @@ public class LaundryServiceImpl implements LaundryService {
                 .specialInstructions(entity.getSpecialInstructions())
                 .status(entity.getStatus())
                 .totalAmount(entity.getTotalAmount())
+                .gstPercent(entity.getGstPercent())
                 .items(items.stream().map(this::convertToDTO).collect(Collectors.toList()))
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

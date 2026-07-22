@@ -63,6 +63,12 @@ public class PosServiceImpl implements PosService {
                             "ACTIVE_ORDER_EXISTS",
                             "Active order ID: " + activeOrders.get(0).getId());
                 }
+
+                CommonMaster tableStatus = commonMasterRepository.findByCategoryAndCode("TABLE_STATUS", "OCCUPIED")
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Status 'OCCUPIED' with category 'TABLE_STATUS' not found in master data"));
+                table.setStatus(tableStatus);
+                diningTableRepository.save(table);
             }
 
             Room room = null;

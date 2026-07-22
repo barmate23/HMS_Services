@@ -48,6 +48,9 @@ public class LaundryOrder {
     @Column(name = "total_amount")
     private Double totalAmount;
 
+    @Column(name = "gst_percent")
+    private Double gstPercent;
+
     @Builder.Default
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;

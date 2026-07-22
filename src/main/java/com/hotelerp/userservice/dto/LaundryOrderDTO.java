@@ -26,6 +26,7 @@ public class LaundryOrderDTO {
     private String specialInstructions;
     private String status;
     private Double totalAmount;
+    private Double gstPercent;
     private List<LaundryOrderItemDTO> items;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
