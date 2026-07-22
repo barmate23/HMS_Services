@@ -9,4 +9,6 @@ public interface CommonMasterService {
     StandardResponse<CommonMasterDTO> updateCommonMasterData(CommonMasterDTO dto);
     StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category);
     StandardResponse<Void> deleteCommonMaster(Long id);
+
+    StandardResponse<List<CommonMasterDTO>> getAllMastersByCategory();
 }

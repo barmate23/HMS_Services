@@ -96,6 +96,19 @@ public class CommonMasterServiceImpl implements CommonMasterService {
         }
     }
 
+    @Override
+    public StandardResponse<List<CommonMasterDTO>> getAllMastersByCategory() {
+        try {
+            List<CommonMasterDTO> dtos = repository.findAll().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Masters fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching masters: ", e);
+            return StandardResponse.error("Failed to fetch masters", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
     private CommonMasterDTO convertToDTO(CommonMaster entity) {
         CommonMasterDTO dto = new CommonMasterDTO();
         dto.setId(entity.getId());

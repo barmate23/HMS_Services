@@ -105,6 +105,7 @@ public class ServiceConstant {
     public static final String GET_NON_DELIVERED_LAUNDRY_ORDERS = "/getNonDeliveredOrders";
     public static final String UPDATE_LAUNDRY_ORDER_STATUS = "/updateOrderStatus/{id}";
     public static final String DELETE_LAUNDRY_ORDER = "/deleteOrder/{id}";
+    public static final String GET_ALL_COMMON_MASTER = "/getAllCommonMaster";
 
     private ServiceConstant() {
         // Prevent instantiation

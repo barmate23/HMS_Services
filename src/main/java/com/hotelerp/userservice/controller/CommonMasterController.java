@@ -34,6 +34,11 @@ public class CommonMasterController {
         StandardResponse<List<CommonMasterDTO>> response = commonMasterService.getMastersByCategory(category);
         return ResponseEntity.ok(response);
     }
+    @GetMapping(ServiceConstant.GET_ALL_COMMON_MASTER)
+    public ResponseEntity<StandardResponse<List<CommonMasterDTO>>> getAllMastersByCategory() {
+        StandardResponse<List<CommonMasterDTO>> response = commonMasterService.getAllMastersByCategory();
+        return ResponseEntity.ok(response);
+    }
 
     @DeleteMapping("/deleteCommonMaster/{id}")
     public ResponseEntity<StandardResponse<Void>> deleteCommonMaster(@PathVariable Long id) {

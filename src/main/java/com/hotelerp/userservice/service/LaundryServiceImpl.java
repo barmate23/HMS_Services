@@ -15,6 +15,7 @@ import com.hotelerp.userservice.repository.LaundryOrderRepository;
 import com.hotelerp.userservice.repository.LaundryPriceMasterRepository;
 import com.hotelerp.userservice.repository.LaundryServiceCatalogRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
+import com.hotelerp.userservice.repository.BookingRepository;
 import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class LaundryServiceImpl implements LaundryService {
     private final RoomRepository roomRepository;
     private final LaundryServiceCatalogRepository serviceCatalogRepository;
     private final FolioService folioService;
+    private final BookingRepository bookingRepository;
 
     // Price Master APIs
 
@@ -199,6 +201,17 @@ public class LaundryServiceImpl implements LaundryService {
         try {
             Room room = roomRepository.findById(dto.getRoomId())
                     .orElseThrow(() -> new RuntimeException("Room not found"));
+
+            java.time.LocalDate today = java.time.LocalDate.now();
+            boolean hasActiveBooking = bookingRepository.findActiveByRoomAndDate(room.getId(), today).isPresent();
+            boolean isRoomOccupied = room.getStatus() != null && 
+                    ("OCCUPIED".equalsIgnoreCase(room.getStatus().getValue()) || "RESERVED".equalsIgnoreCase(room.getStatus().getValue()));
+
+            if (!hasActiveBooking && !isRoomOccupied) {
+                String floorNo = (room.getFloor() != null && room.getFloor().getFloorNumber() != null) ? room.getFloor().getFloorNumber() : "N/A";
+                String roomNo = room.getRoomNumber() != null ? room.getRoomNumber() : "N/A";
+                return StandardResponse.error(floorNo + " - " + roomNo + " is Empty", "ROOM_EMPTY", null);
+            }
 
             String orderId = generateOrderId();
             List<String> selectedServices = selectedServices(dto);
