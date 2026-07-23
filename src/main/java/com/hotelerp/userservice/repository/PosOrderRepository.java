@@ -19,4 +19,5 @@ public interface PosOrderRepository extends JpaRepository<PosOrder, Long> {
 
     List<PosOrder> findByStatusCodeInAndIsDeletedFalse(List<String> codes);
     List<PosOrder> findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(Long tableId, List<String> codes);
+    List<PosOrder> findByOutletIdAndStatusCodeInAndIsDeletedFalse(Long outletId, List<String> codes);
 }

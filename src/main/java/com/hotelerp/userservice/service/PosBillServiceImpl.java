@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -63,10 +64,13 @@ public class PosBillServiceImpl implements PosBillService {
                     .orElseThrow(() -> new ResourceNotFoundException("BILL_STATUS 'OPEN' not found in master data"));
 
             // 6. Amount calculations
-            BigDecimal gross    = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
-            BigDecimal discount = dto.getDiscount()      != null ? dto.getDiscount()      : BigDecimal.ZERO;
-            BigDecimal net      = gross.subtract(discount);
-            BigDecimal paid     = dto.getPaidAmount()    != null ? dto.getPaidAmount()    : BigDecimal.ZERO;
+            BigDecimal gross      = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+            BigDecimal discount   = dto.getDiscount()      != null ? dto.getDiscount()      : BigDecimal.ZERO;
+            BigDecimal baseAmount = gross.subtract(discount);
+            BigDecimal gstPercent = dto.getGstPercent()    != null ? dto.getGstPercent()    : BigDecimal.ZERO;
+            BigDecimal gstAmount  = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal net        = baseAmount.add(gstAmount);
+            BigDecimal paid       = dto.getPaidAmount()    != null ? dto.getPaidAmount()    : BigDecimal.ZERO;
 
             // 7. Generate bill number
             String billNumber = generateBillNumber();
@@ -80,6 +84,8 @@ public class PosBillServiceImpl implements PosBillService {
                     .status(billStatus)
                     .grossAmount(gross)
                     .discount(discount)
+                    .gstPercent(gstPercent)
+                    .gstAmount(gstAmount)
                     .netAmount(net)
                     .paidAmount(paid)
                     .postToFolio(Boolean.TRUE.equals(dto.getPostToFolio()))
@@ -169,9 +175,20 @@ public class PosBillServiceImpl implements PosBillService {
                 bill.setCompVoidReason(reason);
             }
 
-            if (dto.getDiscount() != null) {
-                bill.setDiscount(dto.getDiscount());
-                bill.setNetAmount(bill.getGrossAmount().subtract(dto.getDiscount()));
+            if (dto.getDiscount() != null || dto.getGstPercent() != null) {
+                BigDecimal discount = dto.getDiscount() != null ? dto.getDiscount() : bill.getDiscount();
+                if (discount == null) discount = BigDecimal.ZERO;
+
+                BigDecimal gstPercent = dto.getGstPercent() != null ? dto.getGstPercent() : bill.getGstPercent();
+                if (gstPercent == null) gstPercent = BigDecimal.ZERO;
+
+                bill.setDiscount(discount);
+                bill.setGstPercent(gstPercent);
+
+                BigDecimal baseAmount = bill.getGrossAmount().subtract(discount);
+                BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                bill.setGstAmount(gstAmount);
+                bill.setNetAmount(baseAmount.add(gstAmount));
             }
 
             if (dto.getPaidAmount() != null) bill.setPaidAmount(dto.getPaidAmount());
@@ -349,6 +366,8 @@ public class PosBillServiceImpl implements PosBillService {
                 .discount(bill.getDiscount())
                 .netAmount(bill.getNetAmount())
                 .paidAmount(bill.getPaidAmount())
+                .gstPercent(bill.getGstPercent())
+                .gstAmount(bill.getGstAmount())
                 .paymentMethodId(bill.getPaymentMethod()   != null ? bill.getPaymentMethod().getId()   : null)
                 .paymentMethodName(bill.getPaymentMethod() != null ? bill.getPaymentMethod().getValue() : null)
                 .statusId(bill.getStatus()   != null ? bill.getStatus().getId()   : null)

@@ -306,6 +306,23 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    public StandardResponse<List<PosOrderDTO>> getOpenOrders(Long outletId) {
+        try {
+            List<PosOrder> orders;
+            if (outletId != null) {
+                orders = posOrderRepository.findByOutletIdAndStatusCodeInAndIsDeletedFalse(outletId, List.of("OPEN"));
+            } else {
+                orders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(List.of("OPEN"));
+            }
+            List<PosOrderDTO> dtos = orders.stream().map(this::convertToDTO).collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Open POS orders fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching open POS orders: ", e);
+            return StandardResponse.error("Failed to fetch open POS orders", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     @Transactional
     public StandardResponse<Void> bookTable(TableReservationDTO dto) {
         try {

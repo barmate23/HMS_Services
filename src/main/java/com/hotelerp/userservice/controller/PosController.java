@@ -89,6 +89,13 @@ public class PosController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping(ServiceConstant.GET_OPEN_POS_ORDERS)
+    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getOpenOrders(
+            @RequestParam(required = false) Long outletId) {
+        StandardResponse<List<PosOrderDTO>> response = posService.getOpenOrders(outletId);
+        return ResponseEntity.ok(response);
+    }
+
     // ──────────────────────────────────────────
     //  TABLE BOOKING API
     // ──────────────────────────────────────────

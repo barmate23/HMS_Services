@@ -42,6 +42,8 @@ public class PosBillDTO {
     private BigDecimal discount;      // Discount entered on bill
     private BigDecimal netAmount;     // grossAmount - discount
     private BigDecimal paidAmount;    // Actual amount paid / tendered
+    private BigDecimal gstPercent;
+    private BigDecimal gstAmount;
 
     // ── Payment mode ──────────────────────────────────────────────────────────
     private Long paymentMethodId;     // CommonMaster id (PAYMENT_MODE)

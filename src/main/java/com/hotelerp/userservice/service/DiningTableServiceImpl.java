@@ -15,7 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotelerp.userservice.repository.PosOrderRepository;
+import com.hotelerp.userservice.entity.PosOrder;
+import com.hotelerp.userservice.entity.PosOrderItem;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,7 @@ public class DiningTableServiceImpl implements DiningTableService {
     private final DiningTableRepository diningTableRepository;
     private final OutletRepository outletRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final PosOrderRepository posOrderRepository;
 
     @Override
     @Transactional
@@ -131,10 +136,33 @@ public class DiningTableServiceImpl implements DiningTableService {
             List<DiningTable> tables = (outletId != null)
                     ? diningTableRepository.findByOutletId(outletId)
                     : diningTableRepository.findAll();
+
+            List<PosOrder> activeOrders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(List.of("OPEN"));
+            Map<Long, PosOrder> activeOrderMap = activeOrders.stream()
+                    .filter(o -> o.getDiningTable() != null)
+                    .collect(Collectors.toMap(
+                            o -> o.getDiningTable().getId(),
+                            o -> o,
+                            (o1, o2) -> o1
+                    ));
+
             List<DiningTableWithoutOutletDTO> dtos = tables.stream()
                     .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                    .map(this::convertToWithoutOutletDTO)
+                    .map(t -> {
+                        DiningTableWithoutOutletDTO dto = convertToWithoutOutletDTO(t);
+                        PosOrder activeOrder = activeOrderMap.get(t.getId());
+                        if (activeOrder != null) {
+                            dto.setGuestName(activeOrder.getGuestName());
+                            dto.setActiveOrderNo(activeOrder.getId());
+                            int itemCount = activeOrder.getItems().stream()
+                                    .mapToInt(item -> item.getQuantity() != null ? item.getQuantity() : 0)
+                                    .sum();
+                            dto.setNumberOfItems(itemCount);
+                        }
+                        return dto;
+                    })
                     .collect(Collectors.toList());
+
             return StandardResponse.success(dtos, "Dining tables fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching dining tables: ", e);

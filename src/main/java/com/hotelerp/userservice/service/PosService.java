@@ -14,6 +14,7 @@ public interface PosService {
     StandardResponse<PosOrderDTO> getOrderById(Long id);
     StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId);
     StandardResponse<List<PosOrderDTO>> getOrdersByOutlet(Long outletId);
+    StandardResponse<List<PosOrderDTO>> getOpenOrders(Long outletId);
     
     // Booking API
     StandardResponse<Void> bookTable(TableReservationDTO dto);

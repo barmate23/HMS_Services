@@ -75,6 +75,14 @@ public class PosBill {
     @Column(name = "paid_amount", precision = 10, scale = 2)
     private BigDecimal paidAmount = BigDecimal.ZERO;
 
+    @Builder.Default
+    @Column(name = "gst_percent", precision = 5, scale = 2)
+    private BigDecimal gstPercent = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "gst_amount", precision = 10, scale = 2)
+    private BigDecimal gstAmount = BigDecimal.ZERO;
+
     /**
      * If true, the net amount is posted to the active folio of the room
      * linked to the POS order (Room Service orders).
@@ -112,6 +120,8 @@ public class PosBill {
         if (discount == null) discount = BigDecimal.ZERO;
         if (netAmount == null) netAmount = BigDecimal.ZERO;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
+        if (gstPercent == null) gstPercent = BigDecimal.ZERO;
+        if (gstAmount == null) gstAmount = BigDecimal.ZERO;
     }
 
     @PreUpdate

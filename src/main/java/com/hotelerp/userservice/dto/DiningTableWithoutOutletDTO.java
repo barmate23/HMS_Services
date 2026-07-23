@@ -17,4 +17,7 @@ public class DiningTableWithoutOutletDTO {
     private Long statusId;
     private String statusName;
     private Integer covers;
+    private String guestName;
+    private Long activeOrderNo;
+    private Integer numberOfItems;
 }
