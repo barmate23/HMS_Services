@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -270,14 +273,26 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     @Override
-    public StandardResponse<List<PosBillDTO>> getAllBills(Long outletId) {
+    public StandardResponse<List<PosBillDTO>> getAllBills(Long outletId, int page, int size) {
         try {
-            List<PosBill> bills = (outletId != null)
-                    ? posBillRepository.findByOutletId(outletId)
-                    : posBillRepository.findByIsDeletedFalse();
+            PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-            List<PosBillDTO> dtos = bills.stream().map(this::convertToDTO).collect(Collectors.toList());
-            return StandardResponse.success(dtos, "Bills fetched successfully");
+            Page<PosBill> billPage = (outletId != null)
+                    ? posBillRepository.findByOutletId(outletId, pageable)
+                    : posBillRepository.findByIsDeletedFalse(pageable);
+
+            List<PosBillDTO> dtos = billPage.getContent().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            StandardResponse.ResponseMetadata meta = StandardResponse.ResponseMetadata.builder()
+                    .totalRecords(billPage.getTotalElements())
+                    .currentPage(billPage.getNumber())
+                    .pageSize(billPage.getSize())
+                    .totalPages(billPage.getTotalPages())
+                    .build();
+
+            return StandardResponse.success(dtos, "Bills fetched successfully", meta);
         } catch (Exception e) {
             log.error("Error fetching bills: ", e);
             return StandardResponse.error("Failed to fetch bills", "INTERNAL_SERVER_ERROR", e.getMessage());
@@ -362,6 +377,7 @@ public class PosBillServiceImpl implements PosBillService {
                 .roomId(order.getRoom() != null ? order.getRoom().getId()         : null)
                 .roomNumber(order.getRoom() != null ? order.getRoom().getRoomNumber() : null)
                 .guestName(order.getGuestName())
+                .isRoomOrder(order.getRoom() != null)
                 .grossAmount(bill.getGrossAmount())
                 .discount(bill.getDiscount())
                 .netAmount(bill.getNetAmount())

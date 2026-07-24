@@ -37,6 +37,9 @@ public class PosBillDTO {
     private String roomNumber;
     private String guestName;
 
+    /** True when the underlying POS order was a room-service order (order.room != null) */
+    private Boolean isRoomOrder;
+
     // ── Amounts ───────────────────────────────────────────────────────────────
     private BigDecimal grossAmount;   // Total from order items
     private BigDecimal discount;      // Discount entered on bill

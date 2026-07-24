@@ -22,8 +22,8 @@ public interface PosBillService {
     /** Get bill by Order ID */
     StandardResponse<PosBillDTO> getBillByOrderId(Long orderId);
 
-    /** Get all bills (optionally filtered by outletId) */
-    StandardResponse<List<PosBillDTO>> getAllBills(Long outletId);
+    /** Get all bills (optionally filtered by outletId) with pagination */
+    StandardResponse<List<PosBillDTO>> getAllBills(Long outletId, int page, int size);
 
     /** Get bills by status code, e.g. SETTLED, OPEN, VOID */
     StandardResponse<List<PosBillDTO>> getBillsByStatus(String statusCode);

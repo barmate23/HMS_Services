@@ -76,13 +76,17 @@ public class PosBillController {
     }
 
     /**
-     * GET /getAllBills?outletId=
-     * Returns all non-deleted bills. Optionally filtered by outlet.
+     * GET /getAllBills?outletId=&page=0&size=20
+     * Returns paginated, non-deleted bills. Optionally filtered by outlet.
+     * Response metadata includes totalRecords, currentPage, pageSize, totalPages.
+     * isRoomOrder=true means the bill was raised against a room-service order.
      */
     @GetMapping(ServiceConstant.GET_ALL_BILLS)
     public ResponseEntity<StandardResponse<List<PosBillDTO>>> getAllBills(
-            @RequestParam(required = false) Long outletId) {
-        StandardResponse<List<PosBillDTO>> response = posBillService.getAllBills(outletId);
+            @RequestParam(required = false) Long outletId,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        StandardResponse<List<PosBillDTO>> response = posBillService.getAllBills(outletId, page, size);
         return ResponseEntity.ok(response);
     }
 
