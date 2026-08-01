@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -23,11 +24,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PosBillServiceImpl implements PosBillService {
 
-    private final PosBillRepository       posBillRepository;
-    private final PosOrderRepository      posOrderRepository;
-    private final CommonMasterRepository  commonMasterRepository;
-    private final FolioService            folioService;
-    private final FolioPostingRepository  folioPostingRepository;
+    private final PosBillRepository posBillRepository;
+    private final PosOrderRepository posOrderRepository;
+    private final CommonMasterRepository commonMasterRepository;
+    private final DiningTableRepository diningTableRepository;
+    private final FolioService folioService;
+    private final FolioPostingRepository folioPostingRepository;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  CREATE
@@ -67,13 +69,13 @@ public class PosBillServiceImpl implements PosBillService {
                     .orElseThrow(() -> new ResourceNotFoundException("BILL_STATUS 'OPEN' not found in master data"));
 
             // 6. Amount calculations
-            BigDecimal gross      = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
-            BigDecimal discount   = dto.getDiscount()      != null ? dto.getDiscount()      : BigDecimal.ZERO;
+            BigDecimal gross = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+            BigDecimal discount = dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO;
             BigDecimal baseAmount = gross.subtract(discount);
-            BigDecimal gstPercent = dto.getGstPercent()    != null ? dto.getGstPercent()    : BigDecimal.ZERO;
-            BigDecimal gstAmount  = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            BigDecimal net        = baseAmount.add(gstAmount);
-            BigDecimal paid       = dto.getPaidAmount()    != null ? dto.getPaidAmount()    : BigDecimal.ZERO;
+            BigDecimal gstPercent = dto.getGstPercent() != null ? dto.getGstPercent() : BigDecimal.ZERO;
+            BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal net = baseAmount.add(gstAmount);
+            BigDecimal paid = dto.getPaidAmount() != null ? dto.getPaidAmount() : BigDecimal.ZERO;
 
             // 7. Generate bill number
             String billNumber = generateBillNumber();
@@ -139,6 +141,11 @@ public class PosBillServiceImpl implements PosBillService {
                         posOrderRepository.save(order);
                     });
 
+            // set table status to available
+            DiningTable diningTable = order.getDiningTable();
+            CommonMaster available = commonMasterRepository.findByCategoryAndCode("TABLE_STATUS", "AVAILABLE").get();
+            diningTable.setStatus(available);
+            diningTableRepository.save(diningTable);
             return StandardResponse.success(convertToDTO(bill), "Bill created successfully");
 
         } catch (ResourceNotFoundException e) {
@@ -195,7 +202,7 @@ public class PosBillServiceImpl implements PosBillService {
             }
 
             if (dto.getPaidAmount() != null) bill.setPaidAmount(dto.getPaidAmount());
-            if (dto.getNotes()      != null) bill.setNotes(dto.getNotes());
+            if (dto.getNotes() != null) bill.setNotes(dto.getNotes());
 
             PosBill updated = posBillRepository.save(bill);
             return StandardResponse.success(convertToDTO(updated), "Bill updated successfully");
@@ -364,7 +371,7 @@ public class PosBillServiceImpl implements PosBillService {
 
         String orderFrom = "TAKEAWAY";
         if (order.getDiningTable() != null) orderFrom = "TABLE";
-        else if (order.getRoom()   != null) orderFrom = "ROOM";
+        else if (order.getRoom() != null) orderFrom = "ROOM";
 
         return PosBillDTO.builder()
                 .id(bill.getId())
@@ -372,9 +379,9 @@ public class PosBillServiceImpl implements PosBillService {
                 .orderId(order.getId())
                 .orderRef("ORD-" + order.getId())
                 .orderFrom(orderFrom)
-                .tableId(order.getDiningTable() != null ? order.getDiningTable().getId()           : null)
+                .tableId(order.getDiningTable() != null ? order.getDiningTable().getId() : null)
                 .tableNumber(order.getDiningTable() != null ? order.getDiningTable().getTableNumber() : null)
-                .roomId(order.getRoom() != null ? order.getRoom().getId()         : null)
+                .roomId(order.getRoom() != null ? order.getRoom().getId() : null)
                 .roomNumber(order.getRoom() != null ? order.getRoom().getRoomNumber() : null)
                 .guestName(order.getGuestName())
                 .isRoomOrder(order.getRoom() != null)
@@ -384,11 +391,11 @@ public class PosBillServiceImpl implements PosBillService {
                 .paidAmount(bill.getPaidAmount())
                 .gstPercent(bill.getGstPercent())
                 .gstAmount(bill.getGstAmount())
-                .paymentMethodId(bill.getPaymentMethod()   != null ? bill.getPaymentMethod().getId()   : null)
+                .paymentMethodId(bill.getPaymentMethod() != null ? bill.getPaymentMethod().getId() : null)
                 .paymentMethodName(bill.getPaymentMethod() != null ? bill.getPaymentMethod().getValue() : null)
-                .statusId(bill.getStatus()   != null ? bill.getStatus().getId()   : null)
+                .statusId(bill.getStatus() != null ? bill.getStatus().getId() : null)
                 .statusName(bill.getStatus() != null ? bill.getStatus().getValue() : null)
-                .compVoidReasonId(bill.getCompVoidReason()   != null ? bill.getCompVoidReason().getId()   : null)
+                .compVoidReasonId(bill.getCompVoidReason() != null ? bill.getCompVoidReason().getId() : null)
                 .compVoidReasonName(bill.getCompVoidReason() != null ? bill.getCompVoidReason().getValue() : null)
                 .postToFolio(bill.getPostToFolio())
                 .folioPostingId(bill.getFolioPosting() != null ? bill.getFolioPosting().getId() : null)
