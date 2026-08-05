@@ -75,33 +75,47 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .build()).collect(Collectors.toList());
 
                         // 3. Revenue Mix & 4. Payment Split
-                        List<PosBill> settledBills = posBillRepository.findAll().stream()
-                                        .filter(b -> b.getStatus() != null
-                                                        && "SETTLED".equalsIgnoreCase(b.getStatus().getValue()))
+                        List<PosBill> nonVoidBills = posBillRepository.findAll().stream()
+                                        .filter(b -> b.getIsDeleted() == null || !b.getIsDeleted())
+                                        .filter(b -> b.getStatus() == null || !"VOID".equalsIgnoreCase(b.getStatus().getValue()))
                                         .collect(Collectors.toList());
 
-                        Map<String, List<PosBill>> revenuePerOutlet = settledBills.stream()
+                        Map<String, List<PosBill>> revenuePerOutlet = nonVoidBills.stream()
+                                        .filter(b -> b.getOrder() != null && b.getOrder().getOutlet() != null)
                                         .collect(Collectors.groupingBy(b -> b.getOrder().getOutlet().getName()));
+
+                        java.util.function.Function<PosBill, BigDecimal> calculateBillAmount = b -> {
+                                if (b.getPaidAmount() != null && b.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+                                        return b.getPaidAmount();
+                                }
+                                BigDecimal net = b.getNetAmount() != null ? b.getNetAmount() : (b.getGrossAmount() != null ? b.getGrossAmount() : BigDecimal.ZERO);
+                                BigDecimal gst = b.getGstAmount() != null ? b.getGstAmount() : net.multiply(new BigDecimal("0.18"));
+                                return net.add(gst).setScale(2, RoundingMode.HALF_UP);
+                        };
 
                         List<OutletRevenueDTO> revenueMix = revenuePerOutlet.entrySet().stream()
                                         .map(entry -> OutletRevenueDTO.builder()
                                                         .outletName(entry.getKey())
                                                         .billCount(entry.getValue().size())
-                                                        .totalAmount(entry.getValue().stream().map(PosBill::getGrossAmount)
-                                                                        .filter(Objects::nonNull)
+                                                        .totalAmount(entry.getValue().stream()
+                                                                        .map(calculateBillAmount)
                                                                         .reduce(BigDecimal.ZERO, BigDecimal::add))
                                                         .build())
                                         .collect(Collectors.toList());
 
-                        BigDecimal totalRevenue = settledBills.stream().map(PosBill::getGrossAmount).filter(Objects::nonNull)
+                        BigDecimal totalRevenue = nonVoidBills.stream()
+                                        .map(calculateBillAmount)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
-                        Map<String, List<PosBill>> paymentsByMethod = settledBills.stream()
-                                        .filter(b -> b.getPaymentMethod() != null)
-                                        .collect(Collectors.groupingBy(b -> b.getPaymentMethod().getValue()));
+
+                        Map<String, List<PosBill>> paymentsByMethod = nonVoidBills.stream()
+                                        .collect(Collectors.groupingBy(b -> (b.getPaymentMethod() != null && b.getPaymentMethod().getValue() != null) 
+                                                        ? b.getPaymentMethod().getValue() 
+                                                        : "Cash"));
 
                         List<PaymentSplitDTO> paymentSplit = paymentsByMethod.entrySet().stream().map(entry -> {
-                                BigDecimal amount = entry.getValue().stream().map(PosBill::getGrossAmount)
-                                                .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+                                BigDecimal amount = entry.getValue().stream()
+                                                .map(calculateBillAmount)
+                                                .reduce(BigDecimal.ZERO, BigDecimal::add);
                                 double percent = totalRevenue.compareTo(BigDecimal.ZERO) > 0
                                                 ? amount.divide(totalRevenue, 4, RoundingMode.HALF_UP)
                                                                 .multiply(BigDecimal.valueOf(100)).doubleValue()
@@ -127,37 +141,37 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                                                         ? entry.getKey().getOutlet().getName()
                                                                         : "N/A")
                                                         .soldQty(entry.getValue())
-                                                        .imageUrl(null) // Mocked as it's byte array in DB
+                                                        .imageUrl(null)
                                                         .build())
                                         .collect(Collectors.toList());
 
                         // 6. Billing Watch
                         List<PosBill> allBills = posBillRepository.findAll();
-                        int openBillsCount = (int) allBills.stream()
-                                        .filter(b -> b.getStatus() != null
-                                                        && "PENDING".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .count();
-                        BigDecimal openBillsAmount = allBills.stream()
-                                        .filter(b -> b.getStatus() != null
-                                                        && "PENDING".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
+                        List<PosBill> openBills = allBills.stream()
+                                        .filter(b -> b.getStatus() == null || "OPEN".equalsIgnoreCase(b.getStatus().getValue()) || "PENDING".equalsIgnoreCase(b.getStatus().getValue()) || "PARTIAL".equalsIgnoreCase(b.getStatus().getValue()))
+                                        .collect(Collectors.toList());
+
+                        int openBillsCount = openBills.size();
+                        BigDecimal openBillsAmount = openBills.stream()
+                                        .map(calculateBillAmount)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        int roomPostingPending = (int) settledBills.stream().filter(b -> b.getPaymentMethod() != null
-                                        && "ROOM_CHARGE".equalsIgnoreCase(b.getPaymentMethod().getValue())).count();
-                        BigDecimal roomPostingAmount = settledBills.stream()
-                                        .filter(b -> b.getPaymentMethod() != null && "ROOM_CHARGE"
-                                                        .equalsIgnoreCase(b.getPaymentMethod().getValue()))
-                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
+                        List<PosBill> roomChargeBills = allBills.stream()
+                                        .filter(b -> Boolean.TRUE.equals(b.getPostToFolio()) || (b.getPaymentMethod() != null && b.getPaymentMethod().getValue() != null && b.getPaymentMethod().getValue().toUpperCase().contains("ROOM")))
+                                        .collect(Collectors.toList());
+
+                        int roomPostingPending = roomChargeBills.size();
+                        BigDecimal roomPostingAmount = roomChargeBills.stream()
+                                        .map(calculateBillAmount)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        int voidsCount = (int) allBills.stream().filter(
-                                        b -> b.getStatus() != null && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .count();
-                        BigDecimal voidsAmount = allBills.stream()
-                                        .filter(b -> b.getStatus() != null
-                                                        && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
-                                        .map(PosBill::getGrossAmount).filter(Objects::nonNull)
+                        List<PosBill> voidBills = allBills.stream()
+                                        .filter(b -> b.getStatus() != null && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
+                                        .collect(Collectors.toList());
+
+                        int voidsCount = voidBills.size();
+                        BigDecimal voidsAmount = voidBills.stream()
+                                        .map(calculateBillAmount)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         BillingWatchDTO billingWatch = BillingWatchDTO.builder()
@@ -177,7 +191,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .linkedEntityId("ORD-" + o.getId())
                                         .timestamp(o.getCreatedAt())
                                         .build()));
-                        settledBills.stream().sorted(Comparator.comparing(PosBill::getCreatedAt).reversed()).limit(2)
+                        nonVoidBills.stream().sorted(Comparator.comparing(PosBill::getCreatedAt).reversed()).limit(2)
                                         .forEach(b -> recentActivity.add(RecentActivityDTO.builder()
                                                         .activityType("Bill settled by " + (b.getPaymentMethod() != null
                                                                         ? b.getPaymentMethod().getValue()
