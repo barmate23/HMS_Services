@@ -23,6 +23,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         private final PosBillRepository posBillRepository;
         private final DiningTableRepository diningTableRepository;
         private final PosOrderItemRepository posOrderItemRepository;
+        private final OutletRepository outletRepository;
 
         @Override
         public StandardResponse<PosOpsDashboardDTO> getPosDashboardData() {
@@ -185,7 +186,10 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                                         .timestamp(b.getCreatedAt())
                                                         .build()));
 
+                        PosDashboardCardsDTO cards = getPosDashboardCards(null, null, null).getData();
+
                         PosOpsDashboardDTO dashboardDTO = PosOpsDashboardDTO.builder()
+                                        .cards(cards)
                                         .floorPulse(floorPulse)
                                         .kotQueue(kotQueue)
                                         .revenueMix(revenueMix)
@@ -202,6 +206,77 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         log.error("Error fetching POS dashboard data: ", e);
                         return StandardResponse.error("Failed to fetch POS dashboard data", "INTERNAL_SERVER_ERROR",
                                         e.getMessage());
+                }
+        }
+
+        @Override
+        public StandardResponse<PosDashboardCardsDTO> getPosDashboardCards(Long outletId, LocalDateTime startDate, LocalDateTime endDate) {
+                try {
+                        // 1. Active Outlets Count
+                        List<Outlet> outlets = outletRepository.findByIsActiveTrue();
+                        if (outletId != null) {
+                                outlets = outlets.stream()
+                                                .filter(o -> o.getId().equals(outletId))
+                                                .collect(Collectors.toList());
+                        }
+                        int activeOutlets = outlets.size();
+
+                        // Fetch POS Orders filtered by outlet and date range
+                        List<PosOrder> allOrders = posOrderRepository.findAll();
+                        List<PosOrder> filteredOrders = allOrders.stream()
+                                        .filter(o -> Boolean.FALSE.equals(o.getIsDeleted()))
+                                        .filter(o -> outletId == null || (o.getOutlet() != null && outletId.equals(o.getOutlet().getId())))
+                                        .filter(o -> startDate == null || (o.getCreatedAt() != null && !o.getCreatedAt().isBefore(startDate)))
+                                        .filter(o -> endDate == null || (o.getCreatedAt() != null && !o.getCreatedAt().isAfter(endDate)))
+                                        .collect(Collectors.toList());
+
+                        // 2. Open Orders Count
+                        int openOrders = (int) filteredOrders.stream()
+                                        .filter(o -> o.getStatus() != null && "OPEN".equalsIgnoreCase(o.getStatus().getValue()))
+                                        .count();
+
+                        // 3. KOT Running Count
+                        int kotRunning = (int) filteredOrders.stream()
+                                        .filter(o -> (o.getKotStatus() != null && ("KOT_SENT".equalsIgnoreCase(o.getKotStatus().getCode()) || "KOT_SENT".equalsIgnoreCase(o.getKotStatus().getValue()))) ||
+                                                        (o.getStatus() != null && ("KOT_SENT".equalsIgnoreCase(o.getStatus().getValue()) || "HELD".equalsIgnoreCase(o.getStatus().getValue()))))
+                                        .count();
+
+                        // Fetch POS Bills filtered by outlet and date range
+                        List<PosBill> allBills = posBillRepository.findByIsDeletedFalse();
+                        List<PosBill> filteredBills = allBills.stream()
+                                        .filter(b -> outletId == null || (b.getOrder() != null && b.getOrder().getOutlet() != null && outletId.equals(b.getOrder().getOutlet().getId())))
+                                        .filter(b -> startDate == null || (b.getCreatedAt() != null && !b.getCreatedAt().isBefore(startDate)))
+                                        .filter(b -> endDate == null || (b.getCreatedAt() != null && !b.getCreatedAt().isAfter(endDate)))
+                                        .collect(Collectors.toList());
+
+                        // 4. Total Bills Count
+                        int billsCount = filteredBills.size();
+
+                        // 5. Room Postings Count
+                        int roomPostingsCount = (int) filteredBills.stream()
+                                        .filter(b -> Boolean.TRUE.equals(b.getPostToFolio()) ||
+                                                        (b.getPaymentMethod() != null && ("ROOM_CHARGE".equalsIgnoreCase(b.getPaymentMethod().getValue()) || "ROOM_CHARGE".equalsIgnoreCase(b.getPaymentMethod().getCode()))))
+                                        .count();
+
+                        // 6. Gross Sales Total
+                        BigDecimal grossSales = filteredBills.stream()
+                                        .map(PosBill::getGrossAmount)
+                                        .filter(Objects::nonNull)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                        PosDashboardCardsDTO cardsDTO = PosDashboardCardsDTO.builder()
+                                        .activeOutlets(activeOutlets)
+                                        .openOrders(openOrders)
+                                        .kotRunning(kotRunning)
+                                        .bills(billsCount)
+                                        .roomPostings(roomPostingsCount)
+                                        .grossSales(grossSales)
+                                        .build();
+
+                        return StandardResponse.success(cardsDTO, "POS Dashboard Cards data fetched successfully");
+                } catch (Exception e) {
+                        log.error("Error fetching POS dashboard cards: ", e);
+                        return StandardResponse.error("Failed to fetch POS dashboard cards", "INTERNAL_SERVER_ERROR", e.getMessage());
                 }
         }
 }

@@ -61,6 +61,9 @@ public class ServiceConstant {
     public static final String UPDATE_MENU = "/updateMenu/{id}";
     public static final String DELETE_MENU = "/deleteMenu/{id}";
 
+    // POS Dashboard
+    public static final String GET_POS_DASHBOARD_CARDS = "/getPosDashboardCards";
+
     // POS Orders
     public static final String CREATE_ORDER = "/createOrder";
     public static final String GET_ORDER_BY_ID = "/getOrderById/{id}";

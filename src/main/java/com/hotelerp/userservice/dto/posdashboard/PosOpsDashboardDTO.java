@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PosOpsDashboardDTO {
+    private PosDashboardCardsDTO cards;
     private FloorPulseDTO floorPulse;
     private List<KotQueueDTO> kotQueue;
     private List<OutletRevenueDTO> revenueMix;
