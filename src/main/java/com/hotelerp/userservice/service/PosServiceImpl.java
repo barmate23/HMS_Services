@@ -168,6 +168,8 @@ public class PosServiceImpl implements PosService {
                                 "Server (User) not found with ID: " + dto.getServerId()));
                 order.setServer(server);
             }
+
+            
             if (dto.getNotes() != null)
                 order.setNotes(dto.getNotes());
             if (dto.getCovers() != null)
@@ -176,9 +178,14 @@ public class PosServiceImpl implements PosService {
                 order.setGuestName(dto.getGuestName());
 
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
+                // Map existing order items by ID to update records in-place
+                Map<Long, PosOrderItem> existingItemsById = order.getItems().stream()
+                        .filter(i -> i.getId() != null)
+                        .collect(Collectors.toMap(PosOrderItem::getId, i -> i, (a, b) -> a));
 
-                order.getItems().clear();
+                List<PosOrderItem> updatedItemList = new java.util.ArrayList<>();
                 BigDecimal total = BigDecimal.ZERO;
+
                 for (PosOrderItemDTO itemDto : dto.getItems()) {
                     MenuItem menuItem = menuItemRepository.findById(itemDto.getMenuItemId())
                             .orElseThrow(() -> new ResourceNotFoundException(
@@ -186,18 +193,34 @@ public class PosServiceImpl implements PosService {
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
 
+                    PosOrderItem orderItem;
+                    if (itemDto.getId() != null && existingItemsById.containsKey(itemDto.getId())) {
+                        // Update existing record in-place
+                        orderItem = existingItemsById.remove(itemDto.getId());
+                        orderItem.setMenuItem(menuItem);
+                        orderItem.setQuantity(itemDto.getQuantity());
+                        orderItem.setPrice(price);
+                        orderItem.setSubtotal(subtotal);
+
+                    } else {
+                        // Create new record for new item
 
 
-                    PosOrderItem orderItem = PosOrderItem.builder()
-                            .order(order)
-                            .menuItem(menuItem)
-                            .quantity(itemDto.getQuantity())
-                            .price(price)
-                            .subtotal(subtotal)
-                            .build();
-                    order.getItems().add(orderItem);
+                        orderItem = PosOrderItem.builder()
+                                .order(order)
+                                .menuItem(menuItem)
+                                .quantity(itemDto.getQuantity())
+                                .price(price)
+                                .subtotal(subtotal)
+                                .build();
+                    }
+
+                    updatedItemList.add(orderItem);
                     total = total.add(subtotal);
                 }
+
+                order.getItems().clear();
+                order.getItems().addAll(updatedItemList);
                 order.setTotalAmount(total);
             }
 
@@ -456,6 +479,7 @@ public class PosServiceImpl implements PosService {
                             .id(i.getId())
                             .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
                             .quantity(remainingQty)
+                            .readyQuantity(i.getReadyQuantity())
                             .build();
                 })
                 .collect(Collectors.toList()) : List.of();

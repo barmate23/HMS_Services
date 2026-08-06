@@ -13,4 +13,5 @@ public class KitchenOrderItemDTO {
     private Long id;
     private String itemName;
     private Integer quantity;
+    private Integer readyQuantity;
 }
