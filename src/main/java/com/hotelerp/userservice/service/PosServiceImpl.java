@@ -12,10 +12,13 @@ import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,6 +37,11 @@ public class PosServiceImpl implements PosService {
     private final MenuItemRepository menuItemRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final FolioService folioService;
+    private final KitchenSseService kitchenSseService;
+    private final PosOrderItemRepository posOrderItemRepository;
+
+    // ── KOT_STATUS priority order (least → highest) ──────────────────────
+    private static final List<String> KOT_STATUS_PRIORITY = List.of("KOT_SEND", "IN_PROGRESS", "KOT_READY");
 
     @Override
     @Transactional
@@ -140,6 +148,9 @@ public class PosServiceImpl implements PosService {
                 }
             }
 
+            // ── SSE: notify KDS screens that a new order was created ──────
+            broadcastKdsUpdate(order.getOutlet() != null ? order.getOutlet().getId() : null, "NEW_ORDER");
+
             return StandardResponse.success("Order created successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -169,7 +180,6 @@ public class PosServiceImpl implements PosService {
                 order.setServer(server);
             }
 
-            
             if (dto.getNotes() != null)
                 order.setNotes(dto.getNotes());
             if (dto.getCovers() != null)
@@ -203,15 +213,17 @@ public class PosServiceImpl implements PosService {
                         orderItem.setSubtotal(subtotal);
 
                     } else {
-                        // Create new record for new item
-
-
+                        // Brand-new item — default its KOT status to KOT_SEND
+                        CommonMaster kotSentStatus = commonMasterRepository
+                                .findByCategoryAndCode("KOT_STATUS", "KOT_SEND")
+                                .orElse(null);
                         orderItem = PosOrderItem.builder()
                                 .order(order)
                                 .menuItem(menuItem)
                                 .quantity(itemDto.getQuantity())
                                 .price(price)
                                 .subtotal(subtotal)
+                                .kotStatus(kotSentStatus)
                                 .build();
                     }
 
@@ -222,9 +234,17 @@ public class PosServiceImpl implements PosService {
                 order.getItems().clear();
                 order.getItems().addAll(updatedItemList);
                 order.setTotalAmount(total);
+
+                // Recalculate order-level KOT status from item statuses
+                syncOrderKotStatus(order);
             }
 
             PosOrder updatedOrder = posOrderRepository.save(order);
+
+            // ── SSE: notify KDS screens that order items changed ──────────
+            broadcastKdsUpdate(updatedOrder.getOutlet() != null ? updatedOrder.getOutlet().getId() : null,
+                    "ORDER_UPDATED");
+
             return StandardResponse.success(convertToDTO(updatedOrder), "Order updated successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -291,6 +311,10 @@ public class PosServiceImpl implements PosService {
             }
 
             PosOrder updated = posOrderRepository.save(order);
+
+            // ── SSE: notify KDS screens that KOT status changed ───────────
+            broadcastKdsUpdate(updated.getOutlet() != null ? updated.getOutlet().getId() : null, "KOT_STATUS_CHANGED");
+
             return StandardResponse.success(convertToDTO(updated), "KOT status updated to " + kotStatus.getValue());
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -480,10 +504,16 @@ public class PosServiceImpl implements PosService {
                             .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
                             .quantity(remainingQty)
                             .readyQuantity(i.getReadyQuantity())
+                            .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
+                            .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
                             .build();
                 })
                 .collect(Collectors.toList()) : List.of();
 
+        String kotStatusValue = order.getKotStatus() != null ? order.getKotStatus().getValue() : null;
+        if (Boolean.FALSE.equals(isClosed) && kotStatusValue.equalsIgnoreCase("KOT READY")) {
+            kotStatusValue = "NEW";
+        }
         return KitchenOrderCardDTO.builder()
                 .id(order.getId())
                 .orderNumber("ORD-" + order.getId())
@@ -494,7 +524,7 @@ public class PosServiceImpl implements PosService {
                 .roomNumber(order.getRoom() != null ? order.getRoom().getRoomNumber() : null)
                 .guestName(order.getGuestName())
                 .serverName(order.getServer() != null ? order.getServer().getFullName() : null)
-                .kotStatus(order.getKotStatus() != null ? order.getKotStatus().getValue() : null)
+                .kotStatus(kotStatusValue)
                 .createdAt(order.getCreatedAt())
                 .items(itemDTOs)
                 .build();
@@ -510,6 +540,9 @@ public class PosServiceImpl implements PosService {
                         .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
                         .price(i.getPrice())
                         .subtotal(i.getSubtotal())
+                        .kotStatusId(i.getKotStatus() != null ? i.getKotStatus().getId() : null)
+                        .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
+                        .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
                         .build())
                 .collect(Collectors.toList());
 
@@ -552,5 +585,113 @@ public class PosServiceImpl implements PosService {
                 .statusId(r.getStatus() != null ? r.getStatus().getId() : null)
                 .statusValue(r.getStatus() != null ? r.getStatus().getValue() : null)
                 .build();
+    }
+
+    /**
+     * Fetches the current active kitchen cards for the given outlet and broadcasts
+     * them
+     * to all SSE subscribers. Errors here must NOT propagate to the calling
+     * transaction.
+     */
+    private void broadcastKdsUpdate(Long outletId, String eventType) {
+        try {
+            StandardResponse<List<KitchenOrderCardDTO>> kdsData = getKitchenOrders(outletId, false);
+            if (kdsData.isSuccess()) {
+                kitchenSseService.broadcast(outletId, eventType, kdsData.getData());
+            }
+        } catch (Exception e) {
+            log.warn("SSE broadcast failed [{}] for outletId={}: {}", eventType, outletId, e.getMessage());
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // ITEM-LEVEL KOT STATUS UPDATE
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * PATCH /updateItemKotStatus/{orderId}/item/{itemId}?kotStatusId=
+     *
+     * Updates the KOT status of a single order item.
+     * After updating, recalculates the order-level kotStatus using the
+     * least-status rule: KOT_SEND < IN_PROGRESS < KOT_READY.
+     * If ANY item has KOT_SEND, the order status = KOT_SEND, etc.
+     */
+    @Override
+    @Transactional
+    public StandardResponse<PosOrderDTO> updateItemKotStatus(Long orderId, Long itemId, Long kotStatusId) {
+        try {
+            PosOrder order = posOrderRepository.findById(orderId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
+            PosOrderItem item = order.getItems().stream()
+                    .filter(i -> i.getId() != null && i.getId().equals(itemId))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Item ID " + itemId + " not found on order ID " + orderId));
+
+            CommonMaster kotStatus = commonMasterRepository.findById(kotStatusId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "KOT status not found with ID: " + kotStatusId));
+
+            if (!"KOT_STATUS".equals(kotStatus.getCategory())) {
+                return StandardResponse.error(
+                        "Master ID " + kotStatusId + " does not belong to category 'KOT_STATUS'",
+                        "INVALID_KOT_STATUS", null);
+            }
+
+            item.setKotStatus(kotStatus);
+
+            // If status is KOT_READY → set readyQuantity = quantity
+            String code = kotStatus.getCode() != null ? kotStatus.getCode().toUpperCase() : "";
+            if ("KOT_READY".equals(code)) {
+                item.setReadyQuantity(item.getQuantity() != null ? item.getQuantity() : 0);
+            }
+
+            // Recalculate order-level KOT status from all item statuses
+            syncOrderKotStatus(order);
+
+            PosOrder saved = posOrderRepository.save(order);
+
+            // SSE push
+            broadcastKdsUpdate(saved.getOutlet() != null ? saved.getOutlet().getId() : null, "KOT_STATUS_CHANGED");
+
+            return StandardResponse.success(convertToDTO(saved),
+                    "Item KOT status updated to " + kotStatus.getValue());
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating item KOT status: ", e);
+            return StandardResponse.error("Failed to update item KOT status", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Derives order-level kotStatus from item-level statuses using the least-status
+     * rule:
+     * KOT_SEND < IN_PROGRESS < KOT_READY
+     *
+     * If any item's status has lower priority, that becomes the order status.
+     * If no item has a status, order status is left unchanged.
+     */
+    private void syncOrderKotStatus(PosOrder order) {
+        if (order.getItems() == null || order.getItems().isEmpty())
+            return;
+
+        // Find the item with the lowest priority status code
+        String lowestCode = order.getItems().stream()
+                .filter(i -> i.getKotStatus() != null && i.getKotStatus().getCode() != null)
+                .map(i -> i.getKotStatus().getCode().toUpperCase())
+                .min(Comparator.comparingInt(code -> {
+                    int idx = KOT_STATUS_PRIORITY.indexOf(code);
+                    return idx < 0 ? Integer.MAX_VALUE : idx; // unknown codes go last
+                }))
+                .orElse(null);
+
+        if (lowestCode == null)
+            return;
+
+        final String target = lowestCode;
+        commonMasterRepository.findByCategoryAndCode("KOT_STATUS", target)
+                .ifPresent(order::setKotStatus);
     }
 }

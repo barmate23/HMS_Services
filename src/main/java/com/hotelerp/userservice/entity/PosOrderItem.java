@@ -37,6 +37,15 @@ public class PosOrderItem {
     @Column(name = "ready_quantity")
     private Integer readyQuantity = 0;
 
+    /**
+     * Item-level KOT status from CommonMaster (category = "KOT_STATUS").
+     * Tracks cooking progress independently per line item.
+     * Priority (low → high): KOT_SEND → IN_PROGRESS → KOT_READY
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_kot_status_id")
+    private CommonMaster kotStatus;
+
     @PrePersist
     @PreUpdate
     protected void calculateSubtotal() {

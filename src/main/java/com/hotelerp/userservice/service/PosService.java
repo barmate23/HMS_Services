@@ -12,6 +12,8 @@ public interface PosService {
     StandardResponse<PosOrderDTO> updateOrder(Long id, PosOrderDTO dto);
     StandardResponse<PosOrderDTO> updateOrderStatus(Long id, Long statusId);
     StandardResponse<PosOrderDTO> updateKotStatus(Long id, Long kotStatusId);
+    /** Update KOT status on a single item, then recalculate order-level kotStatus. */
+    StandardResponse<PosOrderDTO> updateItemKotStatus(Long orderId, Long itemId, Long kotStatusId);
     StandardResponse<PosOrderDTO> getOrderById(Long id);
     StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId);
     StandardResponse<List<PosOrderDTO>> getOrdersByOutlet(Long outletId);

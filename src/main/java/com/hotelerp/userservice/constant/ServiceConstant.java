@@ -71,6 +71,8 @@ public class ServiceConstant {
     public static final String GET_ACTIVE_POS_ORDERS = "/getActiveOrders";
     public static final String GET_OPEN_POS_ORDERS = "/getOpenOrders";
     public static final String GET_KITCHEN_ORDERS  = "/getKitchenOrders";
+    public static final String GET_KITCHEN_ORDERS_STREAM = "/getKitchenOrdersStream";
+    public static final String UPDATE_ITEM_KOT_STATUS  = "/updateItemKotStatus/{orderId}/item/{itemId}";
     public static final String UPDATE_ORDER = "/updateOrder/{id}";
     public static final String UPDATE_POS_ORDER_STATUS = "/updateOrderStatus/{id}";
     public static final String UPDATE_KOT_STATUS       = "/updateKotStatus/{id}";
@@ -111,6 +113,21 @@ public class ServiceConstant {
     public static final String UPDATE_LAUNDRY_ORDER_STATUS = "/updateOrderStatus/{id}";
     public static final String DELETE_LAUNDRY_ORDER = "/deleteOrder/{id}";
     public static final String GET_ALL_COMMON_MASTER = "/getAllCommonMaster";
+
+    // Kitchen Ingredients
+    public static final String CREATE_INGREDIENT      = "/createIngredient";
+    public static final String GET_INGREDIENT_BY_ID  = "/getIngredientById/{id}";
+    public static final String GET_ALL_INGREDIENTS   = "/getAllIngredients";
+    public static final String UPDATE_INGREDIENT     = "/updateIngredient/{id}";
+    public static final String DELETE_INGREDIENT     = "/deleteIngredient/{id}";
+
+    // Kitchen Recipes (BOM)
+    public static final String CREATE_RECIPE                  = "/createRecipe";
+    public static final String GET_RECIPE_BY_ID              = "/getRecipeById/{id}";
+    public static final String GET_RECIPE_BY_MENU_ITEM_ID    = "/getRecipeByMenuItemId/{menuItemId}";
+    public static final String GET_ALL_RECIPES               = "/getAllRecipes";
+    public static final String UPDATE_RECIPE                 = "/updateRecipe/{id}";
+    public static final String DELETE_RECIPE                 = "/deleteRecipe/{id}";
 
     private ServiceConstant() {
         // Prevent instantiation

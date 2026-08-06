@@ -18,4 +18,8 @@ public class PosOrderItemDTO {
     private Integer readyQuantity;
     private BigDecimal price;
     private BigDecimal subtotal;
+    // Item-level KOT status (CommonMaster id / code / display value)
+    private Long kotStatusId;
+    private String kotStatusCode;
+    private String kotStatusName;
 }

@@ -5,11 +5,14 @@ import com.hotelerp.userservice.constant.ServiceConstant;
 import com.hotelerp.userservice.dto.KitchenOrderCardDTO;
 import com.hotelerp.userservice.dto.PosOrderDTO;
 import com.hotelerp.userservice.dto.TableReservationDTO;
+import com.hotelerp.userservice.service.KitchenSseService;
 import com.hotelerp.userservice.service.PosService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -26,6 +29,7 @@ import java.util.List;
 public class PosController {
 
     private final PosService posService;
+    private final KitchenSseService kitchenSseService;
 
     // ──────────────────────────────────────────
     //  ORDER APIs  (Table | Room | Takeaway)
@@ -67,6 +71,27 @@ public class PosController {
         return ResponseEntity.status(httpStatus).body(response);
     }
 
+    /**
+     * PATCH /updateItemKotStatus/{orderId}/item/{itemId}?kotStatusId=
+     *
+     * Updates the KOT status of a single item within an order.
+     * After the update:
+     *   - If KOT_READY → readyQuantity is set to item quantity automatically.
+     *   - Order-level kotStatus is recalculated using the least-status rule:
+     *       KOT_SEND < IN_PROGRESS < KOT_READY
+     *     (if ANY item still has KOT_SEND, order stays KOT_SEND)
+     *   - SSE broadcast is sent to all KDS screens.
+     */
+    @PatchMapping(ServiceConstant.UPDATE_ITEM_KOT_STATUS)
+    public ResponseEntity<StandardResponse<PosOrderDTO>> updateItemKotStatus(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @RequestParam Long kotStatusId) {
+        StandardResponse<PosOrderDTO> response = posService.updateItemKotStatus(orderId, itemId, kotStatusId);
+        HttpStatus httpStatus = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(httpStatus).body(response);
+    }
+
     /** GET /getOrderById/{id} */
     @GetMapping(ServiceConstant.GET_ORDER_BY_ID)
     public ResponseEntity<StandardResponse<PosOrderDTO>> getOrderById(@PathVariable Long id) {
@@ -103,6 +128,29 @@ public class PosController {
             @RequestParam(required = false, defaultValue = "false") Boolean isClosed) {
         StandardResponse<List<KitchenOrderCardDTO>> response = posService.getKitchenOrders(outletId, isClosed);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /getKitchenOrdersStream?outletId=
+     *
+     * Server-Sent Events (SSE) endpoint for the Kitchen Display System.
+     * Connect once and receive real-time push events:
+     *   - "connected"           – initial handshake
+     *   - "NEW_ORDER"           – a new order was placed
+     *   - "KOT_STATUS_CHANGED"  – KOT status updated on an existing order
+     *   - "ORDER_UPDATED"       – order items / details modified
+     *
+     * Each event data payload is the same JSON array returned by GET /getKitchenOrders
+     * (active cards only, isClosed=false).
+     *
+     * Usage (JavaScript):
+     *   const es = new EventSource('/api/hmsService/v1/pos/orders/getKitchenOrdersStream?outletId=1');
+     *   es.addEventListener('NEW_ORDER', e => setCards(JSON.parse(e.data)));
+     *   es.addEventListener('KOT_STATUS_CHANGED', e => setCards(JSON.parse(e.data)));
+     */
+    @GetMapping(value = ServiceConstant.GET_KITCHEN_ORDERS_STREAM, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamKitchenOrders(@RequestParam(required = false) Long outletId) {
+        return kitchenSseService.subscribe(outletId);
     }
 
     // ──────────────────────────────────────────
