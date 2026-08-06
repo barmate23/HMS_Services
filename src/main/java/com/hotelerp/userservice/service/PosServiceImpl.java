@@ -17,10 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -287,9 +284,12 @@ public class PosServiceImpl implements PosService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "KOT status master data not found for ID: " + kotStatusId));
 
-            if (!"KOT_STATUS".equals(kotStatus.getCategory())) {
+            Set<String> validCategories = Set.of("KOT_STATUS", "KITCHEN_ORDER_STATUS");
+
+            if (!validCategories.contains(kotStatus.getCategory())) {
                 return StandardResponse.error(
-                        "Master ID " + kotStatusId + " does not belong to category 'KOT_STATUS'",
+                        "Master ID " + kotStatusId +
+                                " does not belong to a valid KOT category",
                         "INVALID_KOT_STATUS",
                         null);
             }
