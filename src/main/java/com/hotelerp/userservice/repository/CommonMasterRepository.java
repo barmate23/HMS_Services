@@ -11,4 +11,6 @@ public interface CommonMasterRepository extends JpaRepository<CommonMaster, Long
     List<CommonMaster> findByCategoryAndIsActiveTrue(String category);
     List<CommonMaster> findByCategory(String category);
     java.util.Optional<CommonMaster> findByCategoryAndCode(String category, String code);
+    /** All active records across all categories (used by getAllCommonMaster API). */
+    List<CommonMaster> findByIsActiveTrue();
 }
