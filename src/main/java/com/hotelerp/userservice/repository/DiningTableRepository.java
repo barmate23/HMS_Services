@@ -12,4 +12,8 @@ public interface DiningTableRepository extends JpaRepository<DiningTable, Long> 
     List<DiningTable> findByStatusId(Long statusId);
 
     List<DiningTable> findByIsDeletedFalse();
+
+    boolean existsByOutletIdAndTableNumberIgnoreCaseAndIsDeletedFalse(Long outletId, String tableNumber);
+
+    boolean existsByOutletIdAndTableNumberIgnoreCaseAndIdNotAndIsDeletedFalse(Long outletId, String tableNumber, Long id);
 }

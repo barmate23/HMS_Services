@@ -43,6 +43,18 @@ public class DiningTableServiceImpl implements DiningTableService {
             Outlet outlet = outletRepository.findById(outletId)
                     .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + outletId));
 
+            if (dto.getTableNumber() == null || dto.getTableNumber().trim().isEmpty()) {
+                return StandardResponse.error("Table number/name must not be empty", "INVALID_INPUT", "Table number is required");
+            }
+
+            String tableNumber = dto.getTableNumber().trim();
+            if (diningTableRepository.existsByOutletIdAndTableNumberIgnoreCaseAndIsDeletedFalse(outletId, tableNumber)) {
+                return StandardResponse.error(
+                        "Table '" + tableNumber + "' already exists in this outlet",
+                        "DUPLICATE_TABLE",
+                        "A table with name/number '" + tableNumber + "' already exists in outlet ID: " + outletId);
+            }
+
             CommonMaster section = null;
             if (dto.getSectionId() != null) {
                 section = commonMasterRepository.findById(dto.getSectionId())
@@ -59,7 +71,7 @@ public class DiningTableServiceImpl implements DiningTableService {
 
             DiningTable table = DiningTable.builder()
                     .outlet(outlet)
-                    .tableNumber(dto.getTableNumber())
+                    .tableNumber(tableNumber)
                     .covers(dto.getCovers())
                     .section(section)
                     .status(status)
@@ -82,6 +94,7 @@ public class DiningTableServiceImpl implements DiningTableService {
             DiningTable table = diningTableRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Dining table not found with ID: " + id));
 
+            Long currentOutletId = (dto.getOutletId() != null) ? dto.getOutletId() : table.getOutlet().getId();
             if (dto.getOutletId() != null) {
                 Outlet outlet = outletRepository.findById(dto.getOutletId())
                         .orElseThrow(
@@ -89,7 +102,16 @@ public class DiningTableServiceImpl implements DiningTableService {
                 table.setOutlet(outlet);
             }
 
-            table.setTableNumber(dto.getTableNumber());
+            if (dto.getTableNumber() != null && !dto.getTableNumber().trim().isEmpty()) {
+                String newTableNumber = dto.getTableNumber().trim();
+                if (diningTableRepository.existsByOutletIdAndTableNumberIgnoreCaseAndIdNotAndIsDeletedFalse(currentOutletId, newTableNumber, id)) {
+                    return StandardResponse.error(
+                            "Table '" + newTableNumber + "' already exists in this outlet",
+                            "DUPLICATE_TABLE",
+                            "A table with name/number '" + newTableNumber + "' already exists in outlet ID: " + currentOutletId);
+                }
+                table.setTableNumber(newTableNumber);
+            }
             table.setCovers(dto.getCovers());
 
             if (dto.getSectionId() != null) {
