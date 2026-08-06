@@ -176,19 +176,6 @@ public class PosServiceImpl implements PosService {
                 order.setGuestName(dto.getGuestName());
 
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
-                Map<Long, Integer> existingById = order.getItems().stream()
-                        .filter(i -> i.getId() != null)
-                        .collect(Collectors.toMap(PosOrderItem::getId,
-                                i -> i.getReadyQuantity() != null ? i.getReadyQuantity() : 0, (a, b) -> a));
-
-                Map<Long, Integer> existingByMenuItemId = order.getItems().stream()
-                        .filter(i -> i.getMenuItem() != null && i.getMenuItem().getId() != null)
-                        .collect(Collectors.toMap(i -> i.getMenuItem().getId(),
-                                i -> i.getReadyQuantity() != null ? i.getReadyQuantity() : 0, (a, b) -> a));
-
-                boolean isKotReady = order.getKotStatus() != null
-                        && ("KOT_READY".equalsIgnoreCase(order.getKotStatus().getCode()) ||
-                                "KOT_READY".equalsIgnoreCase(order.getKotStatus().getValue()));
 
                 order.getItems().clear();
                 BigDecimal total = BigDecimal.ZERO;
@@ -199,25 +186,12 @@ public class PosServiceImpl implements PosService {
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
 
-                    Integer readyQty = 0;
-                    if (itemDto.getReadyQuantity() != null) {
-                        readyQty = itemDto.getReadyQuantity();
-                    } else if (itemDto.getId() != null && existingById.containsKey(itemDto.getId())) {
-                        readyQty = existingById.get(itemDto.getId());
-                    } else if (itemDto.getMenuItemId() != null
-                            && existingByMenuItemId.containsKey(itemDto.getMenuItemId())) {
-                        readyQty = existingByMenuItemId.get(itemDto.getMenuItemId());
-                    }
 
-                    if (isKotReady) {
-                        readyQty = itemDto.getQuantity() != null ? itemDto.getQuantity() : 0;
-                    }
 
                     PosOrderItem orderItem = PosOrderItem.builder()
                             .order(order)
                             .menuItem(menuItem)
                             .quantity(itemDto.getQuantity())
-                            .readyQuantity(readyQty)
                             .price(price)
                             .subtotal(subtotal)
                             .build();
