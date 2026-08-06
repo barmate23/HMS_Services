@@ -115,6 +115,7 @@ public class PosServiceImpl implements PosService {
                             .order(order)
                             .menuItem(menuItem)
                             .quantity(itemDto.getQuantity())
+                            .readyQuantity(itemDto.getReadyQuantity() != null ? itemDto.getReadyQuantity() : 0)
                             .price(price)
                             .subtotal(subtotal)
                             .build();
@@ -184,6 +185,7 @@ public class PosServiceImpl implements PosService {
                             .order(order)
                             .menuItem(menuItem)
                             .quantity(itemDto.getQuantity())
+                            .readyQuantity(itemDto.getReadyQuantity() != null ? itemDto.getReadyQuantity() : 0)
                             .price(price)
                             .subtotal(subtotal)
                             .build();
@@ -244,6 +246,19 @@ public class PosServiceImpl implements PosService {
             }
 
             order.setKotStatus(kotStatus);
+
+            if (kotStatus != null && (
+                    "READY".equalsIgnoreCase(kotStatus.getCode()) || "READY".equalsIgnoreCase(kotStatus.getValue()) ||
+                    "KOT_READY".equalsIgnoreCase(kotStatus.getCode()) || "KOT_READY".equalsIgnoreCase(kotStatus.getValue()) ||
+                    "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getCode()) || "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getValue()) ||
+                    "READY FOR SERVE".equalsIgnoreCase(kotStatus.getValue()))) {
+                if (order.getItems() != null) {
+                    for (PosOrderItem item : order.getItems()) {
+                        item.setReadyQuantity(item.getQuantity() != null ? item.getQuantity() : 0);
+                    }
+                }
+            }
+
             PosOrder updated = posOrderRepository.save(order);
             return StandardResponse.success(convertToDTO(updated), "KOT status updated to " + kotStatus.getValue());
         } catch (ResourceNotFoundException e) {
@@ -323,6 +338,39 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    public StandardResponse<List<PosOrderDTO>> getKitchenOrders(Long outletId, Boolean isClosed) {
+        try {
+            List<String> kotStatuses;
+            if (Boolean.TRUE.equals(isClosed)) {
+                kotStatuses = List.of("READY", "KOT_READY", "READY_FOR_SERVE", "READY FOR SERVE", "COMPLETED", "SERVED", "CLOSED");
+            } else {
+                kotStatuses = List.of("KOT_SENT", "IN_PROGRESS", "IN PROGRESS", "READY", "KOT_READY", "READY_FOR_SERVE", "READY FOR SERVE");
+            }
+            List<PosOrder> orders;
+            if (outletId != null) {
+                orders = posOrderRepository.findByOutletIdAndKotStatusIn(outletId, kotStatuses);
+            } else {
+                orders = posOrderRepository.findByKotStatusIn(kotStatuses);
+            }
+
+            if (!Boolean.TRUE.equals(isClosed)) {
+                // Show cards whose item quantity is greater than ready quantity only
+                orders = orders.stream()
+                        .filter(order -> order.getItems() == null || order.getItems().isEmpty() ||
+                                order.getItems().stream().anyMatch(i ->
+                                        (i.getQuantity() != null ? i.getQuantity() : 0) > (i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)))
+                        .collect(Collectors.toList());
+            }
+
+            List<PosOrderDTO> dtos = orders.stream().map(this::convertToDTO).collect(Collectors.toList());
+            return StandardResponse.success(dtos, "Kitchen display orders fetched successfully");
+        } catch (Exception e) {
+            log.error("Error fetching kitchen display orders: ", e);
+            return StandardResponse.error("Failed to fetch kitchen display orders", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     @Transactional
     public StandardResponse<Void> bookTable(TableReservationDTO dto) {
         try {
@@ -383,6 +431,7 @@ public class PosServiceImpl implements PosService {
                         .menuItemId(i.getMenuItem().getId())
                         .itemName(i.getMenuItem().getItemName())
                         .quantity(i.getQuantity())
+                        .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
                         .price(i.getPrice())
                         .subtotal(i.getSubtotal())
                         .build())

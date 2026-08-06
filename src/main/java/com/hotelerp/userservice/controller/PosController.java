@@ -96,6 +96,14 @@ public class PosController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping(ServiceConstant.GET_KITCHEN_ORDERS)
+    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getKitchenOrders(
+            @RequestParam(required = false) Long outletId,
+            @RequestParam(required = false, defaultValue = "false") Boolean isClosed) {
+        StandardResponse<List<PosOrderDTO>> response = posService.getKitchenOrders(outletId, isClosed);
+        return ResponseEntity.ok(response);
+    }
+
     // ──────────────────────────────────────────
     //  TABLE BOOKING API
     // ──────────────────────────────────────────

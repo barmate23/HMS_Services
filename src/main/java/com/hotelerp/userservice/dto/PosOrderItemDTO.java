@@ -15,6 +15,7 @@ public class PosOrderItemDTO {
     private Long menuItemId;
     private String itemName;
     private Integer quantity;
+    private Integer readyQuantity;
     private BigDecimal price;
     private BigDecimal subtotal;
 }

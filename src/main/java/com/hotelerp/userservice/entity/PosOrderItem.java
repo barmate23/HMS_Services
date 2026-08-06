@@ -33,11 +33,18 @@ public class PosOrderItem {
     @Column(name = "subtotal", precision = 10, scale = 2)
     private BigDecimal subtotal;
 
+    @Builder.Default
+    @Column(name = "ready_quantity")
+    private Integer readyQuantity = 0;
+
     @PrePersist
     @PreUpdate
     protected void calculateSubtotal() {
         if (price != null && quantity != null) {
             subtotal = price.multiply(new BigDecimal(quantity));
+        }
+        if (readyQuantity == null) {
+            readyQuantity = 0;
         }
     }
 }

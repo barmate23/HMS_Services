@@ -77,7 +77,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         // 3. Revenue Mix & 4. Payment Split
                         List<PosBill> nonVoidBills = posBillRepository.findAll().stream()
                                         .filter(b -> b.getIsDeleted() == null || !b.getIsDeleted())
-                                        .filter(b -> b.getStatus() == null || !"VOID".equalsIgnoreCase(b.getStatus().getValue()))
+                                        .filter(b -> b.getStatus() == null
+                                                        || !"VOID".equalsIgnoreCase(b.getStatus().getValue()))
                                         .collect(Collectors.toList());
 
                         Map<String, List<PosBill>> revenuePerOutlet = nonVoidBills.stream()
@@ -88,8 +89,10 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                 if (b.getPaidAmount() != null && b.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
                                         return b.getPaidAmount();
                                 }
-                                BigDecimal net = b.getNetAmount() != null ? b.getNetAmount() : (b.getGrossAmount() != null ? b.getGrossAmount() : BigDecimal.ZERO);
-                                BigDecimal gst = b.getGstAmount() != null ? b.getGstAmount() : net.multiply(new BigDecimal("0.18"));
+                                BigDecimal net = b.getNetAmount() != null ? b.getNetAmount()
+                                                : (b.getGrossAmount() != null ? b.getGrossAmount() : BigDecimal.ZERO);
+                                BigDecimal gst = b.getGstAmount() != null ? b.getGstAmount()
+                                                : net.multiply(new BigDecimal("0.18"));
                                 return net.add(gst).setScale(2, RoundingMode.HALF_UP);
                         };
 
@@ -108,9 +111,10 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         Map<String, List<PosBill>> paymentsByMethod = nonVoidBills.stream()
-                                        .collect(Collectors.groupingBy(b -> (b.getPaymentMethod() != null && b.getPaymentMethod().getValue() != null) 
-                                                        ? b.getPaymentMethod().getValue() 
-                                                        : "Cash"));
+                                        .collect(Collectors.groupingBy(b -> (b.getPaymentMethod() != null
+                                                        && b.getPaymentMethod().getValue() != null)
+                                                                        ? b.getPaymentMethod().getValue()
+                                                                        : "Cash"));
 
                         List<PaymentSplitDTO> paymentSplit = paymentsByMethod.entrySet().stream().map(entry -> {
                                 BigDecimal amount = entry.getValue().stream()
@@ -148,7 +152,10 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         // 6. Billing Watch
                         List<PosBill> allBills = posBillRepository.findAll();
                         List<PosBill> openBills = allBills.stream()
-                                        .filter(b -> b.getStatus() == null || "OPEN".equalsIgnoreCase(b.getStatus().getValue()) || "PENDING".equalsIgnoreCase(b.getStatus().getValue()) || "PARTIAL".equalsIgnoreCase(b.getStatus().getValue()))
+                                        .filter(b -> b.getStatus() == null
+                                                        || "OPEN".equalsIgnoreCase(b.getStatus().getValue())
+                                                        || "PENDING".equalsIgnoreCase(b.getStatus().getValue())
+                                                        || "PARTIAL".equalsIgnoreCase(b.getStatus().getValue()))
                                         .collect(Collectors.toList());
 
                         int openBillsCount = openBills.size();
@@ -157,7 +164,11 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         List<PosBill> roomChargeBills = allBills.stream()
-                                        .filter(b -> Boolean.TRUE.equals(b.getPostToFolio()) || (b.getPaymentMethod() != null && b.getPaymentMethod().getValue() != null && b.getPaymentMethod().getValue().toUpperCase().contains("ROOM")))
+                                        .filter(b -> Boolean.TRUE.equals(b.getPostToFolio())
+                                                        || (b.getPaymentMethod() != null
+                                                                        && b.getPaymentMethod().getValue() != null
+                                                                        && b.getPaymentMethod().getValue().toUpperCase()
+                                                                                        .contains("ROOM")))
                                         .collect(Collectors.toList());
 
                         int roomPostingPending = roomChargeBills.size();
@@ -166,7 +177,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                         List<PosBill> voidBills = allBills.stream()
-                                        .filter(b -> b.getStatus() != null && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
+                                        .filter(b -> b.getStatus() != null
+                                                        && "VOID".equalsIgnoreCase(b.getStatus().getValue()))
                                         .collect(Collectors.toList());
 
                         int voidsCount = voidBills.size();
@@ -224,7 +236,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         }
 
         @Override
-        public StandardResponse<PosDashboardCardsDTO> getPosDashboardCards(Long outletId, LocalDateTime startDate, LocalDateTime endDate) {
+        public StandardResponse<PosDashboardCardsDTO> getPosDashboardCards(Long outletId, LocalDateTime startDate,
+                        LocalDateTime endDate) {
                 try {
                         // 1. Active Outlets Count
                         List<Outlet> outlets = outletRepository.findByIsActiveTrue();
@@ -239,28 +252,43 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         List<PosOrder> allOrders = posOrderRepository.findAll();
                         List<PosOrder> filteredOrders = allOrders.stream()
                                         .filter(o -> Boolean.FALSE.equals(o.getIsDeleted()))
-                                        .filter(o -> outletId == null || (o.getOutlet() != null && outletId.equals(o.getOutlet().getId())))
-                                        .filter(o -> startDate == null || (o.getCreatedAt() != null && !o.getCreatedAt().isBefore(startDate)))
-                                        .filter(o -> endDate == null || (o.getCreatedAt() != null && !o.getCreatedAt().isAfter(endDate)))
+                                        .filter(o -> outletId == null || (o.getOutlet() != null
+                                                        && outletId.equals(o.getOutlet().getId())))
+                                        .filter(o -> startDate == null || (o.getCreatedAt() != null
+                                                        && !o.getCreatedAt().isBefore(startDate)))
+                                        .filter(o -> endDate == null || (o.getCreatedAt() != null
+                                                        && !o.getCreatedAt().isAfter(endDate)))
                                         .collect(Collectors.toList());
 
                         // 2. Open Orders Count
                         int openOrders = (int) filteredOrders.stream()
-                                        .filter(o -> o.getStatus() != null && "OPEN".equalsIgnoreCase(o.getStatus().getValue()))
+                                        .filter(o -> o.getStatus() != null
+                                                        && "OPEN".equalsIgnoreCase(o.getStatus().getValue()))
                                         .count();
 
                         // 3. KOT Running Count
                         int kotRunning = (int) filteredOrders.stream()
-                                        .filter(o -> (o.getKotStatus() != null && ("KOT_SENT".equalsIgnoreCase(o.getKotStatus().getCode()) || "KOT_SENT".equalsIgnoreCase(o.getKotStatus().getValue()))) ||
-                                                        (o.getStatus() != null && ("KOT_SENT".equalsIgnoreCase(o.getStatus().getValue()) || "HELD".equalsIgnoreCase(o.getStatus().getValue()))))
+                                        .filter(o -> (o.getKotStatus() != null
+                                                        && ("KOT_SENT".equalsIgnoreCase(o.getKotStatus().getCode())
+                                                                        || "KOT_SENT".equalsIgnoreCase(
+                                                                                        o.getKotStatus().getValue())))
+                                                        ||
+                                                        (o.getStatus() != null && ("KOT_SENT"
+                                                                        .equalsIgnoreCase(o.getStatus().getValue())
+                                                                        || "HELD".equalsIgnoreCase(
+                                                                                        o.getStatus().getValue()))))
                                         .count();
 
                         // Fetch POS Bills filtered by outlet and date range
                         List<PosBill> allBills = posBillRepository.findByIsDeletedFalse();
                         List<PosBill> filteredBills = allBills.stream()
-                                        .filter(b -> outletId == null || (b.getOrder() != null && b.getOrder().getOutlet() != null && outletId.equals(b.getOrder().getOutlet().getId())))
-                                        .filter(b -> startDate == null || (b.getCreatedAt() != null && !b.getCreatedAt().isBefore(startDate)))
-                                        .filter(b -> endDate == null || (b.getCreatedAt() != null && !b.getCreatedAt().isAfter(endDate)))
+                                        .filter(b -> outletId == null || (b.getOrder() != null
+                                                        && b.getOrder().getOutlet() != null
+                                                        && outletId.equals(b.getOrder().getOutlet().getId())))
+                                        .filter(b -> startDate == null || (b.getCreatedAt() != null
+                                                        && !b.getCreatedAt().isBefore(startDate)))
+                                        .filter(b -> endDate == null || (b.getCreatedAt() != null
+                                                        && !b.getCreatedAt().isAfter(endDate)))
                                         .collect(Collectors.toList());
 
                         // 4. Total Bills Count
@@ -269,12 +297,17 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         // 5. Room Postings Count
                         int roomPostingsCount = (int) filteredBills.stream()
                                         .filter(b -> Boolean.TRUE.equals(b.getPostToFolio()) ||
-                                                        (b.getPaymentMethod() != null && ("ROOM_CHARGE".equalsIgnoreCase(b.getPaymentMethod().getValue()) || "ROOM_CHARGE".equalsIgnoreCase(b.getPaymentMethod().getCode()))))
+                                                        (b.getPaymentMethod() != null && ("ROOM_CHARGE"
+                                                                        .equalsIgnoreCase(
+                                                                                        b.getPaymentMethod().getValue())
+                                                                        || "ROOM_CHARGE".equalsIgnoreCase(
+                                                                                        b.getPaymentMethod()
+                                                                                                        .getCode()))))
                                         .count();
 
                         // 6. Gross Sales Total
                         BigDecimal grossSales = filteredBills.stream()
-                                        .map(PosBill::getGrossAmount)
+                                        .map(PosBill::getNetAmount)
                                         .filter(Objects::nonNull)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -290,7 +323,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         return StandardResponse.success(cardsDTO, "POS Dashboard Cards data fetched successfully");
                 } catch (Exception e) {
                         log.error("Error fetching POS dashboard cards: ", e);
-                        return StandardResponse.error("Failed to fetch POS dashboard cards", "INTERNAL_SERVER_ERROR", e.getMessage());
+                        return StandardResponse.error("Failed to fetch POS dashboard cards", "INTERNAL_SERVER_ERROR",
+                                        e.getMessage());
                 }
         }
 }
