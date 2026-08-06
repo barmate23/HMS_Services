@@ -1,6 +1,8 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.dto.KitchenOrderCardDTO;
+import com.hotelerp.userservice.dto.KitchenOrderItemDTO;
 import com.hotelerp.userservice.dto.PosOrderDTO;
 import com.hotelerp.userservice.dto.PosOrderItemDTO;
 import com.hotelerp.userservice.dto.TableReservationDTO;
@@ -173,6 +175,20 @@ public class PosServiceImpl implements PosService {
                 order.setGuestName(dto.getGuestName());
 
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
+                Map<Long, Integer> existingById = order.getItems().stream()
+                        .filter(i -> i.getId() != null)
+                        .collect(Collectors.toMap(PosOrderItem::getId,
+                                i -> i.getReadyQuantity() != null ? i.getReadyQuantity() : 0, (a, b) -> a));
+
+                Map<Long, Integer> existingByMenuItemId = order.getItems().stream()
+                        .filter(i -> i.getMenuItem() != null && i.getMenuItem().getId() != null)
+                        .collect(Collectors.toMap(i -> i.getMenuItem().getId(),
+                                i -> i.getReadyQuantity() != null ? i.getReadyQuantity() : 0, (a, b) -> a));
+
+                boolean isKotReady = order.getKotStatus() != null
+                        && ("KOT_READY".equalsIgnoreCase(order.getKotStatus().getCode()) ||
+                                "KOT_READY".equalsIgnoreCase(order.getKotStl̥atus().getValue()));
+
                 order.getItems().clear();
                 BigDecimal total = BigDecimal.ZERO;
                 for (PosOrderItemDTO itemDto : dto.getItems()) {
@@ -181,11 +197,26 @@ public class PosServiceImpl implements PosService {
                                     "Menu item not found with ID: " + itemDto.getMenuItemId()));
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
+
+                    Integer readyQty = 0;
+                    if (itemDto.getReadyQuantity() != null) {
+                        readyQty = itemDto.getReadyQuantity();
+                    } else if (itemDto.getId() != null && existingById.containsKey(itemDto.getId())) {
+                        readyQty = existingById.get(itemDto.getId());
+                    } else if (itemDto.getMenuItemId() != null
+                            && existingByMenuItemId.containsKey(itemDto.getMenuItemId())) {
+                        readyQty = existingByMenuItemId.get(itemDto.getMenuItemId());
+                    }
+
+                    if (isKotReady) {
+                        readyQty = itemDto.getQuantity() != null ? itemDto.getQuantity() : 0;
+                    }
+
                     PosOrderItem orderItem = PosOrderItem.builder()
                             .order(order)
                             .menuItem(menuItem)
                             .quantity(itemDto.getQuantity())
-                            .readyQuantity(itemDto.getReadyQuantity() != null ? itemDto.getReadyQuantity() : 0)
+                            .readyQuantity(readyQty)
                             .price(price)
                             .subtotal(subtotal)
                             .build();
@@ -247,10 +278,12 @@ public class PosServiceImpl implements PosService {
 
             order.setKotStatus(kotStatus);
 
-            if (kotStatus != null && (
-                    "READY".equalsIgnoreCase(kotStatus.getCode()) || "READY".equalsIgnoreCase(kotStatus.getValue()) ||
-                    "KOT_READY".equalsIgnoreCase(kotStatus.getCode()) || "KOT_READY".equalsIgnoreCase(kotStatus.getValue()) ||
-                    "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getCode()) || "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getValue()) ||
+            if (kotStatus != null && ("READY".equalsIgnoreCase(kotStatus.getCode())
+                    || "READY".equalsIgnoreCase(kotStatus.getValue()) ||
+                    "KOT_READY".equalsIgnoreCase(kotStatus.getCode())
+                    || "KOT_READY".equalsIgnoreCase(kotStatus.getValue()) ||
+                    "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getCode())
+                    || "READY_FOR_SERVE".equalsIgnoreCase(kotStatus.getValue()) ||
                     "READY FOR SERVE".equalsIgnoreCase(kotStatus.getValue()))) {
                 if (order.getItems() != null) {
                     for (PosOrderItem item : order.getItems()) {
@@ -338,13 +371,13 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
-    public StandardResponse<List<PosOrderDTO>> getKitchenOrders(Long outletId, Boolean isClosed) {
+    public StandardResponse<List<KitchenOrderCardDTO>> getKitchenOrders(Long outletId, Boolean isClosed) {
         try {
             List<String> kotStatuses;
             if (Boolean.TRUE.equals(isClosed)) {
-                kotStatuses = List.of("READY", "KOT_READY", "READY_FOR_SERVE", "READY FOR SERVE", "COMPLETED", "SERVED", "CLOSED");
+                kotStatuses = List.of("KOT_READY", "COMPLETED");
             } else {
-                kotStatuses = List.of("KOT_SENT", "IN_PROGRESS", "IN PROGRESS", "READY", "KOT_READY", "READY_FOR_SERVE", "READY FOR SERVE");
+                kotStatuses = List.of("KOT_SEND", "IN_PROGRESS", "IN PROGRESS", "KOT_READY");
             }
             List<PosOrder> orders;
             if (outletId != null) {
@@ -357,16 +390,22 @@ public class PosServiceImpl implements PosService {
                 // Show cards whose item quantity is greater than ready quantity only
                 orders = orders.stream()
                         .filter(order -> order.getItems() == null || order.getItems().isEmpty() ||
-                                order.getItems().stream().anyMatch(i ->
-                                        (i.getQuantity() != null ? i.getQuantity() : 0) > (i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)))
+                                order.getItems().stream()
+                                        .anyMatch(i -> (i.getQuantity() != null ? i.getQuantity()
+                                                : 0) > (i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)))
                         .collect(Collectors.toList());
             }
 
-            List<PosOrderDTO> dtos = orders.stream().map(this::convertToDTO).collect(Collectors.toList());
+            List<KitchenOrderCardDTO> dtos = orders.stream()
+                    .map(order -> convertToKitchenCardDTO(order, isClosed))
+                    .filter(card -> Boolean.TRUE.equals(isClosed)
+                            || (card.getItems() != null && !card.getItems().isEmpty()))
+                    .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Kitchen display orders fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching kitchen display orders: ", e);
-            return StandardResponse.error("Failed to fetch kitchen display orders", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to fetch kitchen display orders", "INTERNAL_SERVER_ERROR",
+                    e.getMessage());
         }
     }
 
@@ -422,6 +461,44 @@ public class PosServiceImpl implements PosService {
             return StandardResponse.error("Failed to fetch table reservations", "INTERNAL_SERVER_ERROR",
                     e.getMessage());
         }
+    }
+
+    private KitchenOrderCardDTO convertToKitchenCardDTO(PosOrder order, Boolean isClosed) {
+        List<KitchenOrderItemDTO> itemDTOs = (order.getItems() != null) ? order.getItems().stream()
+                .filter(i -> {
+                    if (Boolean.TRUE.equals(isClosed)) {
+                        return true;
+                    }
+                    int qty = i.getQuantity() != null ? i.getQuantity() : 0;
+                    int readyQty = i.getReadyQuantity() != null ? i.getReadyQuantity() : 0;
+                    return (qty - readyQty) > 0;
+                })
+                .map(i -> {
+                    int qty = i.getQuantity() != null ? i.getQuantity() : 0;
+                    int readyQty = i.getReadyQuantity() != null ? i.getReadyQuantity() : 0;
+                    int remainingQty = Boolean.TRUE.equals(isClosed) ? qty : Math.max(0, qty - readyQty);
+                    return KitchenOrderItemDTO.builder()
+                            .id(i.getId())
+                            .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
+                            .quantity(remainingQty)
+                            .build();
+                })
+                .collect(Collectors.toList()) : List.of();
+
+        return KitchenOrderCardDTO.builder()
+                .id(order.getId())
+                .orderNumber("ORD-" + order.getId())
+                .orderType(order.getOrderType() != null ? order.getOrderType().getValue() : null)
+                .outletId(order.getOutlet() != null ? order.getOutlet().getId() : null)
+                .outletName(order.getOutlet() != null ? order.getOutlet().getName() : null)
+                .tableNumber(order.getDiningTable() != null ? order.getDiningTable().getTableNumber() : null)
+                .roomNumber(order.getRoom() != null ? order.getRoom().getRoomNumber() : null)
+                .guestName(order.getGuestName())
+                .serverName(order.getServer() != null ? order.getServer().getFullName() : null)
+                .kotStatus(order.getKotStatus() != null ? order.getKotStatus().getValue() : null)
+                .createdAt(order.getCreatedAt())
+                .items(itemDTOs)
+                .build();
     }
 
     private PosOrderDTO convertToDTO(PosOrder order) {

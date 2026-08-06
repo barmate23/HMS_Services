@@ -2,6 +2,7 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.constant.ServiceConstant;
+import com.hotelerp.userservice.dto.KitchenOrderCardDTO;
 import com.hotelerp.userservice.dto.PosOrderDTO;
 import com.hotelerp.userservice.dto.TableReservationDTO;
 import com.hotelerp.userservice.service.PosService;
@@ -97,10 +98,10 @@ public class PosController {
     }
 
     @GetMapping(ServiceConstant.GET_KITCHEN_ORDERS)
-    public ResponseEntity<StandardResponse<List<PosOrderDTO>>> getKitchenOrders(
+    public ResponseEntity<StandardResponse<List<KitchenOrderCardDTO>>> getKitchenOrders(
             @RequestParam(required = false) Long outletId,
             @RequestParam(required = false, defaultValue = "false") Boolean isClosed) {
-        StandardResponse<List<PosOrderDTO>> response = posService.getKitchenOrders(outletId, isClosed);
+        StandardResponse<List<KitchenOrderCardDTO>> response = posService.getKitchenOrders(outletId, isClosed);
         return ResponseEntity.ok(response);
     }
 
