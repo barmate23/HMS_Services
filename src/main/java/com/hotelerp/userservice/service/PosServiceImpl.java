@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -187,7 +188,7 @@ public class PosServiceImpl implements PosService {
 
                 boolean isKotReady = order.getKotStatus() != null
                         && ("KOT_READY".equalsIgnoreCase(order.getKotStatus().getCode()) ||
-                                "KOT_READY".equalsIgnoreCase(order.getKotStl̥atus().getValue()));
+                                "KOT_READY".equalsIgnoreCase(order.getKotStatus().getValue()));
 
                 order.getItems().clear();
                 BigDecimal total = BigDecimal.ZERO;
