@@ -60,7 +60,6 @@ public class PurchaseOrderDTO {
     public static class PurchaseOrderLineDTO {
         private Long id;
         private Long itemId;
-        private Long kitchenIngredientId;
         private String itemCode;
         private String itemName;
         private BigDecimal quantity;

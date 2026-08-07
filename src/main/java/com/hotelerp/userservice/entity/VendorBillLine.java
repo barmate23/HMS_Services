@@ -24,8 +24,12 @@ public class VendorBillLine {
     private VendorBill vendorBill;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
+    @JoinColumn(name = "item_id", nullable = true)
     private ItemConfig item;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kitchen_ingredient_id", nullable = true)
+    private KitchenIngredient kitchenIngredient;
 
     @Column(name = "received_quantity", precision = 19, scale = 2)
     private BigDecimal receivedQuantity;

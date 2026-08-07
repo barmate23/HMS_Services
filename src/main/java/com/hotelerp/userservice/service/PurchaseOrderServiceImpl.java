@@ -238,6 +238,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         List<PurchaseOrderLine> lines = new ArrayList<>();
         for (PurchaseOrderDTO.PurchaseOrderLineDTO lineDTO : lineDTOs) {
+            Long itemId = lineDTO.getItemId();
+            if (itemId == null) {
+                throw new RuntimeException("Item ID is required for line item");
+            }
+
             PurchaseOrderLine.PurchaseOrderLineBuilder lineBuilder = PurchaseOrderLine.builder()
                     .purchaseOrder(po)
                     .quantity(lineDTO.getQuantity())
@@ -246,20 +251,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     .gstPercentage(lineDTO.getGstPercentage())
                     .totalAmount(lineDTO.getTotalAmount());
 
-            if (isKitchen || lineDTO.getKitchenIngredientId() != null) {
-                Long ingId = lineDTO.getKitchenIngredientId() != null ? lineDTO.getKitchenIngredientId() : lineDTO.getItemId();
-                if (ingId == null) {
-                    throw new RuntimeException("Kitchen Ingredient ID is required for line item");
-                }
-                KitchenIngredient ingredient = kitchenIngredientRepository.findById(ingId)
-                        .orElseThrow(() -> new RuntimeException("Kitchen Ingredient not found with ID: " + ingId));
+            if (isKitchen) {
+                KitchenIngredient ingredient = kitchenIngredientRepository.findById(itemId)
+                        .orElseThrow(() -> new RuntimeException("Kitchen Ingredient not found with ID: " + itemId));
                 lineBuilder.kitchenIngredient(ingredient);
             } else {
-                if (lineDTO.getItemId() == null) {
-                    throw new RuntimeException("Item ID is required for line item");
-                }
-                ItemConfig item = itemConfigRepository.findById(lineDTO.getItemId())
-                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + lineDTO.getItemId()));
+                ItemConfig item = itemConfigRepository.findById(itemId)
+                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
                 lineBuilder.item(item);
             }
             lines.add(lineBuilder.build());
@@ -279,8 +277,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                             .totalAmount(l.getTotalAmount());
 
                     if (l.getKitchenIngredient() != null) {
-                        builder.kitchenIngredientId(l.getKitchenIngredient().getId())
-                               .itemId(l.getKitchenIngredient().getId())
+                        builder.itemId(l.getKitchenIngredient().getId())
                                .itemCode(l.getKitchenIngredient().getIngredientCode())
                                .itemName(l.getKitchenIngredient().getIngredientName());
                     } else if (l.getItem() != null) {

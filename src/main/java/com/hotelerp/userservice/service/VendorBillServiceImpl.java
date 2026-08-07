@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ public class VendorBillServiceImpl implements VendorBillService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final ItemConfigRepository itemConfigRepository;
+    private final KitchenIngredientRepository kitchenIngredientRepository;
 
     @Override
     @Transactional
@@ -54,23 +56,13 @@ public class VendorBillServiceImpl implements VendorBillService {
                 commonMasterRepository.findByCategoryAndCode("VENDOR_BILL_STATUS", "PENDING")
                         .ifPresent(bill::setStatus);
             }
-            final VendorBill finalBill = bill;
+
             if (dto.getLines() != null && !dto.getLines().isEmpty()) {
-                List<VendorBillLine> lines = dto.getLines().stream().map(lineDto -> {
-                    ItemConfig item = itemConfigRepository.findById(lineDto.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDto.getItemId()));
-                    return VendorBillLine.builder()
-                            .vendorBill(finalBill)
-                            .item(item)
-                            .receivedQuantity(lineDto.getReceivedQuantity())
-                            .rate(lineDto.getRate())
-                            .totalAmount(lineDto.getTotalAmount())
-                            .build();
-                }).collect(Collectors.toList());
-                finalBill.getLines().addAll(lines);
+                List<VendorBillLine> lines = buildVendorBillLines(bill, dto.getLines());
+                bill.getLines().addAll(lines);
             }
 
-            bill = vendorBillRepository.save(finalBill);
+            bill = vendorBillRepository.save(bill);
             return StandardResponse.success(convertToDTO(bill), "Vendor Bill created successfully");
         } catch (Exception e) {
             log.error("Error creating Vendor Bill: ", e);
@@ -108,21 +100,10 @@ public class VendorBillServiceImpl implements VendorBillService {
                 bill.setStatus(commonMasterRepository.findById(dto.getStatusId())
                         .orElseThrow(() -> new RuntimeException("Status not found")));
             }
+
             if (dto.getLines() != null) {
                 bill.getLines().clear();
-                VendorBill finalRef = bill;
-                List<VendorBillLine> newLines = dto.getLines().stream().map(lineDto -> {
-                    ItemConfig item = itemConfigRepository.findById(lineDto.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDto.getItemId()));
-                    return VendorBillLine.builder()
-                            .vendorBill(finalRef)
-                            .item(item)
-                            .receivedQuantity(lineDto.getReceivedQuantity())
-                            .rate(lineDto.getRate())
-                            .totalAmount(lineDto.getTotalAmount())
-                            .build();
-                }).collect(Collectors.toList());
-                bill.getLines().addAll(newLines);
+                bill.getLines().addAll(buildVendorBillLines(bill, dto.getLines()));
             }
 
             bill = vendorBillRepository.save(bill);
@@ -186,12 +167,53 @@ public class VendorBillServiceImpl implements VendorBillService {
         }
     }
 
+    private List<VendorBillLine> buildVendorBillLines(VendorBill bill, List<VendorBillLineDTO> lineDTOs) {
+        if (lineDTOs == null || lineDTOs.isEmpty()) {
+            return new ArrayList<>();
+        }
+        boolean isKitchen = false;
+        if (bill.getPurchaseOrder() != null && bill.getPurchaseOrder().getPurchaseItemCategory() != null) {
+            String val = bill.getPurchaseOrder().getPurchaseItemCategory().getValue();
+            String code = bill.getPurchaseOrder().getPurchaseItemCategory().getCode();
+            if ((val != null && val.equalsIgnoreCase("KITCHEN")) ||
+                (code != null && code.equalsIgnoreCase("KITCHEN"))) {
+                isKitchen = true;
+            }
+        }
+
+        List<VendorBillLine> lines = new ArrayList<>();
+        for (VendorBillLineDTO lineDTO : lineDTOs) {
+            Long itemId = lineDTO.getItemId();
+            if (itemId == null) {
+                throw new RuntimeException("Item ID is required for line item");
+            }
+
+            VendorBillLine.VendorBillLineBuilder lineBuilder = VendorBillLine.builder()
+                    .vendorBill(bill)
+                    .receivedQuantity(lineDTO.getReceivedQuantity())
+                    .rate(lineDTO.getRate())
+                    .totalAmount(lineDTO.getTotalAmount());
+
+            if (isKitchen) {
+                KitchenIngredient ingredient = kitchenIngredientRepository.findById(itemId)
+                        .orElseThrow(() -> new RuntimeException("Kitchen Ingredient not found with ID: " + itemId));
+                lineBuilder.kitchenIngredient(ingredient);
+            } else {
+                ItemConfig item = itemConfigRepository.findById(itemId)
+                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemId));
+                lineBuilder.item(item);
+            }
+            lines.add(lineBuilder.build());
+        }
+        return lines;
+    }
+
     private VendorBillDTO convertToDTO(VendorBill bill) {
         return VendorBillDTO.builder()
                 .id(bill.getId())
                 .billNumber(bill.getBillNumber())
-                .supplierId(bill.getSupplier().getId())
-                .supplierName(bill.getSupplier().getSupplierName())
+                .supplierId(bill.getSupplier() != null ? bill.getSupplier().getId() : null)
+                .supplierName(bill.getSupplier() != null ? bill.getSupplier().getSupplierName() : null)
                 .purchaseOrderId(bill.getPurchaseOrder() != null ? bill.getPurchaseOrder().getId() : null)
                 .poNumber(bill.getPurchaseOrder() != null ? bill.getPurchaseOrder().getPoNumber() : null)
                 .billDate(bill.getBillDate())
@@ -204,20 +226,29 @@ public class VendorBillServiceImpl implements VendorBillService {
                 .statusCode(bill.getStatus() != null ? bill.getStatus().getCode() : null)
                 .createdAt(bill.getCreatedAt())
                 .updatedAt(bill.getUpdatedAt())
-                .lines(bill.getLines() != null ? bill.getLines().stream().map(this::convertLineToDTO).collect(Collectors.toList()) : new java.util.ArrayList<>())
+                .lines(bill.getLines() != null ? bill.getLines().stream().map(this::convertLineToDTO).collect(Collectors.toList()) : new ArrayList<>())
                 .build();
     }
 
     private VendorBillLineDTO convertLineToDTO(VendorBillLine line) {
-        return VendorBillLineDTO.builder()
+        VendorBillLineDTO.VendorBillLineDTOBuilder builder = VendorBillLineDTO.builder()
                 .id(line.getId())
                 .vendorBillId(line.getVendorBill() != null ? line.getVendorBill().getId() : null)
-                .itemId(line.getItem() != null ? line.getItem().getId() : null)
-                .itemName(line.getItem() != null ? line.getItem().getItemName() : null)
                 .receivedQuantity(line.getReceivedQuantity())
                 .rate(line.getRate())
                 .totalAmount(line.getTotalAmount())
-                .createdAt(line.getCreatedAt())
-                .build();
+                .createdAt(line.getCreatedAt());
+
+        if (line.getKitchenIngredient() != null) {
+            builder.itemId(line.getKitchenIngredient().getId())
+                   .itemCode(line.getKitchenIngredient().getIngredientCode())
+                   .itemName(line.getKitchenIngredient().getIngredientName());
+        } else if (line.getItem() != null) {
+            builder.itemId(line.getItem().getId())
+                   .itemCode(line.getItem().getItemCode())
+                   .itemName(line.getItem().getItemName());
+        }
+
+        return builder.build();
     }
 }

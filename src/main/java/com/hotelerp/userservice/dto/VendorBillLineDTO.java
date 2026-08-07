@@ -16,6 +16,7 @@ public class VendorBillLineDTO {
     private Long id;
     private Long vendorBillId;
     private Long itemId;
+    private String itemCode;
     private String itemName;
     private BigDecimal receivedQuantity;
     private BigDecimal rate;
