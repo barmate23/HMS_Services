@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,11 +26,14 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final DepartmentRepository departmentRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final ItemConfigRepository itemConfigRepository;
+    private final KitchenIngredientRepository kitchenIngredientRepository;
     private final PurchaseOrderLineRepository purchaseOrderLineRepository;
 
-    private String generatePoNumber() {
-        long count = purchaseOrderRepository.count();
-        return "PO-" + (count + 1);
+    private String generatePoNumber(LocalDate poDate) {
+        LocalDate date = poDate != null ? poDate : LocalDate.now();
+        String prefix = String.format("PO-%d-%02d%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
+        long count = purchaseOrderRepository.countByPoNumberPrefix(prefix);
+        return String.format("%s%04d", prefix, count + 1);
     }
 
     @Override
@@ -39,9 +43,14 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(dto.getSupplierId())
                     .orElseThrow(() -> new RuntimeException("Supplier not found"));
 
+            LocalDate poDate = dto.getPoDate() != null ? dto.getPoDate() : LocalDate.now();
+            String poNumber = (dto.getPoNumber() != null && !dto.getPoNumber().isBlank())
+                    ? dto.getPoNumber().trim()
+                    : generatePoNumber(poDate);
+
             PurchaseOrder po = PurchaseOrder.builder()
-                    .poNumber(generatePoNumber())
-                    .poDate(dto.getPoDate())
+                    .poNumber(poNumber)
+                    .poDate(poDate)
                     .supplier(supplier)
                     .expectedDate(dto.getExpectedDate())
                     .itemCount(dto.getItemCount())
@@ -66,6 +75,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         .orElseThrow(() -> new RuntimeException("Payment Terms not found")));
             }
 
+            if (dto.getPurchaseItemCategoryId() != null) {
+                po.setPurchaseItemCategory(commonMasterRepository.findById(dto.getPurchaseItemCategoryId())
+                        .orElseThrow(() -> new RuntimeException("Purchase Item Category not found")));
+            }
+
             if (dto.getStatusId() != null) {
                 po.setStatus(commonMasterRepository.findById(dto.getStatusId())
                         .orElseThrow(() -> new RuntimeException("Status not found")));
@@ -77,20 +91,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             po = purchaseOrderRepository.save(po);
 
             if (dto.getLines() != null && !dto.getLines().isEmpty()) {
-                List<PurchaseOrderLine> lines = new ArrayList<>();
-                for (PurchaseOrderDTO.PurchaseOrderLineDTO lineDTO : dto.getLines()) {
-                    ItemConfig item = itemConfigRepository.findById(lineDTO.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDTO.getItemId()));
-                    lines.add(PurchaseOrderLine.builder()
-                            .purchaseOrder(po)
-                            .item(item)
-                            .quantity(lineDTO.getQuantity())
-                            .rate(lineDTO.getRate())
-                            .discountPercentage(lineDTO.getDiscountPercentage())
-                            .gstPercentage(lineDTO.getGstPercentage())
-                            .totalAmount(lineDTO.getTotalAmount())
-                            .build());
-                }
+                List<PurchaseOrderLine> lines = buildPoLines(po, dto.getLines());
                 po.setLines(lines);
                 po = purchaseOrderRepository.save(po);
             }
@@ -140,6 +141,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         .orElseThrow(() -> new RuntimeException("Payment Terms not found")));
             }
 
+            if (dto.getPurchaseItemCategoryId() != null) {
+                po.setPurchaseItemCategory(commonMasterRepository.findById(dto.getPurchaseItemCategoryId())
+                        .orElseThrow(() -> new RuntimeException("Purchase Item Category not found")));
+            }
+
             if (dto.getDepartmentId() != null) {
                 po.setDepartment(departmentRepository.findById(dto.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found")));
@@ -152,19 +158,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
             if (dto.getLines() != null) {
                 po.getLines().clear();
-                for (PurchaseOrderDTO.PurchaseOrderLineDTO lineDTO : dto.getLines()) {
-                    ItemConfig item = itemConfigRepository.findById(lineDTO.getItemId())
-                            .orElseThrow(() -> new RuntimeException("Item not found: " + lineDTO.getItemId()));
-                    po.getLines().add(PurchaseOrderLine.builder()
-                            .purchaseOrder(po)
-                            .item(item)
-                            .quantity(lineDTO.getQuantity())
-                            .rate(lineDTO.getRate())
-                            .discountPercentage(lineDTO.getDiscountPercentage())
-                            .gstPercentage(lineDTO.getGstPercentage())
-                            .totalAmount(lineDTO.getTotalAmount())
-                            .build());
-                }
+                po.getLines().addAll(buildPoLines(po, dto.getLines()));
             }
 
             po = purchaseOrderRepository.save(po);
@@ -228,38 +222,98 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
     }
 
+    private List<PurchaseOrderLine> buildPoLines(PurchaseOrder po, List<PurchaseOrderDTO.PurchaseOrderLineDTO> lineDTOs) {
+        if (lineDTOs == null || lineDTOs.isEmpty()) {
+            return new ArrayList<>();
+        }
+        boolean isKitchen = false;
+        if (po.getPurchaseItemCategory() != null) {
+            String val = po.getPurchaseItemCategory().getValue();
+            String code = po.getPurchaseItemCategory().getCode();
+            if ((val != null && val.equalsIgnoreCase("KITCHEN")) ||
+                (code != null && code.equalsIgnoreCase("KITCHEN"))) {
+                isKitchen = true;
+            }
+        }
+
+        List<PurchaseOrderLine> lines = new ArrayList<>();
+        for (PurchaseOrderDTO.PurchaseOrderLineDTO lineDTO : lineDTOs) {
+            PurchaseOrderLine.PurchaseOrderLineBuilder lineBuilder = PurchaseOrderLine.builder()
+                    .purchaseOrder(po)
+                    .quantity(lineDTO.getQuantity())
+                    .rate(lineDTO.getRate())
+                    .discountPercentage(lineDTO.getDiscountPercentage())
+                    .gstPercentage(lineDTO.getGstPercentage())
+                    .totalAmount(lineDTO.getTotalAmount());
+
+            if (isKitchen || lineDTO.getKitchenIngredientId() != null) {
+                Long ingId = lineDTO.getKitchenIngredientId() != null ? lineDTO.getKitchenIngredientId() : lineDTO.getItemId();
+                if (ingId == null) {
+                    throw new RuntimeException("Kitchen Ingredient ID is required for line item");
+                }
+                KitchenIngredient ingredient = kitchenIngredientRepository.findById(ingId)
+                        .orElseThrow(() -> new RuntimeException("Kitchen Ingredient not found with ID: " + ingId));
+                lineBuilder.kitchenIngredient(ingredient);
+            } else {
+                if (lineDTO.getItemId() == null) {
+                    throw new RuntimeException("Item ID is required for line item");
+                }
+                ItemConfig item = itemConfigRepository.findById(lineDTO.getItemId())
+                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + lineDTO.getItemId()));
+                lineBuilder.item(item);
+            }
+            lines.add(lineBuilder.build());
+        }
+        return lines;
+    }
+
     private PurchaseOrderDTO convertToDTO(PurchaseOrder po) {
         List<PurchaseOrderDTO.PurchaseOrderLineDTO> lineDTOs = po.getLines().stream()
-                .map(l -> PurchaseOrderDTO.PurchaseOrderLineDTO.builder()
-                        .id(l.getId())
-                        .itemId(l.getItem().getId())
-                        .itemCode(l.getItem().getItemCode())
-                        .itemName(l.getItem().getItemName())
-                        .quantity(l.getQuantity())
-                        .rate(l.getRate())
-                        .discountPercentage(l.getDiscountPercentage())
-                        .gstPercentage(l.getGstPercentage())
-                        .totalAmount(l.getTotalAmount())
-                        .build())
+                .map(l -> {
+                    PurchaseOrderDTO.PurchaseOrderLineDTO.PurchaseOrderLineDTOBuilder builder = PurchaseOrderDTO.PurchaseOrderLineDTO.builder()
+                            .id(l.getId())
+                            .quantity(l.getQuantity())
+                            .rate(l.getRate())
+                            .discountPercentage(l.getDiscountPercentage())
+                            .gstPercentage(l.getGstPercentage())
+                            .totalAmount(l.getTotalAmount());
+
+                    if (l.getKitchenIngredient() != null) {
+                        builder.kitchenIngredientId(l.getKitchenIngredient().getId())
+                               .itemId(l.getKitchenIngredient().getId())
+                               .itemCode(l.getKitchenIngredient().getIngredientCode())
+                               .itemName(l.getKitchenIngredient().getIngredientName());
+                    } else if (l.getItem() != null) {
+                        builder.itemId(l.getItem().getId())
+                               .itemCode(l.getItem().getItemCode())
+                               .itemName(l.getItem().getItemName());
+                    }
+
+                    return builder.build();
+                })
                 .collect(Collectors.toList());
 
         return PurchaseOrderDTO.builder()
                 .id(po.getId())
                 .poNumber(po.getPoNumber())
                 .poDate(po.getPoDate())
-                .supplierId(po.getSupplier().getId())
-                .supplierName(po.getSupplier().getSupplierName())
+                .supplierId(po.getSupplier() != null ? po.getSupplier().getId() : null)
+                .supplierName(po.getSupplier() != null ? po.getSupplier().getSupplierName() : null)
                 .departmentId(po.getDepartment() != null ? po.getDepartment().getId() : null)
                 .departmentName(po.getDepartment() != null ? po.getDepartment().getName() : null)
                 .expectedDate(po.getExpectedDate())
-                .prId(po.getPurchaseRequest() != null ? Arrays.stream(po.getPurchaseRequest().split(","))
+                .prId(po.getPurchaseRequest() != null && !po.getPurchaseRequest().isBlank() ? Arrays.stream(po.getPurchaseRequest().split(","))
                         .map(String::trim)
+                        .filter(s -> !s.isEmpty())
                         .map(Long::valueOf)
                         .collect(Collectors.toList()) : null)
                 .deliveryStoreId(po.getDeliveryStore() != null ? po.getDeliveryStore().getId() : null)
                 .deliveryStoreName(po.getDeliveryStore() != null ? po.getDeliveryStore().getValue() : null)
                 .paymentTermsId(po.getPaymentTerms() != null ? po.getPaymentTerms().getId() : null)
                 .paymentTermsName(po.getPaymentTerms() != null ? po.getPaymentTerms().getValue() : null)
+                .purchaseItemCategoryId(po.getPurchaseItemCategory() != null ? po.getPurchaseItemCategory().getId() : null)
+                .purchaseItemCategoryName(po.getPurchaseItemCategory() != null ? po.getPurchaseItemCategory().getValue() : null)
+                .purchaseItemCategoryCode(po.getPurchaseItemCategory() != null ? po.getPurchaseItemCategory().getCode() : null)
                 .requestedBy(po.getRequestedBy())
                 .itemCount(po.getItemCount())
                 .poNote(po.getPoNote())

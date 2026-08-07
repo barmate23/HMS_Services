@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 @Repository
@@ -17,6 +18,9 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     Optional<PurchaseOrder> findByIdAndIsDeletedFalse(Long id);
 
     Optional<PurchaseOrder> findByPoNumberAndIsDeletedFalse(String poNumber);
+
+    @Query("SELECT COUNT(po) FROM PurchaseOrder po WHERE po.poNumber LIKE CONCAT(:prefix, '%')")
+    long countByPoNumberPrefix(@Param("prefix") String prefix);
 
     // Count POs whose status code is NOT in the given list
     long countByStatus_CodeNotInAndIsDeletedFalse(List<String> statusCodes);

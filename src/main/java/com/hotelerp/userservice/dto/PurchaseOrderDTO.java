@@ -36,6 +36,10 @@ public class PurchaseOrderDTO {
     private Long paymentTermsId;
     private String paymentTermsName;
 
+    private Long purchaseItemCategoryId;
+    private String purchaseItemCategoryName;
+    private String purchaseItemCategoryCode;
+
     private String requestedBy;
     
     private Integer itemCount;
@@ -56,6 +60,7 @@ public class PurchaseOrderDTO {
     public static class PurchaseOrderLineDTO {
         private Long id;
         private Long itemId;
+        private Long kitchenIngredientId;
         private String itemCode;
         private String itemName;
         private BigDecimal quantity;

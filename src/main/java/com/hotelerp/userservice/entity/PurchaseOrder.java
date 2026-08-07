@@ -61,6 +61,10 @@ public class PurchaseOrder {
     @JoinColumn(name = "payment_terms_id")
     private CommonMaster paymentTerms;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_item_category_id")
+    private CommonMaster purchaseItemCategory;
+
     @Column(name = "requested_by")
     private String requestedBy;
 

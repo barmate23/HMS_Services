@@ -24,8 +24,12 @@ public class PurchaseOrderLine {
     private PurchaseOrder purchaseOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
+    @JoinColumn(name = "item_id", nullable = true)
     private ItemConfig item;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kitchen_ingredient_id", nullable = true)
+    private KitchenIngredient kitchenIngredient;
 
     @Column(name = "quantity", precision = 19, scale = 2)
     private BigDecimal quantity;
