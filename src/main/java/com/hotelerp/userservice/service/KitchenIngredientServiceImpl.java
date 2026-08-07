@@ -1,8 +1,9 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
-import com.hotelerp.userservice.dto.KitchenIngredientDTO;
 import com.hotelerp.userservice.dto.KitchenIngredientPageResponse;
+import com.hotelerp.userservice.dto.KitchenIngredientRequestDTO;
+import com.hotelerp.userservice.dto.KitchenIngredientResponseDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.KitchenIngredient;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -33,7 +34,7 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
     @Override
     @Transactional
-    public StandardResponse<Void> createIngredient(KitchenIngredientDTO dto) {
+    public StandardResponse<Void> createIngredient(KitchenIngredientRequestDTO dto) {
         try {
             if (dto.getIngredientName() == null || dto.getIngredientName().isBlank()) {
                 return StandardResponse.error("Ingredient name is required", "VALIDATION_ERROR", "ingredientName is mandatory");
@@ -62,11 +63,11 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
     @Override
     @Transactional(readOnly = true)
-    public StandardResponse<KitchenIngredientDTO> getIngredientById(Long id) {
+    public StandardResponse<KitchenIngredientResponseDTO> getIngredientById(Long id) {
         try {
             KitchenIngredient entity = ingredientRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Ingredient not found with ID: " + id));
-            return StandardResponse.success(toDTO(entity), "Ingredient fetched successfully");
+            return StandardResponse.success(toResponseDTO(entity), "Ingredient fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
@@ -86,9 +87,9 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
             Pageable pageable = PageRequest.of(page, size);
             Page<KitchenIngredient> pageResult = ingredientRepository.findAllActive(categoryId, pageable);
 
-            List<KitchenIngredientDTO> dtos = pageResult.getContent()
+            List<KitchenIngredientResponseDTO> dtos = pageResult.getContent()
                     .stream()
-                    .map(this::toDTO)
+                    .map(this::toResponseDTO)
                     .collect(Collectors.toList());
 
             // Summary: always over ALL active records (not just the current page filter)
@@ -120,7 +121,7 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
     @Override
     @Transactional
-    public StandardResponse<KitchenIngredientDTO> updateIngredient(Long id, KitchenIngredientDTO dto) {
+    public StandardResponse<KitchenIngredientResponseDTO> updateIngredient(Long id, KitchenIngredientRequestDTO dto) {
         try {
             KitchenIngredient existing = ingredientRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Ingredient not found with ID: " + id));
@@ -137,7 +138,7 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
             applyUpdates(existing, dto);
             KitchenIngredient saved = ingredientRepository.save(existing);
-            return StandardResponse.success(toDTO(saved), "Ingredient updated successfully");
+            return StandardResponse.success(toResponseDTO(saved), "Ingredient updated successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
@@ -172,7 +173,7 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
     // ──────────────────────────────────────────────────────────────────────
 
     /** Build a new KitchenIngredient entity from DTO. Pass existingEntity=null for create. */
-    private KitchenIngredient buildEntity(KitchenIngredientDTO dto, KitchenIngredient existing) {
+    private KitchenIngredient buildEntity(KitchenIngredientRequestDTO dto, KitchenIngredient existing) {
         KitchenIngredient entity = existing != null ? existing : KitchenIngredient.builder().build();
 
         if (dto.getIngredientName() != null)
@@ -225,13 +226,13 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
     }
 
     /** Apply all updatable fields from DTO to existing entity. */
-    private void applyUpdates(KitchenIngredient existing, KitchenIngredientDTO dto) {
+    private void applyUpdates(KitchenIngredient existing, KitchenIngredientRequestDTO dto) {
         buildEntity(dto, existing);
     }
 
-    /** Convert entity → DTO (resolves CommonMaster names). */
-    private KitchenIngredientDTO toDTO(KitchenIngredient e) {
-        return KitchenIngredientDTO.builder()
+    /** Convert entity → Response DTO (resolves CommonMaster names). */
+    private KitchenIngredientResponseDTO toResponseDTO(KitchenIngredient e) {
+        return KitchenIngredientResponseDTO.builder()
                 .id(e.getId())
                 .ingredientCode(e.getIngredientCode())
                 .ingredientName(e.getIngredientName())

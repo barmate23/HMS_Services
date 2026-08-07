@@ -2,8 +2,9 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.constant.ServiceConstant;
-import com.hotelerp.userservice.dto.KitchenIngredientDTO;
 import com.hotelerp.userservice.dto.KitchenIngredientPageResponse;
+import com.hotelerp.userservice.dto.KitchenIngredientRequestDTO;
+import com.hotelerp.userservice.dto.KitchenIngredientResponseDTO;
 import com.hotelerp.userservice.service.KitchenIngredientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class KitchenIngredientController {
      * Body: { ingredientName, categoryId, baseUnitId, purchaseUnitId, ... }
      */
     @PostMapping(ServiceConstant.CREATE_INGREDIENT)
-    public ResponseEntity<StandardResponse<Void>> createIngredient(@RequestBody KitchenIngredientDTO dto) {
+    public ResponseEntity<StandardResponse<Void>> createIngredient(@RequestBody KitchenIngredientRequestDTO dto) {
         StandardResponse<Void> response = ingredientService.createIngredient(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
@@ -32,8 +33,8 @@ public class KitchenIngredientController {
      * GET /api/hmsService/v1/pos/ingredients/getIngredientById/{id}
      */
     @GetMapping(ServiceConstant.GET_INGREDIENT_BY_ID)
-    public ResponseEntity<StandardResponse<KitchenIngredientDTO>> getIngredientById(@PathVariable Long id) {
-        StandardResponse<KitchenIngredientDTO> response = ingredientService.getIngredientById(id);
+    public ResponseEntity<StandardResponse<KitchenIngredientResponseDTO>> getIngredientById(@PathVariable Long id) {
+        StandardResponse<KitchenIngredientResponseDTO> response = ingredientService.getIngredientById(id);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
         return ResponseEntity.status(status).body(response);
     }
@@ -59,10 +60,10 @@ public class KitchenIngredientController {
      * PUT /api/hmsService/v1/pos/ingredients/updateIngredient/{id}
      */
     @PutMapping(ServiceConstant.UPDATE_INGREDIENT)
-    public ResponseEntity<StandardResponse<KitchenIngredientDTO>> updateIngredient(
+    public ResponseEntity<StandardResponse<KitchenIngredientResponseDTO>> updateIngredient(
             @PathVariable Long id,
-            @RequestBody KitchenIngredientDTO dto) {
-        StandardResponse<KitchenIngredientDTO> response = ingredientService.updateIngredient(id, dto);
+            @RequestBody KitchenIngredientRequestDTO dto) {
+        StandardResponse<KitchenIngredientResponseDTO> response = ingredientService.updateIngredient(id, dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }

@@ -1,8 +1,11 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
-import com.hotelerp.userservice.dto.RecipeDTO;
-import com.hotelerp.userservice.dto.RecipeIngredientDTO;
+import com.hotelerp.userservice.dto.RecipeIngredientRequestDTO;
+import com.hotelerp.userservice.dto.RecipeIngredientResponseDTO;
+import com.hotelerp.userservice.dto.RecipePageResponse;
+import com.hotelerp.userservice.dto.RecipeRequestDTO;
+import com.hotelerp.userservice.dto.RecipeResponseDTO;
 import com.hotelerp.userservice.entity.KitchenIngredient;
 import com.hotelerp.userservice.entity.MenuItem;
 import com.hotelerp.userservice.entity.Recipe;
@@ -19,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
-    public StandardResponse<Void> createRecipe(RecipeDTO dto) {
+    public StandardResponse<Void> createRecipe(RecipeRequestDTO dto) {
         try {
             if (dto.getMenuItemId() == null) {
                 return StandardResponse.error("menuItemId is required", "VALIDATION_ERROR", "menuItemId is mandatory");
@@ -82,11 +84,11 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public StandardResponse<RecipeDTO> getRecipeById(Long id) {
+    public StandardResponse<RecipeResponseDTO> getRecipeById(Long id) {
         try {
             Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with ID: " + id));
-            return StandardResponse.success(toDTO(recipe), "Recipe fetched successfully");
+            return StandardResponse.success(toResponseDTO(recipe), "Recipe fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
@@ -101,11 +103,11 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional(readOnly = true)
-    public StandardResponse<RecipeDTO> getRecipeByMenuItemId(Long menuItemId) {
+    public StandardResponse<RecipeResponseDTO> getRecipeByMenuItemId(Long menuItemId) {
         try {
             Recipe recipe = recipeRepository.findByMenuItemIdAndIsDeletedFalse(menuItemId)
                     .orElseThrow(() -> new ResourceNotFoundException("No recipe found for menu item ID: " + menuItemId));
-            return StandardResponse.success(toDTO(recipe), "Recipe fetched successfully");
+            return StandardResponse.success(toResponseDTO(recipe), "Recipe fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
@@ -115,26 +117,58 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    //  GET ALL (paginated)
+    //  GET ALL (paginated with summary metrics)
     // ──────────────────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
-    public StandardResponse<List<RecipeDTO>> getAllRecipes(int page, int size) {
+    public StandardResponse<RecipePageResponse> getAllRecipes(int page, int size) {
         try {
             Page<Recipe> pageResult = recipeRepository.findAllActive(PageRequest.of(page, size));
-            List<RecipeDTO> dtos = pageResult.getContent().stream()
-                    .map(this::toDTO)
+            List<RecipeResponseDTO> dtos = pageResult.getContent().stream()
+                    .map(this::toResponseDTO)
                     .collect(Collectors.toList());
 
-            StandardResponse.ResponseMetadata metadata = StandardResponse.ResponseMetadata.builder()
+            // Compute summary overview metrics across ALL active recipes
+            List<Recipe> allActive = recipeRepository.findAllActiveList();
+            long totalRecipes = allActive.size();
+
+            BigDecimal avgFoodCost = BigDecimal.ZERO;
+            BigDecimal avgMargin = BigDecimal.ZERO;
+
+            if (totalRecipes > 0) {
+                BigDecimal sumFoodCostPct = BigDecimal.ZERO;
+                BigDecimal sumMarginPct = BigDecimal.ZERO;
+
+                for (Recipe r : allActive) {
+                    RecipeResponseDTO dto = toResponseDTO(r);
+                    if (dto.getFoodCostPercent() != null) {
+                        sumFoodCostPct = sumFoodCostPct.add(dto.getFoodCostPercent());
+                    }
+                    if (dto.getGrossMarginPercent() != null) {
+                        sumMarginPct = sumMarginPct.add(dto.getGrossMarginPercent());
+                    }
+                }
+
+                avgFoodCost = sumFoodCostPct.divide(BigDecimal.valueOf(totalRecipes), 2, RoundingMode.HALF_UP);
+                avgMargin = sumMarginPct.divide(BigDecimal.valueOf(totalRecipes), 2, RoundingMode.HALF_UP);
+            }
+
+            RecipePageResponse response = RecipePageResponse.builder()
+                    .totalRecipes(totalRecipes)
+                    .total(totalRecipes)
+                    .avgFoodCostPercent(avgFoodCost)
+                    .avgFoodCost(avgFoodCost)
+                    .avgMarginPercent(avgMargin)
+                    .avgMargin(avgMargin)
+                    .recipes(dtos)
                     .totalRecords(pageResult.getTotalElements())
                     .currentPage(page)
                     .pageSize(size)
                     .totalPages(pageResult.getTotalPages())
                     .build();
 
-            return StandardResponse.success(dtos, "Recipes fetched successfully", metadata);
+            return StandardResponse.success(response, "Recipes fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching recipes: ", e);
             return StandardResponse.error("Failed to fetch recipes", "INTERNAL_SERVER_ERROR", e.getMessage());
@@ -147,7 +181,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
-    public StandardResponse<RecipeDTO> updateRecipe(Long id, RecipeDTO dto) {
+    public StandardResponse<RecipeResponseDTO> updateRecipe(Long id, RecipeRequestDTO dto) {
         try {
             Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with ID: " + id));
@@ -177,7 +211,7 @@ public class RecipeServiceImpl implements RecipeService {
                         .collect(Collectors.toMap(RecipeIngredient::getId, i -> i, (a, b) -> a));
 
                 List<RecipeIngredient> updatedLines = new ArrayList<>();
-                for (RecipeIngredientDTO lineDto : dto.getIngredients()) {
+                for (RecipeIngredientRequestDTO lineDto : dto.getIngredients()) {
                     if (lineDto.getId() != null && existingById.containsKey(lineDto.getId())) {
                         // Update in-place
                         RecipeIngredient line = existingById.get(lineDto.getId());
@@ -204,7 +238,7 @@ public class RecipeServiceImpl implements RecipeService {
             // Recompute portion cost
             recipe.setPortionCost(sumPortionCost(recipe.getIngredients()));
             Recipe saved = recipeRepository.save(recipe);
-            return StandardResponse.success(toDTO(saved), "Recipe updated successfully");
+            return StandardResponse.success(toResponseDTO(saved), "Recipe updated successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
@@ -239,13 +273,13 @@ public class RecipeServiceImpl implements RecipeService {
     // ──────────────────────────────────────────────────────────────────────
 
     /** Build all BOM lines from DTOs and attach to recipe. Also sets portionCost. */
-    private void buildBomLines(Recipe recipe, List<RecipeIngredientDTO> lineDtos) {
+    private void buildBomLines(Recipe recipe, List<RecipeIngredientRequestDTO> lineDtos) {
         if (lineDtos == null || lineDtos.isEmpty()) {
             recipe.setPortionCost(BigDecimal.ZERO);
             return;
         }
         List<RecipeIngredient> lines = new ArrayList<>();
-        for (RecipeIngredientDTO lineDto : lineDtos) {
+        for (RecipeIngredientRequestDTO lineDto : lineDtos) {
             lines.add(buildLine(recipe, lineDto));
         }
         recipe.getIngredients().addAll(lines);
@@ -253,7 +287,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     /** Build a single BOM line entity and compute grossQty + lineCost. */
-    private RecipeIngredient buildLine(Recipe recipe, RecipeIngredientDTO lineDto) {
+    private RecipeIngredient buildLine(Recipe recipe, RecipeIngredientRequestDTO lineDto) {
         if (lineDto.getIngredientId() == null) {
             throw new IllegalArgumentException("ingredientId is required for each BOM line");
         }
@@ -318,8 +352,8 @@ public class RecipeServiceImpl implements RecipeService {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    /** Convert Recipe entity → RecipeDTO with all calculated fields. */
-    private RecipeDTO toDTO(Recipe r) {
+    /** Convert Recipe entity → RecipeResponseDTO with all calculated fields. */
+    private RecipeResponseDTO toResponseDTO(Recipe r) {
         MenuItem mi = r.getMenuItem();
         BigDecimal sellingPrice = mi != null && mi.getPrice() != null ? mi.getPrice() : BigDecimal.ZERO;
         BigDecimal portionCost = r.getPortionCost() != null ? r.getPortionCost() : BigDecimal.ZERO;
@@ -344,10 +378,10 @@ public class RecipeServiceImpl implements RecipeService {
             }
         }
 
-        List<RecipeIngredientDTO> ingredientDtos = r.getIngredients() == null ? List.of() :
-                r.getIngredients().stream().map(this::toLineDTO).collect(Collectors.toList());
+        List<RecipeIngredientResponseDTO> ingredientDtos = r.getIngredients() == null ? List.of() :
+                r.getIngredients().stream().map(this::toLineResponseDTO).collect(Collectors.toList());
 
-        return RecipeDTO.builder()
+        return RecipeResponseDTO.builder()
                 .id(r.getId())
                 .menuItemId(mi != null ? mi.getId() : null)
                 .menuItemDisplayName(displayName)
@@ -366,8 +400,8 @@ public class RecipeServiceImpl implements RecipeService {
                 .build();
     }
 
-    /** Convert a single BOM line entity → DTO. */
-    private RecipeIngredientDTO toLineDTO(RecipeIngredient line) {
+    /** Convert a single BOM line entity → Response DTO. */
+    private RecipeIngredientResponseDTO toLineResponseDTO(RecipeIngredient line) {
         KitchenIngredient ing = line.getIngredient();
         BigDecimal costPerBaseUnit = BigDecimal.ZERO;
         if (ing != null && ing.getCostPerPurchaseUnit() != null) {
@@ -378,7 +412,7 @@ public class RecipeServiceImpl implements RecipeService {
             costPerBaseUnit = ing.getCostPerPurchaseUnit().divide(convFactor, 4, RoundingMode.HALF_UP);
         }
 
-        return RecipeIngredientDTO.builder()
+        return RecipeIngredientResponseDTO.builder()
                 .id(line.getId())
                 .ingredientId(ing != null ? ing.getId() : null)
                 .ingredientName(ing != null ? ing.getIngredientName() : null)

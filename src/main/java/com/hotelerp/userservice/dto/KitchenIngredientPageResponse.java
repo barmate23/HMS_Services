@@ -21,7 +21,7 @@ public class KitchenIngredientPageResponse {
     private long categories;
 
     // ── Paginated list ────────────────────────────────────────────────────
-    private List<KitchenIngredientDTO> ingredients;
+    private List<KitchenIngredientResponseDTO> ingredients;
     private long totalRecords;
     private int currentPage;
     private int pageSize;

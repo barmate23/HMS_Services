@@ -2,7 +2,9 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.constant.ServiceConstant;
-import com.hotelerp.userservice.dto.RecipeDTO;
+import com.hotelerp.userservice.dto.RecipePageResponse;
+import com.hotelerp.userservice.dto.RecipeRequestDTO;
+import com.hotelerp.userservice.dto.RecipeResponseDTO;
 import com.hotelerp.userservice.service.RecipeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +38,7 @@ public class RecipeController {
      * }
      */
     @PostMapping(ServiceConstant.CREATE_RECIPE)
-    public ResponseEntity<StandardResponse<Void>> createRecipe(@RequestBody RecipeDTO dto) {
+    public ResponseEntity<StandardResponse<Void>> createRecipe(@RequestBody RecipeRequestDTO dto) {
         StandardResponse<Void> response = recipeService.createRecipe(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
@@ -46,8 +48,8 @@ public class RecipeController {
      * GET /api/hmsService/v1/pos/recipes/getRecipeById/{id}
      */
     @GetMapping(ServiceConstant.GET_RECIPE_BY_ID)
-    public ResponseEntity<StandardResponse<RecipeDTO>> getRecipeById(@PathVariable Long id) {
-        StandardResponse<RecipeDTO> response = recipeService.getRecipeById(id);
+    public ResponseEntity<StandardResponse<RecipeResponseDTO>> getRecipeById(@PathVariable Long id) {
+        StandardResponse<RecipeResponseDTO> response = recipeService.getRecipeById(id);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
         return ResponseEntity.status(status).body(response);
     }
@@ -57,20 +59,21 @@ public class RecipeController {
      * Useful when the UI wants to load the recipe for a selected dish.
      */
     @GetMapping(ServiceConstant.GET_RECIPE_BY_MENU_ITEM_ID)
-    public ResponseEntity<StandardResponse<RecipeDTO>> getRecipeByMenuItemId(@PathVariable Long menuItemId) {
-        StandardResponse<RecipeDTO> response = recipeService.getRecipeByMenuItemId(menuItemId);
+    public ResponseEntity<StandardResponse<RecipeResponseDTO>> getRecipeByMenuItemId(@PathVariable Long menuItemId) {
+        StandardResponse<RecipeResponseDTO> response = recipeService.getRecipeByMenuItemId(menuItemId);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.NOT_FOUND;
         return ResponseEntity.status(status).body(response);
     }
 
     /**
      * GET /api/hmsService/v1/pos/recipes/getAllRecipes?page=0&size=10
+     * Returns paginated recipes list along with overview variables: totalRecipes, avgFoodCostPercent, avgMarginPercent.
      */
     @GetMapping(ServiceConstant.GET_ALL_RECIPES)
-    public ResponseEntity<StandardResponse<List<RecipeDTO>>> getAllRecipes(
+    public ResponseEntity<StandardResponse<RecipePageResponse>> getAllRecipes(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        StandardResponse<List<RecipeDTO>> response = recipeService.getAllRecipes(page, size);
+        StandardResponse<RecipePageResponse> response = recipeService.getAllRecipes(page, size);
         return ResponseEntity.ok(response);
     }
 
@@ -79,10 +82,10 @@ public class RecipeController {
      * Send only fields you want to change; BOM lines are updated in-place if id is provided.
      */
     @PutMapping(ServiceConstant.UPDATE_RECIPE)
-    public ResponseEntity<StandardResponse<RecipeDTO>> updateRecipe(
+    public ResponseEntity<StandardResponse<RecipeResponseDTO>> updateRecipe(
             @PathVariable Long id,
-            @RequestBody RecipeDTO dto) {
-        StandardResponse<RecipeDTO> response = recipeService.updateRecipe(id, dto);
+            @RequestBody RecipeRequestDTO dto) {
+        StandardResponse<RecipeResponseDTO> response = recipeService.updateRecipe(id, dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }

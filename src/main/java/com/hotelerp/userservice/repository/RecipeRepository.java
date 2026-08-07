@@ -26,6 +26,13 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             """)
     Page<Recipe> findAllActive(Pageable pageable);
 
+    /** List of all active recipes for summary calculations. */
+    @Query("""
+            SELECT r FROM Recipe r
+            WHERE r.isDeleted = false
+            """)
+    java.util.List<Recipe> findAllActiveList();
+
     /** Check if a recipe already exists for a given menu item (excluding a specific id on update). */
     boolean existsByMenuItemIdAndIsDeletedFalse(Long menuItemId);
 
