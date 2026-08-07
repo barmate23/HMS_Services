@@ -30,6 +30,8 @@ public class PosBillServiceImpl implements PosBillService {
     private final DiningTableRepository diningTableRepository;
     private final FolioService folioService;
     private final FolioPostingRepository folioPostingRepository;
+    private final RecipeRepository recipeRepository;
+    private final KitchenIngredientRepository kitchenIngredientRepository;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  CREATE
@@ -143,9 +145,38 @@ public class PosBillServiceImpl implements PosBillService {
 
             // set table status to available
             DiningTable diningTable = order.getDiningTable();
-            CommonMaster available = commonMasterRepository.findByCategoryAndCode("TABLE_STATUS", "AVAILABLE").get();
-            diningTable.setStatus(available);
-            diningTableRepository.save(diningTable);
+            if (diningTable != null) {
+                commonMasterRepository.findByCategoryAndCode("TABLE_STATUS", "AVAILABLE")
+                        .ifPresent(availableStatus -> {
+                            diningTable.setStatus(availableStatus);
+                            diningTableRepository.save(diningTable);
+                        });
+            }
+
+            // 11. Deduct kitchen ingredient inventory stock based on recipe BOMs
+            if (order.getItems() != null && !order.getItems().isEmpty()) {
+                for (PosOrderItem item : order.getItems()) {
+                    if (item.getMenuItem() != null && item.getQuantity() != null && item.getQuantity() > 0) {
+                        recipeRepository.findByMenuItemIdAndIsDeletedFalse(item.getMenuItem().getId())
+                                .ifPresent(recipe -> {
+                                    if (recipe.getIngredients() != null) {
+                                        for (RecipeIngredient ri : recipe.getIngredients()) {
+                                            if (ri.getIngredient() != null) {
+                                                BigDecimal qtyPerPortion = ri.getGrossQty() != null ? ri.getGrossQty() : (ri.getNetQty() != null ? ri.getNetQty() : BigDecimal.ZERO);
+                                                BigDecimal totalConsumed = qtyPerPortion.multiply(BigDecimal.valueOf(item.getQuantity()));
+
+                                                KitchenIngredient ing = ri.getIngredient();
+                                                BigDecimal currentStock = ing.getCurrentStockLevel() != null ? ing.getCurrentStockLevel() : BigDecimal.ZERO;
+                                                ing.setCurrentStockLevel(currentStock.subtract(totalConsumed));
+                                                kitchenIngredientRepository.save(ing);
+                                            }
+                                        }
+                                    }
+                                });
+                    }
+                }
+            }
+
             return StandardResponse.success(convertToDTO(bill), "Bill created successfully");
 
         } catch (ResourceNotFoundException e) {

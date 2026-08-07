@@ -25,6 +25,7 @@ public class GrnServiceImpl implements GrnService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final VendorBillService vendorBillService;
     private final InventoryStockRepository inventoryStockRepository;
+    private final KitchenIngredientRepository kitchenIngredientRepository;
 
     private String generateGrnNumber() {
         long count = grnRepository.count();
@@ -37,6 +38,16 @@ public class GrnServiceImpl implements GrnService {
         try {
             PurchaseOrder po = purchaseOrderRepository.findByIdAndIsDeletedFalse(dto.getPurchaseOrderId())
                     .orElseThrow(() -> new RuntimeException("Purchase Order not found"));
+
+            boolean isKitchen = false;
+            if (po.getPurchaseItemCategory() != null) {
+                String val = po.getPurchaseItemCategory().getValue();
+                String code = po.getPurchaseItemCategory().getCode();
+                if ((val != null && val.equalsIgnoreCase("KITCHEN")) ||
+                    (code != null && code.equalsIgnoreCase("KITCHEN"))) {
+                    isKitchen = true;
+                }
+            }
 
             Grn grn = Grn.builder()
                     .grnNumber(generateGrnNumber())
@@ -52,15 +63,23 @@ public class GrnServiceImpl implements GrnService {
             if (dto.getVendorBill() != null) {
                 // Attach correct PO context logically
                 dto.getVendorBill().setPurchaseOrderId(po.getId()); 
-               // StandardResponse<VendorBillDTO> vbResponse = vendorBillService.createVendorBill(dto.getVendorBill());
-                if (dto.getVendorBill().getLines() != null ) {
+                vendorBillService.createVendorBill(dto.getVendorBill());
+                if (dto.getVendorBill().getLines() != null) {
                     for (VendorBillLineDTO line : dto.getVendorBill().getLines()) {
                         if (line.getItemId() != null && line.getReceivedQuantity() != null) {
-                            List<InventoryStock> stocks = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
-                            for (InventoryStock stock : stocks) {
-                                BigDecimal current = stock.getOnHand() != null ? stock.getOnHand() : BigDecimal.ZERO;
-                                stock.setOnHand(current.add(line.getReceivedQuantity()));
-                                inventoryStockRepository.save(stock);
+                            if (isKitchen) {
+                                kitchenIngredientRepository.findById(line.getItemId()).ifPresent(ingredient -> {
+                                    BigDecimal current = ingredient.getCurrentStockLevel() != null ? ingredient.getCurrentStockLevel() : BigDecimal.ZERO;
+                                    ingredient.setCurrentStockLevel(current.add(line.getReceivedQuantity()));
+                                    kitchenIngredientRepository.save(ingredient);
+                                });
+                            } else {
+                                List<InventoryStock> stocks = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
+                                for (InventoryStock stock : stocks) {
+                                    BigDecimal current = stock.getOnHand() != null ? stock.getOnHand() : BigDecimal.ZERO;
+                                    stock.setOnHand(current.add(line.getReceivedQuantity()));
+                                    inventoryStockRepository.save(stock);
+                                }
                             }
                         }
                     }

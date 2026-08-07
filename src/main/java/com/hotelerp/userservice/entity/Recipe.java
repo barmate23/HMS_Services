@@ -12,7 +12,9 @@ import java.util.List;
  * One MenuItem can have exactly one active recipe.
  */
 @Entity
-@Table(name = "recipes")
+@Table(name = "recipes", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_recipe_menu_item", columnNames = {"menu_item_id"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

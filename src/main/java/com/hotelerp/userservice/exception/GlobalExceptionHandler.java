@@ -76,6 +76,25 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<StandardResponse<Void>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        String logId = LogContext.getLogId();
+        log.error("logId: {} - Data integrity violation: {}", logId, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(StandardResponse.error(
+                        "A recipe or record already exists for this menu item.",
+                        "DUPLICATE_ERROR",
+                        ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<StandardResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        String logId = LogContext.getLogId();
+        log.error("logId: {} - Invalid argument: {}", logId, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(StandardResponse.error(ex.getMessage(), "INVALID_INPUT", ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<StandardResponse<Void>> handleGenericException(Exception ex) {
         String logId = LogContext.getLogId();

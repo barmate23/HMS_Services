@@ -13,10 +13,11 @@ public interface KitchenIngredientService {
 
     /**
      * @param categoryId optional filter by category CommonMaster id
+     * @param search     optional search keyword (name, code, supplier, category)
      * @param page       0-based page number
      * @param size       page size
      */
-    StandardResponse<KitchenIngredientPageResponse> getAllIngredients(Long categoryId, int page, int size);
+    StandardResponse<KitchenIngredientPageResponse> getAllIngredients(Long categoryId, String search, int page, int size);
 
     StandardResponse<KitchenIngredientResponseDTO> updateIngredient(Long id, KitchenIngredientRequestDTO dto);
 

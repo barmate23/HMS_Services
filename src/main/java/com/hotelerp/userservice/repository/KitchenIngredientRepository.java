@@ -13,14 +13,22 @@ import java.util.Optional;
 @Repository
 public interface KitchenIngredientRepository extends JpaRepository<KitchenIngredient, Long> {
 
-    /** Paginated list – optionally filter by category id. */
+    /** Paginated list – optionally filter by category id and search keyword. */
     @Query("""
             SELECT k FROM KitchenIngredient k
             WHERE k.isDeleted = false
               AND (:categoryId IS NULL OR k.category.id = :categoryId)
+              AND (:search IS NULL OR :search = '' OR
+                   LOWER(k.ingredientName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(k.ingredientCode) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(k.preferredSupplier) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(k.category.value) LIKE LOWER(CONCAT('%', :search, '%')))
             ORDER BY k.ingredientCode ASC
             """)
-    Page<KitchenIngredient> findAllActive(@Param("categoryId") Long categoryId, Pageable pageable);
+    Page<KitchenIngredient> findAllActive(
+            @Param("categoryId") Long categoryId,
+            @Param("search") String search,
+            Pageable pageable);
 
     /** Total count of active ingredients. */
     long countByIsDeletedFalse();

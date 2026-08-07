@@ -42,6 +42,7 @@ public class KitchenIngredientController {
     /**
      * GET /api/hmsService/v1/pos/ingredients/getAllIngredients
      *   ?categoryId=  (optional, filter by CommonMaster id)
+     *   &search=      (optional, search by name, code, supplier, category)
      *   &page=0       (0-based, default 0)
      *   &size=10      (default 10)
      *
@@ -50,9 +51,10 @@ public class KitchenIngredientController {
     @GetMapping(ServiceConstant.GET_ALL_INGREDIENTS)
     public ResponseEntity<StandardResponse<KitchenIngredientPageResponse>> getAllIngredients(
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        StandardResponse<KitchenIngredientPageResponse> response = ingredientService.getAllIngredients(categoryId, page, size);
+        StandardResponse<KitchenIngredientPageResponse> response = ingredientService.getAllIngredients(categoryId, search, page, size);
         return ResponseEntity.ok(response);
     }
 

@@ -82,10 +82,10 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
     @Override
     @Transactional(readOnly = true)
-    public StandardResponse<KitchenIngredientPageResponse> getAllIngredients(Long categoryId, int page, int size) {
+    public StandardResponse<KitchenIngredientPageResponse> getAllIngredients(Long categoryId, String search, int page, int size) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<KitchenIngredient> pageResult = ingredientRepository.findAllActive(categoryId, pageable);
+            Page<KitchenIngredient> pageResult = ingredientRepository.findAllActive(categoryId, search, pageable);
 
             List<KitchenIngredientResponseDTO> dtos = pageResult.getContent()
                     .stream()

@@ -70,11 +70,16 @@ public class RecipeServiceImpl implements RecipeService {
             buildBomLines(recipe, dto.getIngredients());
             recipeRepository.save(recipe);
             return StandardResponse.success("Recipe created successfully");
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Data integrity violation creating recipe: ", e);
+            return StandardResponse.error(
+                    "A recipe already exists for this menu item.",
+                    "DUPLICATE_ERROR", "Only one active recipe is allowed per menu item");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
         } catch (Exception e) {
             log.error("Error creating recipe: ", e);
-            return StandardResponse.error("Failed to create recipe", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to create recipe: " + e.getMessage(), "BAD_REQUEST", e.getMessage());
         }
     }
 
@@ -239,11 +244,16 @@ public class RecipeServiceImpl implements RecipeService {
             recipe.setPortionCost(sumPortionCost(recipe.getIngredients()));
             Recipe saved = recipeRepository.save(recipe);
             return StandardResponse.success(toResponseDTO(saved), "Recipe updated successfully");
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Data integrity violation updating recipe: ", e);
+            return StandardResponse.error(
+                    "A recipe already exists for the selected menu item.",
+                    "DUPLICATE_ERROR", "Only one active recipe is allowed per menu item");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "NOT_FOUND", e.getMessage());
         } catch (Exception e) {
             log.error("Error updating recipe: ", e);
-            return StandardResponse.error("Failed to update recipe", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to update recipe: " + e.getMessage(), "BAD_REQUEST", e.getMessage());
         }
     }
 
