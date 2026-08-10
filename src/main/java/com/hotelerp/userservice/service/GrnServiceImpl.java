@@ -72,14 +72,14 @@ public class GrnServiceImpl implements GrnService {
             if (dto.getVendorBill() != null) {
                 // Attach correct PO context logically
                 dto.getVendorBill().setPurchaseOrderId(po.getId()); 
-                vendorBillService.createVendorBill(dto.getVendorBill());
+//                vendorBillService.createVendorBill(dto.getVendorBill());
                 if (dto.getVendorBill().getLines() != null) {
                     for (VendorBillLineDTO line : dto.getVendorBill().getLines()) {
                         if (line.getItemId() != null && line.getReceivedQuantity() != null) {
                             if (isKitchen) {
                                 kitchenIngredientRepository.findById(line.getItemId()).ifPresent(ingredient -> {
                                     BigDecimal current = ingredient.getCurrentStockLevel() != null ? ingredient.getCurrentStockLevel() : BigDecimal.ZERO;
-                                    ingredient.setCurrentStockLevel(current.add(line.getReceivedQuantity()));
+                                    ingredient.setCurrentStockLevel(current.add(line.getReceivedQuantity().multiply(ingredient.getPurchaseConversionFactor())));
                                     kitchenIngredientRepository.save(ingredient);
                                 });
                             } else {
