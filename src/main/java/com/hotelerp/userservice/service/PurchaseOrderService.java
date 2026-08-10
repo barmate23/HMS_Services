@@ -11,4 +11,6 @@ public interface PurchaseOrderService {
     StandardResponse<List<PurchaseOrderDTO>> getAllPurchaseOrders();
     StandardResponse<Void> deletePurchaseOrder(Long id);
     StandardResponse<PurchaseOrderDTO> updateStatus(Long id, Long statusId);
+    StandardResponse<String> generatePoNumber();
 }
+

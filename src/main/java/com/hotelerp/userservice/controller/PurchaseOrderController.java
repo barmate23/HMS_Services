@@ -45,4 +45,10 @@ public class PurchaseOrderController {
     public ResponseEntity<StandardResponse<PurchaseOrderDTO>> updateStatus(@RequestParam Long id, @RequestParam Long statusId) {
         return ResponseEntity.ok(purchaseOrderService.updateStatus(id, statusId));
     }
+
+    @GetMapping({"/generatePoNumber", "/generatePurchaseOrderNumber"})
+    public ResponseEntity<StandardResponse<String>> generatePoNumber() {
+        return ResponseEntity.ok(purchaseOrderService.generatePoNumber());
+    }
 }
+

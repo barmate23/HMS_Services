@@ -222,6 +222,17 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
     }
 
+    @Override
+    public StandardResponse<String> generatePoNumber() {
+        try {
+            String poNumber = generatePoNumber(LocalDate.now());
+            return StandardResponse.success(poNumber, "Purchase Order number generated successfully");
+        } catch (Exception e) {
+            log.error("Error generating PO number: ", e);
+            return StandardResponse.error("Failed to generate PO number", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
     private List<PurchaseOrderLine> buildPoLines(PurchaseOrder po, List<PurchaseOrderDTO.PurchaseOrderLineDTO> lineDTOs) {
         if (lineDTOs == null || lineDTOs.isEmpty()) {
             return new ArrayList<>();
