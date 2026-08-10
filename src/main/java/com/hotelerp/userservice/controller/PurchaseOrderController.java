@@ -46,7 +46,7 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.updateStatus(id, statusId));
     }
 
-    @GetMapping({"/generatePoNumber", "/generatePurchaseOrderNumber"})
+    @GetMapping("/generatePurchaseOrderNumber")
     public ResponseEntity<StandardResponse<String>> generatePoNumber() {
         return ResponseEntity.ok(purchaseOrderService.generatePoNumber());
     }
