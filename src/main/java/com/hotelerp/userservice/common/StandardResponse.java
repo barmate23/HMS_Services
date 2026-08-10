@@ -22,7 +22,7 @@ public class StandardResponse<T> {
     private String logId;
     private String requestId;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS", timezone = "Asia/Kolkata")
     private LocalDateTime timestamp;
 
     private ErrorDetails error;

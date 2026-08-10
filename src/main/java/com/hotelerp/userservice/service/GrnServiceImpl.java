@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
@@ -29,7 +31,14 @@ public class GrnServiceImpl implements GrnService {
 
     private String generateGrnNumber() {
         long count = grnRepository.count();
-        return "GRN-" + (count + 1);
+
+        LocalDate today = LocalDate.now();
+
+        String year = String.valueOf(today.getYear());
+        String dayMonth = today.format(DateTimeFormatter.ofPattern("ddMM"));
+        String sequence = String.format("%04d", count + 1);
+
+        return "GRN-" + year + "-" + dayMonth + "-" + sequence;
     }
 
     @Override
