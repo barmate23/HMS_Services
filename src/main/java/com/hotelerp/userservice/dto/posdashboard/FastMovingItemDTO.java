@@ -14,4 +14,5 @@ public class FastMovingItemDTO {
     private String outletName;
     private int soldQty;
     private String imageUrl;
+    private byte[] itemImage;
 }

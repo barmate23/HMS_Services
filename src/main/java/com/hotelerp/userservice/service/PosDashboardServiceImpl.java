@@ -139,14 +139,27 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         List<FastMovingItemDTO> fastMovingItems = itemSales.entrySet().stream()
                                         .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
                                         .limit(5)
-                                        .map(entry -> FastMovingItemDTO.builder()
-                                                        .itemName(entry.getKey().getItemName())
-                                                        .outletName(entry.getKey().getOutlet() != null
-                                                                        ? entry.getKey().getOutlet().getName()
-                                                                        : "N/A")
-                                                        .soldQty(entry.getValue())
-                                                        .imageUrl(null)
-                                                        .build())
+                                        .map(entry -> {
+                                                        MenuItem item = entry.getKey();
+                                                        String imageStr = null;
+                                                        if (item.getItemImage() != null && item.getItemImage().length > 0) {
+                                                            String temp = new String(item.getItemImage(), java.nio.charset.StandardCharsets.UTF_8);
+                                                            if (temp.startsWith("data:image") || temp.startsWith("http://") || temp.startsWith("https://")) {
+                                                                imageStr = temp;
+                                                            } else {
+                                                                imageStr = Base64.getEncoder().encodeToString(item.getItemImage());
+                                                            }
+                                                        }
+                                                        return FastMovingItemDTO.builder()
+                                                                        .itemName(item.getItemName())
+                                                                        .outletName(item.getOutlet() != null
+                                                                                        ? item.getOutlet().getName()
+                                                                                        : "N/A")
+                                                                        .soldQty(entry.getValue())
+                                                                        .imageUrl(imageStr)
+                                                                        .itemImage(item.getItemImage())
+                                                                        .build();
+                                        })
                                         .collect(Collectors.toList());
 
                         // 6. Billing Watch

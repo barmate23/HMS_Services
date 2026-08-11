@@ -20,4 +20,5 @@ public class PosItemStatDTO {
     private List<MonthlyStatDTO> monthlyTrend;
     private BigDecimal totalValue;
     private String imageUrl;
+    private byte[] itemImage;
 }

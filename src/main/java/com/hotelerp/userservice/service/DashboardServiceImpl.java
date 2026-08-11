@@ -197,6 +197,16 @@ public class DashboardServiceImpl implements DashboardService {
                                 .build());
                     }
 
+                    String imageStr = null;
+                    if (item.getItemImage() != null && item.getItemImage().length > 0) {
+                        String temp = new String(item.getItemImage(), java.nio.charset.StandardCharsets.UTF_8);
+                        if (temp.startsWith("data:image") || temp.startsWith("http://") || temp.startsWith("https://")) {
+                            imageStr = temp;
+                        } else {
+                            imageStr = Base64.getEncoder().encodeToString(item.getItemImage());
+                        }
+                    }
+
                     return PosItemStatDTO.builder()
                             .itemName(item.getItemName())
                             .category(item.getCategory() != null ? item.getCategory().getValue() : "N/A")
@@ -204,7 +214,8 @@ public class DashboardServiceImpl implements DashboardService {
                             .rate(item.getPrice())
                             .avgRate(totalQty > 0 ? totalVal.divide(BigDecimal.valueOf(totalQty), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO)
                             .totalValue(totalVal)
-                            .imageUrl(null) // image is byte array in DB
+                            .imageUrl(imageStr)
+                            .itemImage(item.getItemImage())
                             .monthlyTrend(monthlyTrend)
                             .build();
                 })
