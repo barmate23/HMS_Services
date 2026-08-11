@@ -56,6 +56,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
 
                         // 2. KOT Queue (Active Orders)
                         List<PosOrder> activeOrders = posOrderRepository.findAll().stream()
+                                        .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
+                                        .filter(o -> o.getOutlet() == null || !Boolean.TRUE.equals(o.getOutlet().getIsDeleted()))
                                         .filter(o -> o.getStatus() != null && ("OPEN"
                                                         .equalsIgnoreCase(o.getStatus().getValue()) ||
                                                         "KOT_SENT".equalsIgnoreCase(o.getStatus().getValue()) ||
@@ -82,7 +84,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .collect(Collectors.toList());
 
                         Map<String, List<PosBill>> revenuePerOutlet = nonVoidBills.stream()
-                                        .filter(b -> b.getOrder() != null && b.getOrder().getOutlet() != null)
+                                        .filter(b -> b.getOrder() != null && b.getOrder().getOutlet() != null && !Boolean.TRUE.equals(b.getOrder().getOutlet().getIsDeleted()))
                                         .collect(Collectors.groupingBy(b -> b.getOrder().getOutlet().getName()));
 
                         java.util.function.Function<PosBill, BigDecimal> calculateBillAmount = b -> {
@@ -252,8 +254,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         public StandardResponse<PosDashboardCardsDTO> getPosDashboardCards(Long outletId, LocalDateTime startDate,
                         LocalDateTime endDate) {
                 try {
-                        // 1. Active Outlets Count
-                        List<Outlet> outlets = outletRepository.findByIsActiveTrue();
+                        // 1. Active Outlets Count (excluding deleted)
+                        List<Outlet> outlets = outletRepository.findByIsActiveTrueAndIsDeletedFalse();
                         if (outletId != null) {
                                 outlets = outlets.stream()
                                                 .filter(o -> o.getId().equals(outletId))
@@ -264,7 +266,8 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         // Fetch POS Orders filtered by outlet and date range
                         List<PosOrder> allOrders = posOrderRepository.findAll();
                         List<PosOrder> filteredOrders = allOrders.stream()
-                                        .filter(o -> Boolean.FALSE.equals(o.getIsDeleted()))
+                                        .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
+                                        .filter(o -> o.getOutlet() == null || !Boolean.TRUE.equals(o.getOutlet().getIsDeleted()))
                                         .filter(o -> outletId == null || (o.getOutlet() != null
                                                         && outletId.equals(o.getOutlet().getId())))
                                         .filter(o -> startDate == null || (o.getCreatedAt() != null
@@ -295,6 +298,7 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         // Fetch POS Bills filtered by outlet and date range
                         List<PosBill> allBills = posBillRepository.findByIsDeletedFalse();
                         List<PosBill> filteredBills = allBills.stream()
+                                        .filter(b -> b.getOrder() == null || b.getOrder().getOutlet() == null || !Boolean.TRUE.equals(b.getOrder().getOutlet().getIsDeleted()))
                                         .filter(b -> outletId == null || (b.getOrder() != null
                                                         && b.getOrder().getOutlet() != null
                                                         && outletId.equals(b.getOrder().getOutlet().getId())))

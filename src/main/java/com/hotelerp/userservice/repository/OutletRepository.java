@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface OutletRepository extends JpaRepository<Outlet, Long> {
     List<Outlet> findByIsActiveTrue();
+    List<Outlet> findByIsActiveTrueAndIsDeletedFalse();
+    List<Outlet> findByIsDeletedFalse();
 }
