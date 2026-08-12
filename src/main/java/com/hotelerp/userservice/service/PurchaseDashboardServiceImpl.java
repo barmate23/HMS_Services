@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.dashboard.PurchaseDashboardDTO;
 import com.hotelerp.userservice.entity.InventoryStock;
 import com.hotelerp.userservice.repository.InventoryStockRepository;
@@ -19,6 +20,8 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
 
     private final SupplierRepository supplierRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+
+    private final LoginUser loginUser;
     private final InventoryStockRepository inventoryStockRepository;
 
     // PO status codes used across the dashboard
@@ -34,10 +37,10 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
             long openPosCount = purchaseOrderRepository
                     .countByStatus_CodeNotInAndIsDeletedFalse(OPEN_STATUSES_EXCLUDED);
 
-            BigDecimal poValue = purchaseOrderRepository.sumTotalAmountByIsDeletedFalse();
+            BigDecimal poValue = purchaseOrderRepository.sumTotalAmountByIsDeletedFalse(loginUser.getHotelId());
             if (poValue == null) poValue = BigDecimal.ZERO;
 
-            long lowStockCount = inventoryStockRepository.countLowStockItems();
+            long lowStockCount = inventoryStockRepository.countLowStockItems(loginUser.getHotelId());
 
             PurchaseDashboardDTO.PurchaseStats stats = PurchaseDashboardDTO.PurchaseStats.builder()
                     .suppliersCount(suppliersCount)
@@ -63,7 +66,7 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
 
             // ── 3. Reorder & Low Stock Alerts ───────────────────────────────────
             List<PurchaseDashboardDTO.LowStockAlertDTO> lowStockAlerts =
-                    inventoryStockRepository.findLowStockItems().stream()
+                    inventoryStockRepository.findLowStockItems(loginUser.getHotelId()).stream()
                             .map(stock -> PurchaseDashboardDTO.LowStockAlertDTO.builder()
                                     .itemConfigId(stock.getItemConfig().getId())
                                     .itemCode(stock.getItemConfig().getItemCode())
@@ -84,7 +87,7 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
 
             // Step 4b: PO value sum per category
             Map<String, BigDecimal> poValueByCategory = new LinkedHashMap<>();
-            purchaseOrderRepository.sumPoValueBySupplierCategory()
+            purchaseOrderRepository.sumPoValueBySupplierCategory(loginUser.getHotelId())
                     .forEach(row -> poValueByCategory.put(
                             (String) row[0],
                             row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO));

@@ -92,8 +92,9 @@ public class PosBillServiceImpl implements PosBillService {
             }
             Hotel hotel = null;
             if (hotelId != null) {
-                hotel = hotelRepository.findById(hotelId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                final  Long finalHotelId =  hotelId;
+                hotel = hotelRepository.findById(finalHotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + finalHotelId));
             }
 
             // 8. Build and save the bill

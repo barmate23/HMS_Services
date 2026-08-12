@@ -67,8 +67,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
-            } else if (room.getHotel() != null) {
-                hotel = room.getHotel();
             }
 
             MaintenanceRequest request = MaintenanceRequest.builder()

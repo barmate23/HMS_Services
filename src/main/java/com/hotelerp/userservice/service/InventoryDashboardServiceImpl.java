@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.dashboard.InventoryDashboardDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -20,7 +21,7 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final MinibarConsumptionRepository minibarConsumptionRepository;
     private final StoreIssueRepository storeIssueRepository;
-    private final CommonMasterRepository commonMasterRepository;
+    private final LoginUser loginUser;
 
     @Override
     public StandardResponse<InventoryDashboardDTO> getDashboardData() {
@@ -28,7 +29,7 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
             // ── 1. Stock Data & Health ──────────────────────────────────────────────────
             List<InventoryStock> allStocks = inventoryStockRepository.findByIsDeletedFalse();
             long totalSkus = allStocks.size();
-            BigDecimal totalValue = inventoryStockRepository.calculateTotalStockValue();
+            BigDecimal totalValue = inventoryStockRepository.calculateTotalStockValue(loginUser.getHotelId());
             if (totalValue == null) totalValue = BigDecimal.ZERO;
 
             long healthyCount = 0;
@@ -143,7 +144,7 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
                     .openStoreIssuesCount(openStoreIssuesCount)
                     .build();
 
-            List<InventoryDashboardDTO.ReorderItemDTO> reorderWatch = inventoryStockRepository.findLowStockItems().stream()
+            List<InventoryDashboardDTO.ReorderItemDTO> reorderWatch = inventoryStockRepository.findLowStockItems(loginUser.getHotelId()).stream()
                     .map(item -> {
                         BigDecimal onHand = item.getOnHand() != null ? item.getOnHand() : BigDecimal.ZERO;
                         BigDecimal reorder = item.getItemConfig() != null && item.getItemConfig().getReorderLevel() != null

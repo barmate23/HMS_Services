@@ -41,8 +41,6 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
-            } else if (room.getHotel() != null) {
-                hotel = room.getHotel();
             }
 
             MinibarConsumption consumption = MinibarConsumption.builder()

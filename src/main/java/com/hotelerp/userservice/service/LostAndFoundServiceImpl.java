@@ -55,8 +55,6 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
-            } else if (room.getHotel() != null) {
-                hotel = room.getHotel();
             }
 
             LostAndFoundItem item = LostAndFoundItem.builder()

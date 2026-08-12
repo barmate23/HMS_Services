@@ -61,14 +61,22 @@ public class GrnServiceImpl implements GrnService {
                 }
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null)
+                    ? loginUser.getHotelId()
+                    : dto.getHotelId();
+
             if (hotelId == null && po.getHotel() != null) {
                 hotelId = po.getHotel().getId();
             }
+
             Hotel hotel = null;
+
             if (hotelId != null) {
-                hotel = hotelRepository.findById(hotelId)
-                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                final Long finalHotelId = hotelId;
+
+                hotel = hotelRepository.findById(finalHotelId)
+                        .orElseThrow(() ->
+                                new RuntimeException("Hotel not found with ID: " + finalHotelId));
             }
 
             Grn grn = Grn.builder()

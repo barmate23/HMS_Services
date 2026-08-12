@@ -48,15 +48,23 @@ public class InvoiceServiceImpl implements InvoiceService {
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
-            if (hotelId == null && folio.getReservation() != null && folio.getReservation().getHotel() != null) {
+
+            if (hotelId == null
+                    && folio.getReservation() != null
+                    && folio.getReservation().getHotel() != null) {
                 hotelId = folio.getReservation().getHotel().getId();
             }
-            Hotel hotel = null;
-            if (hotelId != null) {
-                hotel = hotelRepository.findById(hotelId)
-                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
-            }
 
+            Hotel hotel = null;
+
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId).orElse(null);
+
+                if (hotel == null) {
+                    throw new RuntimeException("Hotel not found with ID: " + hotelId);
+                }
+            }
+            
             Invoice invoice = Invoice.builder()
                     .hotel(hotel)
                     .folio(folio)
@@ -288,7 +296,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         return breakdown;
     }
 
-    /** SAC code mapping per the PDF prototype. */
+    /**
+     * SAC code mapping per the PDF prototype.
+     */
     private SacInfo resolveSac(String source) {
         if (source == null) return new SacInfo("999999", "Other Charges", "Other");
         return switch (source.toLowerCase()) {
@@ -299,7 +309,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         };
     }
 
-    private record SacInfo(String code, String title, String category) {}
+    private record SacInfo(String code, String title, String category) {
+    }
 
     private InvoiceDTO mapToDTO(Invoice invoice) {
         Folio folio = invoice.getFolio();
