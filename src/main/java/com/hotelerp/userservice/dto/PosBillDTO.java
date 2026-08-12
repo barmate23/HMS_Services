@@ -5,8 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.hotelerp.userservice.dto.PosOrderItemDTO;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO for POS Billing screen.
@@ -23,6 +25,8 @@ public class PosBillDTO {
 
     // ── Identifiers ──────────────────────────────────────────────────────────
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String billNumber;
 
     // ── Order info ────────────────────────────────────────────────────────────
@@ -66,6 +70,10 @@ public class PosBillDTO {
 
     /** Folio posting ID created (populated after create if postToFolio=true) */
     private Long folioPostingId;
+
+    // ── Order Items ────────────────────────────────────────────────────────────
+    /** Line items from the linked POS order (populated in getBillById / getBillByOrderId) */
+    private List<PosOrderItemDTO> items;
 
     // ── Misc ──────────────────────────────────────────────────────────────────
     private String notes;

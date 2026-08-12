@@ -1,13 +1,16 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.MaintenanceDTO;
 import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.MaintenanceRequest;
 import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.MaintenanceRepository;
 import com.hotelerp.userservice.repository.UserRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -28,6 +31,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -57,7 +62,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                         .orElseThrow(() -> new ResourceNotFoundException("Default OPEN status not found in master data"));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            } else if (room.getHotel() != null) {
+                hotel = room.getHotel();
+            }
+
             MaintenanceRequest request = MaintenanceRequest.builder()
+                    .hotel(hotel)
                     .room(room)
                     .repairIssue(dto.getRepairIssue())
                     .category(category)
@@ -116,6 +131,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                 request.setAssignedTo(assignedTo);
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && request.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                request.setHotel(hotel);
+            }
+
             MaintenanceRequest updatedRequest = maintenanceRepository.save(request);
             return StandardResponse.success(convertToDTO(updatedRequest), "Maintenance issue updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -143,8 +165,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Override
     public StandardResponse<List<MaintenanceDTO>> getAllIssues() {
         try {
-            List<MaintenanceDTO> dtos = maintenanceRepository.findAll().stream()
-                    .filter(r -> !Boolean.TRUE.equals(r.getIsDeleted()))
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<MaintenanceRequest> list = (hotelId != null)
+                    ? maintenanceRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : maintenanceRepository.findByIsDeletedFalse();
+            List<MaintenanceDTO> dtos = list.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All maintenance issues fetched successfully");
@@ -157,8 +182,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Override
     public StandardResponse<List<MaintenanceDTO>> getActiveMaintenance() {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<String> activeCodes = List.of("OPEN", "IN_PROGRESS", "ASSIGNED");
-            List<MaintenanceDTO> dtos = maintenanceRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+            List<MaintenanceRequest> list = (hotelId != null)
+                    ? maintenanceRepository.findByHotel_IdAndStatusCodeInAndIsDeletedFalse(hotelId, activeCodes)
+                    : maintenanceRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes);
+            List<MaintenanceDTO> dtos = list.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Active maintenance issues fetched successfully");
@@ -210,15 +239,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private MaintenanceDTO convertToDTO(MaintenanceRequest request) {
         return MaintenanceDTO.builder()
                 .id(request.getId())
-                .roomId(request.getRoom().getId())
-                .roomNumber(request.getRoom().getRoomNumber())
+                .hotelId(request.getHotel() != null ? request.getHotel().getId() : null)
+                .hotelName(request.getHotel() != null ? request.getHotel().getName() : null)
+                .roomId(request.getRoom() != null ? request.getRoom().getId() : null)
+                .roomNumber(request.getRoom() != null ? request.getRoom().getRoomNumber() : null)
                 .repairIssue(request.getRepairIssue())
-                .categoryId(request.getCategory().getId())
-                .categoryValue(request.getCategory().getValue())
-                .priorityId(request.getPriority().getId())
-                .priorityValue(request.getPriority().getValue())
-                .reportedById(request.getReportedBy().getId())
-                .reportedByName(request.getReportedBy().getFullName())
+                .categoryId(request.getCategory() != null ? request.getCategory().getId() : null)
+                .categoryValue(request.getCategory() != null ? request.getCategory().getValue() : null)
+                .priorityId(request.getPriority() != null ? request.getPriority().getId() : null)
+                .priorityValue(request.getPriority() != null ? request.getPriority().getValue() : null)
+                .reportedById(request.getReportedBy() != null ? request.getReportedBy().getId() : null)
+                .reportedByName(request.getReportedBy() != null ? request.getReportedBy().getFullName() : null)
                 .assignedToId(request.getAssignedTo() != null ? request.getAssignedTo().getId() : null)
                 .assignedToName(request.getAssignedTo() != null ? request.getAssignedTo().getFullName() : null)
                 .repairNotes(request.getRepairNotes())

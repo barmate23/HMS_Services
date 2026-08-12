@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Builder
 public class MaintenanceDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long roomId;
     private String roomNumber;
     private String repairIssue;

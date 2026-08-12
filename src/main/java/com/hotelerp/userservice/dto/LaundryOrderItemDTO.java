@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class LaundryOrderItemDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long priceMasterId;
     private String itemName;
     private String category;

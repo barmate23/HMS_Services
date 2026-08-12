@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 @Builder
 public class PosOrderItemDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long menuItemId;
     private String itemName;
     private Integer quantity;

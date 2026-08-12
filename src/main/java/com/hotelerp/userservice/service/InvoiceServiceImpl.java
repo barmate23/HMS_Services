@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.billing.InvoiceDTO;
 import com.hotelerp.userservice.dto.billing.InvoiceDetailDTO;
 import com.hotelerp.userservice.dto.billing.InvoiceDetailDTO.*;
@@ -27,6 +28,8 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final FolioPostingRepository folioPostingRepository;
     private final FolioPaymentRepository folioPaymentRepository;
     private final BookingRepository bookingRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     // ── Static hotel info (update from DB/config if Hotel entity is used) ──
     private static final HotelInfoDTO HOTEL_INFO = HotelInfoDTO.builder()
@@ -44,7 +47,18 @@ public class InvoiceServiceImpl implements InvoiceService {
             Folio folio = folioRepository.findById(folioId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            if (hotelId == null && folio.getReservation() != null && folio.getReservation().getHotel() != null) {
+                hotelId = folio.getReservation().getHotel().getId();
+            }
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             Invoice invoice = Invoice.builder()
+                    .hotel(hotel)
                     .folio(folio)
                     .invoiceNumber("INV-2026-" + (1000 + folioId))
                     .status("PAID")
@@ -64,10 +78,14 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public StandardResponse<List<InvoiceDTO>> getAllInvoices() {
         try {
-            List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<Invoice> invoices = (hotelId != null)
+                    ? invoiceRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : invoiceRepository.findByIsDeletedFalse();
+            List<InvoiceDTO> list = invoices.stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
-            return StandardResponse.success(invoices, "Invoices fetched successfully");
+            return StandardResponse.success(list, "Invoices fetched successfully");
         } catch (Exception e) {
             return StandardResponse.error(e.getMessage(), "INVOICE_FETCH_ERROR", e.getMessage());
         }
@@ -292,6 +310,8 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return InvoiceDTO.builder()
                 .id(invoice.getId())
+                .hotelId(invoice.getHotel() != null ? invoice.getHotel().getId() : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null ? folio.getReservation().getHotel().getId() : null))
+                .hotelName(invoice.getHotel() != null ? invoice.getHotel().getName() : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null ? folio.getReservation().getHotel().getName() : null))
                 .invoiceNumber(invoice.getInvoiceNumber())
                 .folioNumber(folio != null ? folio.getFolioNumber() : "")
                 .guestName(guestName)

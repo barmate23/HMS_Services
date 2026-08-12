@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.StoreIssueDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -23,6 +24,8 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     private final CommonMasterRepository commonMasterRepository;
     private final DepartmentRepository departmentRepository;
     private final InventoryStockRepository inventoryStockRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     private String generateIssueNumber() {
         String ts = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
@@ -33,6 +36,8 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Transactional
     public StandardResponse<StoreIssueDTO> createStoreIssue(StoreIssueDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+
             InventoryStock item = inventoryStockRepository.findByIdAndIsDeletedFalse(dto.getItemId())
                     .orElseThrow(() -> new RuntimeException("Item not found"));
 
@@ -44,6 +49,11 @@ public class StoreIssueServiceImpl implements StoreIssueService {
                     .issueNote(dto.getIssueNote())
                     .issueDate(dto.getIssueDate())
                     .build();
+
+            if (hotelId != null) {
+                issue.setHotel(hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found")));
+            }
 
             if (dto.getDepartmentId() != null) {
                 issue.setDepartment(departmentRepository.findById(dto.getDepartmentId())
@@ -77,8 +87,15 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Transactional
     public StandardResponse<StoreIssueDTO> updateStoreIssue(Long id, StoreIssueDTO dto) {
         try {
-            StoreIssue issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            StoreIssue issue;
+            if (hotelId != null) {
+                issue = storeIssueRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            } else {
+                issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            }
 
             issue.setIssuedTo(dto.getIssuedTo());
             issue.setQuantity(dto.getQuantity());
@@ -112,8 +129,15 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Override
     public StandardResponse<StoreIssueDTO> getStoreIssueById(Long id) {
         try {
-            StoreIssue issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            StoreIssue issue;
+            if (hotelId != null) {
+                issue = storeIssueRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            } else {
+                issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            }
             return StandardResponse.success(convertToDTO(issue), "Store issue fetched");
         } catch (Exception e) {
             return StandardResponse.error("Not found", "NOT_FOUND", e.getMessage());
@@ -123,9 +147,17 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Override
     public StandardResponse<List<StoreIssueDTO>> getAllStoreIssues() {
         try {
-            List<StoreIssueDTO> list = storeIssueRepository.findByIsDeletedFalse().stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<StoreIssueDTO> list;
+            if (hotelId != null) {
+                list = storeIssueRepository.findByHotel_IdAndIsDeletedFalse(hotelId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                list = storeIssueRepository.findByIsDeletedFalse().stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(list, "Store issues fetched");
         } catch (Exception e) {
             return StandardResponse.error("Failed to fetch", "INTERNAL_SERVER_ERROR", e.getMessage());
@@ -136,8 +168,15 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Transactional
     public StandardResponse<Void> deleteStoreIssue(Long id) {
         try {
-            StoreIssue issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            StoreIssue issue;
+            if (hotelId != null) {
+                issue = storeIssueRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            } else {
+                issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            }
             issue.setIsDeleted(true);
             storeIssueRepository.save(issue);
             return StandardResponse.success("Store issue deleted");
@@ -150,8 +189,15 @@ public class StoreIssueServiceImpl implements StoreIssueService {
     @Transactional
     public StandardResponse<StoreIssueDTO> updateStatus(Long id, Long statusId) {
         try {
-            StoreIssue issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            StoreIssue issue;
+            if (hotelId != null) {
+                issue = storeIssueRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            } else {
+                issue = storeIssueRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Store issue not found"));
+            }
             CommonMaster status = commonMasterRepository.findById(statusId)
                     .orElseThrow(() -> new RuntimeException("Status not found"));
             issue.setStatus(status);
@@ -167,6 +213,8 @@ public class StoreIssueServiceImpl implements StoreIssueService {
         return StoreIssueDTO.builder()
                 .id(i.getId())
                 .issueNumber(i.getIssueNumber())
+                .hotelId(i.getHotel() != null ? i.getHotel().getId() : null)
+                .hotelName(i.getHotel() != null ? i.getHotel().getName() : null)
                 .departmentId(i.getDepartment() != null ? i.getDepartment().getId() : null)
                 .departmentName(i.getDepartment() != null ? i.getDepartment().getName() : null)
                 .issuedTo(i.getIssuedTo())

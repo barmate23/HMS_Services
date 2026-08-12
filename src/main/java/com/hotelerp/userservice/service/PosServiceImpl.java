@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.KitchenOrderCardDTO;
 import com.hotelerp.userservice.dto.KitchenOrderItemDTO;
 import com.hotelerp.userservice.dto.PosOrderDTO;
@@ -36,6 +37,8 @@ public class PosServiceImpl implements PosService {
     private final FolioService folioService;
     private final KitchenSseService kitchenSseService;
     private final PosOrderItemRepository posOrderItemRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     // ── KOT_STATUS priority order (least → highest) ──────────────────────
     private static final List<String> KOT_STATUS_PRIORITY = List.of("KOT_SEND", "IN_PROGRESS", "KOT_READY");
@@ -98,7 +101,15 @@ public class PosServiceImpl implements PosService {
             CommonMaster defaultKotStatus = commonMasterRepository.findByCategoryAndCode("KOT_STATUS", "NOT_SENT")
                     .orElseThrow(() -> new ResourceNotFoundException("KOT status 'NOT_SENT' not found in master data"));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            }
+
             PosOrder order = PosOrder.builder()
+                    .hotel(hotel)
                     .outlet(outlet)
                     .orderType(orderType)
                     .diningTable(table)
@@ -120,6 +131,7 @@ public class PosServiceImpl implements PosService {
                     BigDecimal price = itemDto.getPrice() != null ? itemDto.getPrice() : menuItem.getPrice();
                     BigDecimal subtotal = price.multiply(new BigDecimal(itemDto.getQuantity()));
                     PosOrderItem orderItem = PosOrderItem.builder()
+                            .hotel(hotel)
                             .order(order)
                             .menuItem(menuItem)
                             .quantity(itemDto.getQuantity())
@@ -341,12 +353,17 @@ public class PosServiceImpl implements PosService {
     @Override
     public StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<String> activeCodes = List.of("OPEN", "KOT_SENT");
             List<PosOrder> orders;
-            if (tableId != null) {
-                orders = posOrderRepository.findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(tableId, activeCodes);
+            if (hotelId != null) {
+                orders = (tableId != null)
+                        ? posOrderRepository.findByHotel_IdAndDiningTableIdAndStatusCodeInAndIsDeletedFalse(hotelId, tableId, activeCodes)
+                        : posOrderRepository.findByHotel_IdAndStatusCodeInAndIsDeletedFalse(hotelId, activeCodes);
             } else {
-                orders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes);
+                orders = (tableId != null)
+                        ? posOrderRepository.findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(tableId, activeCodes)
+                        : posOrderRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes);
             }
             List<PosOrderDTO> dtos = orders.stream()
                     .map(this::convertToDTO)
@@ -361,11 +378,16 @@ public class PosServiceImpl implements PosService {
     @Override
     public StandardResponse<List<PosOrderDTO>> getOrdersByOutlet(Long outletId) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<PosOrder> orders;
-            if (outletId != null) {
-                orders = posOrderRepository.findByOutletId(outletId);
+            if (hotelId != null) {
+                orders = (outletId != null)
+                        ? posOrderRepository.findByHotel_IdAndOutletIdAndIsDeletedFalse(hotelId, outletId)
+                        : posOrderRepository.findByHotel_IdAndIsDeletedFalse(hotelId);
             } else {
-                orders = posOrderRepository.findAll();
+                orders = (outletId != null)
+                        ? posOrderRepository.findByOutletId(outletId)
+                        : posOrderRepository.findAll().stream().filter(o -> !Boolean.TRUE.equals(o.getIsDeleted())).collect(Collectors.toList());
             }
             List<PosOrderDTO> dtos = orders.stream().map(this::convertToDTO).collect(Collectors.toList());
             return StandardResponse.success(dtos, "Orders fetched successfully");
@@ -378,11 +400,16 @@ public class PosServiceImpl implements PosService {
     @Override
     public StandardResponse<List<PosOrderDTO>> getOpenOrders(Long outletId) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<PosOrder> orders;
-            if (outletId != null) {
-                orders = posOrderRepository.findByOutletIdAndStatusCodeInAndIsDeletedFalse(outletId, List.of("OPEN"));
+            if (hotelId != null) {
+                orders = (outletId != null)
+                        ? posOrderRepository.findByHotel_IdAndOutletIdAndStatusCodeInAndIsDeletedFalse(hotelId, outletId, List.of("OPEN"))
+                        : posOrderRepository.findByHotel_IdAndStatusCodeInAndIsDeletedFalse(hotelId, List.of("OPEN"));
             } else {
-                orders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(List.of("OPEN"));
+                orders = (outletId != null)
+                        ? posOrderRepository.findByOutletIdAndStatusCodeInAndIsDeletedFalse(outletId, List.of("OPEN"))
+                        : posOrderRepository.findByStatusCodeInAndIsDeletedFalse(List.of("OPEN"));
             }
             List<PosOrderDTO> dtos = orders.stream().map(this::convertToDTO).collect(Collectors.toList());
             return StandardResponse.success(dtos, "Open POS orders fetched successfully");
@@ -395,6 +422,7 @@ public class PosServiceImpl implements PosService {
     @Override
     public StandardResponse<List<KitchenOrderCardDTO>> getKitchenOrders(Long outletId, Boolean isClosed) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<String> kotStatuses;
             if (Boolean.TRUE.equals(isClosed)) {
                 kotStatuses = List.of("KOT_READY", "COMPLETED");
@@ -402,10 +430,14 @@ public class PosServiceImpl implements PosService {
                 kotStatuses = List.of("KOT_SEND", "IN_PROGRESS", "IN PROGRESS", "KOT_READY");
             }
             List<PosOrder> orders;
-            if (outletId != null) {
-                orders = posOrderRepository.findByOutletIdAndKotStatusIn(outletId, kotStatuses);
+            if (hotelId != null) {
+                orders = (outletId != null)
+                        ? posOrderRepository.findByHotel_IdAndOutletIdAndKotStatusIn(hotelId, outletId, kotStatuses)
+                        : posOrderRepository.findByHotel_IdAndKotStatusIn(hotelId, kotStatuses);
             } else {
-                orders = posOrderRepository.findByKotStatusIn(kotStatuses);
+                orders = (outletId != null)
+                        ? posOrderRepository.findByOutletIdAndKotStatusIn(outletId, kotStatuses)
+                        : posOrderRepository.findByKotStatusIn(kotStatuses);
             }
 
             if (!Boolean.TRUE.equals(isClosed)) {
@@ -435,6 +467,8 @@ public class PosServiceImpl implements PosService {
     @Transactional
     public StandardResponse<Void> bookTable(TableReservationDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+
             DiningTable table = diningTableRepository.findById(dto.getTableId())
                     .orElseThrow(() -> new ResourceNotFoundException("Table not found with ID: " + dto.getTableId()));
 
@@ -461,6 +495,11 @@ public class PosServiceImpl implements PosService {
                     .status(status)
                     .build();
 
+            if (hotelId != null) {
+                reservation.setHotel(hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found")));
+            }
+
             tableReservationRepository.save(reservation);
             return StandardResponse.success("Table reserved successfully");
         } catch (ResourceNotFoundException e) {
@@ -474,9 +513,17 @@ public class PosServiceImpl implements PosService {
     @Override
     public StandardResponse<List<TableReservationDTO>> getReservationsByTable(Long tableId) {
         try {
-            List<TableReservationDTO> dtos = tableReservationRepository.findByDiningTableId(tableId).stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<TableReservationDTO> dtos;
+            if (hotelId != null) {
+                dtos = tableReservationRepository.findByHotel_IdAndDiningTableId(hotelId, tableId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                dtos = tableReservationRepository.findByDiningTableId(tableId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(dtos, "Table reservations fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching reservations: ", e);
@@ -534,6 +581,8 @@ public class PosServiceImpl implements PosService {
         List<PosOrderItemDTO> itemDTOs = order.getItems().stream()
                 .map(i -> PosOrderItemDTO.builder()
                         .id(i.getId())
+                        .hotelId(i.getHotel() != null ? i.getHotel().getId() : (order.getHotel() != null ? order.getHotel().getId() : null))
+                        .hotelName(i.getHotel() != null ? i.getHotel().getName() : (order.getHotel() != null ? order.getHotel().getName() : null))
                         .menuItemId(i.getMenuItem().getId())
                         .itemName(i.getMenuItem().getItemName())
                         .quantity(i.getQuantity())
@@ -548,6 +597,8 @@ public class PosServiceImpl implements PosService {
 
         return PosOrderDTO.builder()
                 .id(order.getId())
+                .hotelId(order.getHotel() != null ? order.getHotel().getId() : null)
+                .hotelName(order.getHotel() != null ? order.getHotel().getName() : null)
                 .outletId(order.getOutlet().getId())
                 .outletName(order.getOutlet().getName())
                 .orderTypeId(order.getOrderType() != null ? order.getOrderType().getId() : null)
@@ -575,6 +626,8 @@ public class PosServiceImpl implements PosService {
     private TableReservationDTO convertToDTO(TableReservation r) {
         return TableReservationDTO.builder()
                 .id(r.getId())
+                .hotelId(r.getHotel() != null ? r.getHotel().getId() : null)
+                .hotelName(r.getHotel() != null ? r.getHotel().getName() : null)
                 .tableId(r.getDiningTable().getId())
                 .tableNumber(r.getDiningTable().getTableNumber())
                 .guestName(r.getGuestName())

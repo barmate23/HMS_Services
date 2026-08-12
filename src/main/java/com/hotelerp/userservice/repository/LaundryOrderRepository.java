@@ -16,4 +16,8 @@ public interface LaundryOrderRepository extends JpaRepository<LaundryOrder, Long
     Long findMaxOrderNumber();
 
     List<LaundryOrder> findByStatusNotAndIsDeletedFalse(String status);
+
+    List<LaundryOrder> findByHotel_IdAndStatusNotAndIsDeletedFalse(Long hotelId, String status);
+    List<LaundryOrder> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+    List<LaundryOrder> findByIsDeletedFalse();
 }

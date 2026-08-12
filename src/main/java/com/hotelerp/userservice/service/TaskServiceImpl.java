@@ -1,11 +1,13 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.TaskDTO;
 import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.Task;
 import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.TaskRepository;
 import com.hotelerp.userservice.repository.UserRepository;
@@ -28,11 +30,15 @@ public class TaskServiceImpl implements TaskService {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
     public StandardResponse<Void> createTask(TaskDTO taskDTO) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : taskDTO.getHotelId();
+
             Long roomId = taskDTO.getRoomId();
             if (roomId == null)
                 throw new IllegalArgumentException("Room ID must not be null");
@@ -71,6 +77,11 @@ public class TaskServiceImpl implements TaskService {
                     .instructions(taskDTO.getInstructions())
                     .status(status)
                     .build();
+
+            if (hotelId != null) {
+                task.setHotel(hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found")));
+            }
 
             taskRepository.save(task);
             return StandardResponse.success("Housekeeping task created successfully");
@@ -148,10 +159,18 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public StandardResponse<List<TaskDTO>> getAllTasks() {
         try {
-            List<TaskDTO> dtos = taskRepository.findAll().stream()
-                    .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<TaskDTO> dtos;
+            if (hotelId != null) {
+                dtos = taskRepository.findByHotel_IdAndIsDeletedFalse(hotelId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                dtos = taskRepository.findAll().stream()
+                        .filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()))
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(dtos, "All tasks fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching all tasks: ", e);
@@ -162,10 +181,18 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public StandardResponse<List<TaskDTO>> getActiveTasks() {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<String> activeCodes = List.of("PENDING", "IN_PROGRESS");
-            List<TaskDTO> dtos = taskRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            List<TaskDTO> dtos;
+            if (hotelId != null) {
+                dtos = taskRepository.findByHotel_IdAndStatus_CodeInAndIsDeletedFalse(hotelId, activeCodes).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                dtos = taskRepository.findByStatusCodeInAndIsDeletedFalse(activeCodes).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(dtos, "Active tasks fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching active tasks: ", e);
@@ -215,6 +242,8 @@ public class TaskServiceImpl implements TaskService {
     private TaskDTO convertToDTO(Task task) {
         return TaskDTO.builder()
                 .id(task.getId())
+                .hotelId(task.getHotel() != null ? task.getHotel().getId() : null)
+                .hotelName(task.getHotel() != null ? task.getHotel().getName() : null)
                 .roomId(task.getRoom().getId())
                 .roomNumber(task.getRoom().getRoomNumber())
                 .floorNumber(task.getRoom().getFloor().getFloorNumber())

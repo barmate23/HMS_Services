@@ -16,6 +16,9 @@ public class SupplierDTO {
     private Long id;
     private String supplierName;
 
+    private Long hotelId;
+    private String hotelName;
+
     private Long categoryId;
     private String categoryName;
 

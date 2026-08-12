@@ -1,10 +1,13 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.InventoryStockDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.InventoryStock;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.InventoryStockRepository;
 import com.hotelerp.userservice.repository.ItemConfigRepository;
 import com.hotelerp.userservice.entity.ItemConfig;
@@ -25,6 +28,8 @@ public class InventoryStockServiceImpl implements InventoryStockService {
     private final InventoryStockRepository inventoryStockRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final ItemConfigRepository itemConfigRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -37,7 +42,15 @@ public class InventoryStockServiceImpl implements InventoryStockService {
             ItemConfig itemConfig = itemConfigRepository.findById(dto.getItemConfigId())
                     .orElseThrow(() -> new RuntimeException("Item Config not found"));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             InventoryStock stock = InventoryStock.builder()
+                    .hotel(hotel)
                     .itemConfig(itemConfig)
                     .onHand(dto.getOnHand() != null ? dto.getOnHand() : BigDecimal.ZERO)
                     .build();
@@ -87,6 +100,13 @@ public class InventoryStockServiceImpl implements InventoryStockService {
                         .orElseThrow(() -> new RuntimeException("Status not found")));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && stock.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                stock.setHotel(hotel);
+            }
+
             stock = inventoryStockRepository.save(stock);
             return StandardResponse.success(convertToDTO(stock), "Stock item updated successfully");
         } catch (Exception e) {
@@ -109,7 +129,11 @@ public class InventoryStockServiceImpl implements InventoryStockService {
     @Override
     public StandardResponse<List<InventoryStockDTO>> getAllStockItems() {
         try {
-            List<InventoryStockDTO> list = inventoryStockRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<InventoryStock> stocks = (hotelId != null) 
+                    ? inventoryStockRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : inventoryStockRepository.findByIsDeletedFalse();
+            List<InventoryStockDTO> list = stocks.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Stock items fetched successfully");
@@ -161,6 +185,8 @@ public class InventoryStockServiceImpl implements InventoryStockService {
 
         return InventoryStockDTO.builder()
                 .id(stock.getId())
+                .hotelId(stock.getHotel() != null ? stock.getHotel().getId() : null)
+                .hotelName(stock.getHotel() != null ? stock.getHotel().getName() : null)
                 .itemConfigId(item != null ? item.getId() : null)
                 .itemCode(item != null ? item.getItemCode() : null)
                 .itemName(item != null ? item.getItemName() : null)

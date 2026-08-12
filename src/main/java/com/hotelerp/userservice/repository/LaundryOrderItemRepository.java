@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface LaundryOrderItemRepository extends JpaRepository<LaundryOrderItem, Long> {
     List<LaundryOrderItem> findByLaundryOrderId(Long laundryOrderId);
+    List<LaundryOrderItem> findByHotel_Id(Long hotelId);
     void deleteByLaundryOrderId(Long laundryOrderId);
 }

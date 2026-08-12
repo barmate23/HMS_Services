@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class InventoryStockDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long itemConfigId;
     private String itemCode;
     private String itemName;

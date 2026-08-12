@@ -1,12 +1,15 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.LostAndFoundDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.LostAndFoundItem;
 import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.LostAndFoundRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.UserRepository;
@@ -28,6 +31,8 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final CommonMasterRepository masterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -45,7 +50,17 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
             CommonMaster category = masterRepository.findById(dto.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category master data not found for ID: " + dto.getCategoryId()));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            } else if (room.getHotel() != null) {
+                hotel = room.getHotel();
+            }
+
             LostAndFoundItem item = LostAndFoundItem.builder()
+                    .hotel(hotel)
                     .room(room)
                     .itemDescription(dto.getItemDescription())
                     .category(category)
@@ -101,6 +116,13 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
                 item.setStatus(dto.getStatus());
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && item.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                item.setHotel(hotel);
+            }
+
             LostAndFoundItem updatedItem = lostAndFoundRepository.save(item);
             return StandardResponse.success(convertToDTO(updatedItem), "Item updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -128,8 +150,11 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
     @Override
     public StandardResponse<List<LostAndFoundDTO>> getAllItems() {
         try {
-            List<LostAndFoundDTO> dtos = lostAndFoundRepository.findAll().stream()
-                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<LostAndFoundItem> items = (hotelId != null) 
+                    ? lostAndFoundRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : lostAndFoundRepository.findByIsDeletedFalse();
+            List<LostAndFoundDTO> dtos = items.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All items fetched successfully");
@@ -182,13 +207,15 @@ public class LostAndFoundServiceImpl implements LostAndFoundService {
     private LostAndFoundDTO convertToDTO(LostAndFoundItem item) {
         return LostAndFoundDTO.builder()
                 .id(item.getId())
-                .roomId(item.getRoom().getId())
-                .roomNumber(item.getRoom().getRoomNumber())
+                .hotelId(item.getHotel() != null ? item.getHotel().getId() : null)
+                .hotelName(item.getHotel() != null ? item.getHotel().getName() : null)
+                .roomId(item.getRoom() != null ? item.getRoom().getId() : null)
+                .roomNumber(item.getRoom() != null ? item.getRoom().getRoomNumber() : null)
                 .itemDescription(item.getItemDescription())
-                .categoryId(item.getCategory().getId())
-                .categoryValue(item.getCategory().getValue())
-                .foundById(item.getFoundBy().getId())
-                .foundByName(item.getFoundBy().getFullName())
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryValue(item.getCategory() != null ? item.getCategory().getValue() : null)
+                .foundById(item.getFoundBy() != null ? item.getFoundBy().getId() : null)
+                .foundByName(item.getFoundBy() != null ? item.getFoundBy().getFullName() : null)
                 .storageLocation(item.getStorageLocation())
                 .foundDate(item.getFoundDate())
                 .guestName(item.getGuestName())

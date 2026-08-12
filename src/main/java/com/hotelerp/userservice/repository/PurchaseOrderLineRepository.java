@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface PurchaseOrderLineRepository extends JpaRepository<PurchaseOrderLine, Long> {
     List<PurchaseOrderLine> findByPurchaseOrderId(Long purchaseOrderId);
+    List<PurchaseOrderLine> findByHotel_Id(Long hotelId);
 }

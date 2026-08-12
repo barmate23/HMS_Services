@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.GrnDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -28,6 +29,8 @@ public class GrnServiceImpl implements GrnService {
     private final VendorBillService vendorBillService;
     private final InventoryStockRepository inventoryStockRepository;
     private final KitchenIngredientRepository kitchenIngredientRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     private String generateGrnNumber() {
         long count = grnRepository.count();
@@ -58,7 +61,18 @@ public class GrnServiceImpl implements GrnService {
                 }
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId == null && po.getHotel() != null) {
+                hotelId = po.getHotel().getId();
+            }
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             Grn grn = Grn.builder()
+                    .hotel(hotel)
                     .grnNumber(generateGrnNumber())
                     .purchaseOrder(po)
                     .receivedBy(dto.getReceivedBy())
@@ -83,7 +97,9 @@ public class GrnServiceImpl implements GrnService {
                                     kitchenIngredientRepository.save(ingredient);
                                 });
                             } else {
-                                List<InventoryStock> stocks = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
+                                List<InventoryStock> stocks = (hotelId != null) 
+                                        ? inventoryStockRepository.findByHotel_IdAndItemConfigIdAndIsDeletedFalse(hotelId, line.getItemId())
+                                        : inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
                                 for (InventoryStock stock : stocks) {
                                     BigDecimal current = stock.getOnHand() != null ? stock.getOnHand() : BigDecimal.ZERO;
                                     stock.setOnHand(current.add(line.getReceivedQuantity()));
@@ -121,6 +137,13 @@ public class GrnServiceImpl implements GrnService {
                 grn.setPurchaseOrder(po);
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && grn.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                grn.setHotel(hotel);
+            }
+
             grn = grnRepository.save(grn);
             return StandardResponse.success(convertToDTO(grn), "GRN updated successfully");
         } catch (Exception e) {
@@ -143,7 +166,11 @@ public class GrnServiceImpl implements GrnService {
     @Override
     public StandardResponse<List<GrnDTO>> getAllGrns() {
         try {
-            List<GrnDTO> list = grnRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<Grn> grns = (hotelId != null) 
+                    ? grnRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : grnRepository.findByIsDeletedFalse();
+            List<GrnDTO> list = grns.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "GRNs fetched successfully");
@@ -169,6 +196,8 @@ public class GrnServiceImpl implements GrnService {
     private GrnDTO convertToDTO(Grn grn) {
         return GrnDTO.builder()
                 .id(grn.getId())
+                .hotelId(grn.getHotel() != null ? grn.getHotel().getId() : (grn.getPurchaseOrder() != null && grn.getPurchaseOrder().getHotel() != null ? grn.getPurchaseOrder().getHotel().getId() : null))
+                .hotelName(grn.getHotel() != null ? grn.getHotel().getName() : (grn.getPurchaseOrder() != null && grn.getPurchaseOrder().getHotel() != null ? grn.getPurchaseOrder().getHotel().getName() : null))
                 .grnNumber(grn.getGrnNumber())
                 .purchaseOrderId(grn.getPurchaseOrder().getId())
                 .poNumber(grn.getPurchaseOrder().getPoNumber())

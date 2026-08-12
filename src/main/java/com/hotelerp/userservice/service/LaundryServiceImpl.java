@@ -1,16 +1,19 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.LaundryOrderDTO;
 import com.hotelerp.userservice.dto.LaundryOrderItemDTO;
 import com.hotelerp.userservice.dto.LaundryPriceMasterDTO;
 import com.hotelerp.userservice.dto.LaundryServiceCatalogDTO;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.LaundryOrder;
 import com.hotelerp.userservice.entity.LaundryOrderItem;
 import com.hotelerp.userservice.entity.LaundryPriceMaster;
 import com.hotelerp.userservice.entity.LaundryServiceCatalog;
 import com.hotelerp.userservice.entity.Room;
 import com.hotelerp.userservice.entity.GstRule;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.LaundryOrderItemRepository;
 import com.hotelerp.userservice.repository.LaundryOrderRepository;
 import com.hotelerp.userservice.repository.LaundryPriceMasterRepository;
@@ -43,13 +46,23 @@ public class LaundryServiceImpl implements LaundryService {
     private final FolioService folioService;
     private final BookingRepository bookingRepository;
     private final GstRuleRepository gstRuleRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     // Price Master APIs
 
     @Override
     public StandardResponse<LaundryPriceMasterDTO> createPriceMaster(LaundryPriceMasterDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             LaundryPriceMaster entity = LaundryPriceMaster.builder()
+                    .hotel(hotel)
                     .category(dto.getCategory())
                     .itemName(dto.getItemName())
                     .washFoldPrice(dto.getWashFoldPrice())
@@ -80,6 +93,14 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setExpressSurchargePercentage(dto.getExpressSurchargePercentage());
             entity.setServicePrices(normalizeServicePrices(dto.getServicePrices()));
             entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && entity.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                entity.setHotel(hotel);
+            }
+
             entity = priceMasterRepository.save(entity);
             return StandardResponse.success(convertToDTO(entity), "Price Master item updated successfully");
         } catch (Exception e) {
@@ -90,7 +111,11 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<List<LaundryPriceMasterDTO>> getAllPriceMasters() {
-        List<LaundryPriceMasterDTO> dtos = priceMasterRepository.findAll().stream()
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        List<LaundryPriceMaster> list = (hotelId != null) 
+                ? priceMasterRepository.findByHotel_Id(hotelId)
+                : priceMasterRepository.findAll();
+        List<LaundryPriceMasterDTO> dtos = list.stream()
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -125,7 +150,15 @@ public class LaundryServiceImpl implements LaundryService {
                 return StandardResponse.error("Service already exists", "DUPLICATE_SERVICE", "serviceName", dto.getServiceName());
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             LaundryServiceCatalog entity = LaundryServiceCatalog.builder()
+                    .hotel(hotel)
                     .serviceName(dto.getServiceName().trim())
                     .pricingBasis(defaultString(dto.getPricingBasis(), "washPress"))
                     .description(dto.getDescription())
@@ -157,6 +190,14 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setDescription(dto.getDescription());
             entity.setDisplayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : entity.getDisplayOrder());
             entity.setStatus(defaultString(dto.getStatus(), entity.getStatus()));
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && entity.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                entity.setHotel(hotel);
+            }
+
             entity = serviceCatalogRepository.save(entity);
             return StandardResponse.success(convertToDTO(entity), "Laundry service updated successfully");
         } catch (Exception e) {
@@ -168,7 +209,11 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<List<LaundryServiceCatalogDTO>> getAllServiceCatalog() {
         seedDefaultServiceCatalogIfEmpty();
-        List<LaundryServiceCatalogDTO> dtos = serviceCatalogRepository.findAllByOrderByDisplayOrderAscServiceNameAsc().stream()
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        List<LaundryServiceCatalog> list = (hotelId != null)
+                ? serviceCatalogRepository.findByHotel_IdOrderByDisplayOrderAscServiceNameAsc(hotelId)
+                : serviceCatalogRepository.findAllByOrderByDisplayOrderAscServiceNameAsc();
+        List<LaundryServiceCatalogDTO> dtos = list.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Laundry service catalog fetched successfully");
@@ -177,7 +222,11 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<List<LaundryServiceCatalogDTO>> getActiveServiceCatalog() {
         seedDefaultServiceCatalogIfEmpty();
-        List<LaundryServiceCatalogDTO> dtos = serviceCatalogRepository.findByStatusOrderByDisplayOrderAscServiceNameAsc("ACTIVE").stream()
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        List<LaundryServiceCatalog> list = (hotelId != null)
+                ? serviceCatalogRepository.findByHotel_IdAndStatusOrderByDisplayOrderAscServiceNameAsc(hotelId, "ACTIVE")
+                : serviceCatalogRepository.findByStatusOrderByDisplayOrderAscServiceNameAsc("ACTIVE");
+        List<LaundryServiceCatalogDTO> dtos = list.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Active laundry services fetched successfully");
@@ -221,7 +270,15 @@ public class LaundryServiceImpl implements LaundryService {
             List<String> selectedServices = selectedServices(dto);
             String serviceType = joinServices(selectedServices);
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             LaundryOrder order = LaundryOrder.builder()
+                    .hotel(hotel)
                     .orderId(orderId)
                     .room(room)
                     .guestName(dto.getGuestName())
@@ -256,6 +313,7 @@ public class LaundryServiceImpl implements LaundryService {
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
+                        .hotel(hotel)
                         .laundryOrder(order)
                         .priceMaster(priceMaster)
                         .quantity(itemDto.getQuantity())
@@ -304,6 +362,13 @@ public class LaundryServiceImpl implements LaundryService {
             order.setGuestName(dto.getGuestName());
             if (dto.getStatus() != null) order.setStatus(dto.getStatus());
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && order.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                order.setHotel(hotel);
+            }
+
             double totalAmount = 0;
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
@@ -318,6 +383,8 @@ public class LaundryServiceImpl implements LaundryService {
             order.setGstPercent(gstPercent);
             order = orderRepository.save(order);
 
+            Hotel orderHotel = order.getHotel();
+
             // Clear old items and save new ones using repository
             orderItemRepository.deleteByLaundryOrderId(order.getId());
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
@@ -328,6 +395,7 @@ public class LaundryServiceImpl implements LaundryService {
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
+                        .hotel(orderHotel)
                         .laundryOrder(order)
                         .priceMaster(priceMaster)
                         .quantity(itemDto.getQuantity())
@@ -354,8 +422,11 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<List<LaundryOrderDTO>> getAllLaundryOrders() {
-        List<LaundryOrderDTO> dtos = orderRepository.findAll().stream()
-                .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        List<LaundryOrder> list = (hotelId != null)
+                ? orderRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                : orderRepository.findByIsDeletedFalse();
+        List<LaundryOrderDTO> dtos = list.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Orders fetched successfully");
@@ -363,7 +434,11 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<List<LaundryOrderDTO>> getNonDeliveredOrders() {
-        List<LaundryOrderDTO> dtos = orderRepository.findByStatusNotAndIsDeletedFalse("DELIVERED").stream()
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        List<LaundryOrder> list = (hotelId != null)
+                ? orderRepository.findByHotel_IdAndStatusNotAndIsDeletedFalse(hotelId, "DELIVERED")
+                : orderRepository.findByStatusNotAndIsDeletedFalse("DELIVERED");
+        List<LaundryOrderDTO> dtos = list.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return StandardResponse.success(dtos, "Non-delivered orders fetched successfully");
@@ -396,6 +471,8 @@ public class LaundryServiceImpl implements LaundryService {
     private LaundryPriceMasterDTO convertToDTO(LaundryPriceMaster entity) {
         return LaundryPriceMasterDTO.builder()
                 .id(entity.getId())
+                .hotelId(entity.getHotel() != null ? entity.getHotel().getId() : null)
+                .hotelName(entity.getHotel() != null ? entity.getHotel().getName() : null)
                 .category(entity.getCategory())
                 .itemName(entity.getItemName())
                 .washFoldPrice(entity.getWashFoldPrice())
@@ -412,6 +489,8 @@ public class LaundryServiceImpl implements LaundryService {
     private LaundryServiceCatalogDTO convertToDTO(LaundryServiceCatalog entity) {
         return LaundryServiceCatalogDTO.builder()
                 .id(entity.getId())
+                .hotelId(entity.getHotel() != null ? entity.getHotel().getId() : null)
+                .hotelName(entity.getHotel() != null ? entity.getHotel().getName() : null)
                 .serviceName(entity.getServiceName())
                 .pricingBasis(entity.getPricingBasis())
                 .description(entity.getDescription())
@@ -426,6 +505,8 @@ public class LaundryServiceImpl implements LaundryService {
         List<LaundryOrderItem> items = orderItemRepository.findByLaundryOrderId(entity.getId());
         return LaundryOrderDTO.builder()
                 .id(entity.getId())
+                .hotelId(entity.getHotel() != null ? entity.getHotel().getId() : null)
+                .hotelName(entity.getHotel() != null ? entity.getHotel().getName() : null)
                 .orderId(entity.getOrderId())
                 .roomId(entity.getRoom().getId())
                 .roomNumber(entity.getRoom().getRoomNumber())
@@ -449,6 +530,8 @@ public class LaundryServiceImpl implements LaundryService {
     private LaundryOrderItemDTO convertToDTO(LaundryOrderItem item) {
         return LaundryOrderItemDTO.builder()
                 .id(item.getId())
+                .hotelId(item.getHotel() != null ? item.getHotel().getId() : null)
+                .hotelName(item.getHotel() != null ? item.getHotel().getName() : null)
                 .priceMasterId(item.getPriceMaster().getId())
                 .itemName(item.getPriceMaster().getItemName())
                 .category(item.getPriceMaster().getCategory())

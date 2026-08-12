@@ -18,6 +18,10 @@ public class Grn {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "grn_number", nullable = false, unique = true)
     private String grnNumber;
 

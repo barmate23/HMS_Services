@@ -18,6 +18,10 @@ public class InventoryStock {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_config_id", nullable = false)
     private ItemConfig itemConfig;
 

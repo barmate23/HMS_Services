@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 public class VendorBillLineDTO {
     private Long id;
     private Long vendorBillId;
+    private Long hotelId;
+    private String hotelName;
     private Long itemId;
     private String itemCode;
     private String itemName;

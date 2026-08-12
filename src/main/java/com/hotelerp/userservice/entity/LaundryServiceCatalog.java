@@ -20,6 +20,10 @@ public class LaundryServiceCatalog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "service_name", nullable = false, unique = true, length = 100)
     private String serviceName;
 

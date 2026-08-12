@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 public class RecipeIngredientResponseDTO {
 
     private Long id;
+    private Long hotelId;
+    private String hotelName;
 
     // Ingredient reference
     private Long ingredientId;

@@ -1,11 +1,14 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.MenuItemDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.MenuItem;
 import com.hotelerp.userservice.entity.Outlet;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.MenuItemRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -25,6 +28,8 @@ public class MenuItemServiceImpl implements MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final OutletRepository outletRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -48,7 +53,17 @@ public class MenuItemServiceImpl implements MenuItemService {
                         .orElseThrow(() -> new ResourceNotFoundException("Subcategory not found with ID: " + dto.getSubcategoryId()));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            } else if (outlet.getHotel() != null) {
+                hotel = outlet.getHotel();
+            }
+
             MenuItem item = MenuItem.builder()
+                    .hotel(hotel)
                     .outlet(outlet)
                     .itemName(dto.getItemName())
                     .category(category)
@@ -115,6 +130,13 @@ public class MenuItemServiceImpl implements MenuItemService {
                 item.setIsFeatured(dto.getIsFeatured());
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && item.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                item.setHotel(hotel);
+            }
+
             MenuItem updatedItem = menuItemRepository.save(item);
             return StandardResponse.success(convertToDTO(updatedItem), "Menu item updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -142,8 +164,11 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public StandardResponse<List<MenuItemDTO>> getMenuItemsByOutlet(Long outletId) {
         try {
-            List<MenuItemDTO> dtos = menuItemRepository.findByOutletId(outletId).stream()
-                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<MenuItem> items = (hotelId != null) 
+                    ? menuItemRepository.findByHotel_IdAndOutletIdAndIsDeletedFalse(hotelId, outletId)
+                    : menuItemRepository.findByOutletId(outletId).stream().filter(i -> !Boolean.TRUE.equals(i.getIsDeleted())).collect(Collectors.toList());
+            List<MenuItemDTO> dtos = items.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Menu items fetched successfully");
@@ -156,8 +181,11 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public StandardResponse<List<MenuItemDTO>> getAllMenuItems() {
         try {
-            List<MenuItemDTO> dtos = menuItemRepository.findAll().stream()
-                    .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<MenuItem> items = (hotelId != null)
+                    ? menuItemRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : menuItemRepository.findByIsDeletedFalse();
+            List<MenuItemDTO> dtos = items.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Menu items fetched successfully");
@@ -170,15 +198,28 @@ public class MenuItemServiceImpl implements MenuItemService {
     @Override
     public StandardResponse<List<MenuItemDTO>> getMenuItemsByFilter(Long categoryId, Long subcategoryId) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             List<MenuItem> items;
-            if (categoryId != null && subcategoryId != null) {
-                items = menuItemRepository.findByCategoryIdAndSubcategoryIdAndIsDeletedFalse(categoryId, subcategoryId);
-            } else if (categoryId != null) {
-                items = menuItemRepository.findByCategoryIdAndIsDeletedFalse(categoryId);
-            } else if (subcategoryId != null) {
-                items = menuItemRepository.findBySubcategoryIdAndIsDeletedFalse(subcategoryId);
+            if (hotelId != null) {
+                if (categoryId != null && subcategoryId != null) {
+                    items = menuItemRepository.findByHotel_IdAndCategoryIdAndSubcategoryIdAndIsDeletedFalse(hotelId, categoryId, subcategoryId);
+                } else if (categoryId != null) {
+                    items = menuItemRepository.findByHotel_IdAndCategoryIdAndIsDeletedFalse(hotelId, categoryId);
+                } else if (subcategoryId != null) {
+                    items = menuItemRepository.findByHotel_IdAndSubcategoryIdAndIsDeletedFalse(hotelId, subcategoryId);
+                } else {
+                    items = menuItemRepository.findByHotel_IdAndIsDeletedFalse(hotelId);
+                }
             } else {
-                items = menuItemRepository.findByIsDeletedFalse();
+                if (categoryId != null && subcategoryId != null) {
+                    items = menuItemRepository.findByCategoryIdAndSubcategoryIdAndIsDeletedFalse(categoryId, subcategoryId);
+                } else if (categoryId != null) {
+                    items = menuItemRepository.findByCategoryIdAndIsDeletedFalse(categoryId);
+                } else if (subcategoryId != null) {
+                    items = menuItemRepository.findBySubcategoryIdAndIsDeletedFalse(subcategoryId);
+                } else {
+                    items = menuItemRepository.findByIsDeletedFalse();
+                }
             }
             List<MenuItemDTO> dtos = items.stream().map(this::convertToDTO).collect(Collectors.toList());
             return StandardResponse.success(dtos, "Menu items fetched successfully");
@@ -208,8 +249,10 @@ public class MenuItemServiceImpl implements MenuItemService {
     private MenuItemDTO convertToDTO(MenuItem item) {
         return MenuItemDTO.builder()
                 .id(item.getId())
-                .outletId(item.getOutlet().getId())
-                .outletName(item.getOutlet().getName())
+                .hotelId(item.getHotel() != null ? item.getHotel().getId() : null)
+                .hotelName(item.getHotel() != null ? item.getHotel().getName() : null)
+                .outletId(item.getOutlet() != null ? item.getOutlet().getId() : null)
+                .outletName(item.getOutlet() != null ? item.getOutlet().getName() : null)
                 .itemName(item.getItemName())
                 .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
                 .categoryName(item.getCategory() != null ? item.getCategory().getValue() : null)

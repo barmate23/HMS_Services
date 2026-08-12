@@ -1,16 +1,19 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.RecipeIngredientRequestDTO;
 import com.hotelerp.userservice.dto.RecipeIngredientResponseDTO;
 import com.hotelerp.userservice.dto.RecipePageResponse;
 import com.hotelerp.userservice.dto.RecipeRequestDTO;
 import com.hotelerp.userservice.dto.RecipeResponseDTO;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.KitchenIngredient;
 import com.hotelerp.userservice.entity.MenuItem;
 import com.hotelerp.userservice.entity.Recipe;
 import com.hotelerp.userservice.entity.RecipeIngredient;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.KitchenIngredientRepository;
 import com.hotelerp.userservice.repository.MenuItemRepository;
 import com.hotelerp.userservice.repository.RecipeRepository;
@@ -36,6 +39,8 @@ public class RecipeServiceImpl implements RecipeService {
     private final RecipeRepository recipeRepository;
     private final MenuItemRepository menuItemRepository;
     private final KitchenIngredientRepository ingredientRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     // ──────────────────────────────────────────────────────────────────────
     //  CREATE
@@ -58,7 +63,17 @@ public class RecipeServiceImpl implements RecipeService {
                         "DUPLICATE_ERROR", "Only one active recipe is allowed per menu item");
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            } else if (menuItem.getHotel() != null) {
+                hotel = menuItem.getHotel();
+            }
+
             Recipe recipe = Recipe.builder()
+                    .hotel(hotel)
                     .menuItem(menuItem)
                     .recipeName(dto.getRecipeName() != null ? dto.getRecipeName().trim() : menuItem.getItemName() + " Recipe")
                     .portionSize(dto.getPortionSize())
@@ -129,13 +144,14 @@ public class RecipeServiceImpl implements RecipeService {
     @Transactional(readOnly = true)
     public StandardResponse<RecipePageResponse> getAllRecipes(int page, int size) {
         try {
-            Page<Recipe> pageResult = recipeRepository.findAllActive(PageRequest.of(page, size));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Page<Recipe> pageResult = recipeRepository.findAllActive(hotelId, PageRequest.of(page, size));
             List<RecipeResponseDTO> dtos = pageResult.getContent().stream()
                     .map(this::toResponseDTO)
                     .collect(Collectors.toList());
 
-            // Compute summary overview metrics across ALL active recipes
-            List<Recipe> allActive = recipeRepository.findAllActiveList();
+            // Compute summary overview metrics across active recipes for this hotel
+            List<Recipe> allActive = recipeRepository.findAllActiveList(hotelId);
             long totalRecipes = allActive.size();
 
             BigDecimal avgFoodCost = BigDecimal.ZERO;
@@ -209,6 +225,13 @@ public class RecipeServiceImpl implements RecipeService {
             if (dto.getPrepTimeMins() != null) recipe.setPrepTimeMins(dto.getPrepTimeMins());
             if (dto.getCookingInstructions() != null) recipe.setCookingInstructions(dto.getCookingInstructions());
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && recipe.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                recipe.setHotel(hotel);
+            }
+
             if (dto.getIngredients() != null) {
                 // ─ Map incoming lines by id for in-place updates ─
                 Map<Long, RecipeIngredient> existingById = recipe.getIngredients().stream()
@@ -220,6 +243,9 @@ public class RecipeServiceImpl implements RecipeService {
                     if (lineDto.getId() != null && existingById.containsKey(lineDto.getId())) {
                         // Update in-place
                         RecipeIngredient line = existingById.get(lineDto.getId());
+                        if (line.getHotel() == null && recipe.getHotel() != null) {
+                            line.setHotel(recipe.getHotel());
+                        }
                         if (lineDto.getIngredientId() != null) {
                             KitchenIngredient ing = ingredientRepository.findByIdAndIsDeletedFalse(lineDto.getIngredientId())
                                     .orElseThrow(() -> new ResourceNotFoundException("Ingredient not found: " + lineDto.getIngredientId()));
@@ -308,6 +334,7 @@ public class RecipeServiceImpl implements RecipeService {
         BigDecimal prepWaste = lineDto.getPrepWastePercent() != null ? lineDto.getPrepWastePercent() : BigDecimal.ZERO;
 
         RecipeIngredient line = RecipeIngredient.builder()
+                .hotel(recipe.getHotel())
                 .recipe(recipe)
                 .ingredient(ingredient)
                 .netQty(netQty)
@@ -393,6 +420,8 @@ public class RecipeServiceImpl implements RecipeService {
 
         return RecipeResponseDTO.builder()
                 .id(r.getId())
+                .hotelId(r.getHotel() != null ? r.getHotel().getId() : null)
+                .hotelName(r.getHotel() != null ? r.getHotel().getName() : null)
                 .menuItemId(mi != null ? mi.getId() : null)
                 .menuItemDisplayName(displayName)
                 .recipeName(r.getRecipeName())
@@ -424,6 +453,8 @@ public class RecipeServiceImpl implements RecipeService {
 
         return RecipeIngredientResponseDTO.builder()
                 .id(line.getId())
+                .hotelId(line.getHotel() != null ? line.getHotel().getId() : null)
+                .hotelName(line.getHotel() != null ? line.getHotel().getName() : null)
                 .ingredientId(ing != null ? ing.getId() : null)
                 .ingredientName(ing != null ? ing.getIngredientName() : null)
                 .ingredientCode(ing != null ? ing.getIngredientCode() : null)

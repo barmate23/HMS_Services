@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.PurchaseOrderDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -28,6 +29,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ItemConfigRepository itemConfigRepository;
     private final KitchenIngredientRepository kitchenIngredientRepository;
     private final PurchaseOrderLineRepository purchaseOrderLineRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     private String generatePoNumber(LocalDate poDate) {
         LocalDate date = poDate != null ? poDate : LocalDate.now();
@@ -48,7 +51,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     ? dto.getPoNumber().trim()
                     : generatePoNumber(poDate);
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             PurchaseOrder po = PurchaseOrder.builder()
+                    .hotel(hotel)
                     .poNumber(poNumber)
                     .poDate(poDate)
                     .supplier(supplier)
@@ -91,7 +102,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             po = purchaseOrderRepository.save(po);
 
             if (dto.getLines() != null && !dto.getLines().isEmpty()) {
-                List<PurchaseOrderLine> lines = buildPoLines(po, dto.getLines());
+                List<PurchaseOrderLine> lines = buildPoLines(po, dto.getLines(), hotel);
                 po.setLines(lines);
                 po = purchaseOrderRepository.save(po);
             }
@@ -156,9 +167,16 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         .orElseThrow(() -> new RuntimeException("Status not found")));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && po.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                po.setHotel(hotel);
+            }
+
             if (dto.getLines() != null) {
                 po.getLines().clear();
-                po.getLines().addAll(buildPoLines(po, dto.getLines()));
+                po.getLines().addAll(buildPoLines(po, dto.getLines(), po.getHotel()));
             }
 
             po = purchaseOrderRepository.save(po);
@@ -183,7 +201,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public StandardResponse<List<PurchaseOrderDTO>> getAllPurchaseOrders() {
         try {
-            List<PurchaseOrderDTO> list = purchaseOrderRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<PurchaseOrder> pos = (hotelId != null) 
+                    ? purchaseOrderRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : purchaseOrderRepository.findByIsDeletedFalse();
+            List<PurchaseOrderDTO> list = pos.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Purchase Orders fetched successfully");
@@ -233,7 +255,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
     }
 
-    private List<PurchaseOrderLine> buildPoLines(PurchaseOrder po, List<PurchaseOrderDTO.PurchaseOrderLineDTO> lineDTOs) {
+    private List<PurchaseOrderLine> buildPoLines(PurchaseOrder po, List<PurchaseOrderDTO.PurchaseOrderLineDTO> lineDTOs, Hotel hotel) {
         if (lineDTOs == null || lineDTOs.isEmpty()) {
             return new ArrayList<>();
         }
@@ -255,6 +277,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
 
             PurchaseOrderLine.PurchaseOrderLineBuilder lineBuilder = PurchaseOrderLine.builder()
+                    .hotel(hotel)
                     .purchaseOrder(po)
                     .quantity(lineDTO.getQuantity())
                     .rate(lineDTO.getRate())
@@ -281,6 +304,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .map(l -> {
                     PurchaseOrderDTO.PurchaseOrderLineDTO.PurchaseOrderLineDTOBuilder builder = PurchaseOrderDTO.PurchaseOrderLineDTO.builder()
                             .id(l.getId())
+                            .hotelId(l.getHotel() != null ? l.getHotel().getId() : (po.getHotel() != null ? po.getHotel().getId() : null))
+                            .hotelName(l.getHotel() != null ? l.getHotel().getName() : (po.getHotel() != null ? po.getHotel().getName() : null))
                             .quantity(l.getQuantity())
                             .rate(l.getRate())
                             .discountPercentage(l.getDiscountPercentage())
@@ -303,6 +328,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         return PurchaseOrderDTO.builder()
                 .id(po.getId())
+                .hotelId(po.getHotel() != null ? po.getHotel().getId() : null)
+                .hotelName(po.getHotel() != null ? po.getHotel().getName() : null)
                 .poNumber(po.getPoNumber())
                 .poDate(po.getPoDate())
                 .supplierId(po.getSupplier() != null ? po.getSupplier().getId() : null)

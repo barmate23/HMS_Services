@@ -1,11 +1,14 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.ItemConfigDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.ItemConfig;
 import com.hotelerp.userservice.entity.InventoryStock;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.ItemConfigRepository;
 import com.hotelerp.userservice.repository.InventoryStockRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -26,6 +29,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
     private final ItemConfigRepository itemConfigRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final InventoryStockRepository inventoryStockRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -43,7 +48,15 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                         .orElseThrow(() -> new ResourceNotFoundException("UOM not found with ID: " + dto.getUomId()));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            }
+
             ItemConfig item = ItemConfig.builder()
+                    .hotel(hotel)
                     .itemCode(dto.getItemCode())
                     .itemName(dto.getItemName())
                     .category(category)
@@ -62,6 +75,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
             ItemConfig savedItem = itemConfigRepository.save(item);
 
             InventoryStock stock = InventoryStock.builder()
+                    .hotel(hotel)
                     .itemConfig(savedItem)
                     .onHand(BigDecimal.ZERO)
                     .minimumQty(dto.getMinimumQty())
@@ -109,6 +123,13 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                 item.setIsActive(dto.getIsActive());
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && item.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                item.setHotel(hotel);
+            }
+
             ItemConfig updatedItem = itemConfigRepository.save(item);
             return StandardResponse.success(convertToDTO(updatedItem), "Item updated successfully");
         } catch (Exception e) {
@@ -132,7 +153,11 @@ public class ItemConfigServiceImpl implements ItemConfigService {
     @Override
     public StandardResponse<List<ItemConfigDTO>> getAllItems() {
         try {
-            List<ItemConfigDTO> dtos = itemConfigRepository.findAll().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<ItemConfig> items = (hotelId != null) 
+                    ? itemConfigRepository.findByHotel_Id(hotelId)
+                    : itemConfigRepository.findAll();
+            List<ItemConfigDTO> dtos = items.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "Items fetched successfully");
@@ -172,6 +197,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
     private ItemConfigDTO convertToDTO(ItemConfig item) {
         return ItemConfigDTO.builder()
                 .id(item.getId())
+                .hotelId(item.getHotel() != null ? item.getHotel().getId() : null)
+                .hotelName(item.getHotel() != null ? item.getHotel().getName() : null)
                 .itemCode(item.getItemCode())
                 .itemName(item.getItemName())
                 .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)

@@ -25,4 +25,18 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             GROUP BY s.category.id, s.category.value
             """)
     List<Object[]> countSuppliersByCategory();
+
+    List<Supplier> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+
+    Optional<Supplier> findByIdAndHotel_IdAndIsDeletedFalse(Long id, Long hotelId);
+
+    long countByHotel_IdAndIsDeletedFalse(Long hotelId);
+
+    @Query("""
+            SELECT s.category.value, COUNT(s)
+            FROM Supplier s
+            WHERE s.hotel.id = :hotelId AND s.isDeleted = false AND s.category IS NOT NULL
+            GROUP BY s.category.id, s.category.value
+            """)
+    List<Object[]> countSuppliersByCategoryAndHotelId(@org.springframework.data.repository.query.Param("hotelId") Long hotelId);
 }

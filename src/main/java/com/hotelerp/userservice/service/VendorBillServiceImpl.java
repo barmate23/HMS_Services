@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.VendorBillDTO;
 import com.hotelerp.userservice.dto.VendorBillLineDTO;
 import com.hotelerp.userservice.entity.*;
@@ -25,11 +26,15 @@ public class VendorBillServiceImpl implements VendorBillService {
     private final CommonMasterRepository commonMasterRepository;
     private final ItemConfigRepository itemConfigRepository;
     private final KitchenIngredientRepository kitchenIngredientRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
     public StandardResponse<VendorBillDTO> createVendorBill(VendorBillDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+
             Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(dto.getSupplierId())
                     .orElseThrow(() -> new RuntimeException("Supplier not found"));
 
@@ -42,6 +47,11 @@ public class VendorBillServiceImpl implements VendorBillService {
                     .taxAmount(dto.getTaxAmount())
                     .totalAmount(dto.getTotalAmount())
                     .build();
+
+            if (hotelId != null) {
+                bill.setHotel(hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found")));
+            }
 
             if (dto.getPurchaseOrderId() != null) {
                 PurchaseOrder po = purchaseOrderRepository.findByIdAndIsDeletedFalse(dto.getPurchaseOrderId())
@@ -58,7 +68,7 @@ public class VendorBillServiceImpl implements VendorBillService {
             }
 
             if (dto.getLines() != null && !dto.getLines().isEmpty()) {
-                List<VendorBillLine> lines = buildVendorBillLines(bill, dto.getLines());
+                List<VendorBillLine> lines = buildVendorBillLines(bill, dto.getLines(), hotelId);
                 bill.getLines().addAll(lines);
             }
 
@@ -74,8 +84,15 @@ public class VendorBillServiceImpl implements VendorBillService {
     @Transactional
     public StandardResponse<VendorBillDTO> updateVendorBill(Long id, VendorBillDTO dto) {
         try {
-            VendorBill bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            VendorBill bill;
+            if (hotelId != null) {
+                bill = vendorBillRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            } else {
+                bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            }
 
             bill.setBillNumber(dto.getBillNumber());
             bill.setBillDate(dto.getBillDate());
@@ -103,7 +120,7 @@ public class VendorBillServiceImpl implements VendorBillService {
 
             if (dto.getLines() != null) {
                 bill.getLines().clear();
-                bill.getLines().addAll(buildVendorBillLines(bill, dto.getLines()));
+                bill.getLines().addAll(buildVendorBillLines(bill, dto.getLines(), hotelId));
             }
 
             bill = vendorBillRepository.save(bill);
@@ -117,8 +134,15 @@ public class VendorBillServiceImpl implements VendorBillService {
     @Override
     public StandardResponse<VendorBillDTO> getVendorBillById(Long id) {
         try {
-            VendorBill bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            VendorBill bill;
+            if (hotelId != null) {
+                bill = vendorBillRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            } else {
+                bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            }
             return StandardResponse.success(convertToDTO(bill), "Vendor Bill fetched successfully");
         } catch (Exception e) {
             return StandardResponse.error("Not found", "NOT_FOUND", e.getMessage());
@@ -128,9 +152,17 @@ public class VendorBillServiceImpl implements VendorBillService {
     @Override
     public StandardResponse<List<VendorBillDTO>> getAllVendorBills() {
         try {
-            List<VendorBillDTO> list = vendorBillRepository.findByIsDeletedFalse().stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<VendorBillDTO> list;
+            if (hotelId != null) {
+                list = vendorBillRepository.findByHotel_IdAndIsDeletedFalse(hotelId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                list = vendorBillRepository.findByIsDeletedFalse().stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(list, "Vendor Bills fetched successfully");
         } catch (Exception e) {
             return StandardResponse.error("Failed to fetch Vendor Bills", "INTERNAL_SERVER_ERROR", e.getMessage());
@@ -141,8 +173,15 @@ public class VendorBillServiceImpl implements VendorBillService {
     @Transactional
     public StandardResponse<Void> deleteVendorBill(Long id) {
         try {
-            VendorBill bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            VendorBill bill;
+            if (hotelId != null) {
+                bill = vendorBillRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            } else {
+                bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            }
             bill.setIsDeleted(true);
             vendorBillRepository.save(bill);
             return StandardResponse.success("Vendor Bill deleted successfully");
@@ -155,8 +194,15 @@ public class VendorBillServiceImpl implements VendorBillService {
     @Transactional
     public StandardResponse<VendorBillDTO> updateStatus(Long id, Long statusId) {
         try {
-            VendorBill bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            VendorBill bill;
+            if (hotelId != null) {
+                bill = vendorBillRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            } else {
+                bill = vendorBillRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Vendor Bill not found"));
+            }
             CommonMaster status = commonMasterRepository.findById(statusId)
                     .orElseThrow(() -> new RuntimeException("Status not found"));
             bill.setStatus(status);
@@ -167,7 +213,7 @@ public class VendorBillServiceImpl implements VendorBillService {
         }
     }
 
-    private List<VendorBillLine> buildVendorBillLines(VendorBill bill, List<VendorBillLineDTO> lineDTOs) {
+    private List<VendorBillLine> buildVendorBillLines(VendorBill bill, List<VendorBillLineDTO> lineDTOs, Long hotelId) {
         if (lineDTOs == null || lineDTOs.isEmpty()) {
             return new ArrayList<>();
         }
@@ -181,7 +227,13 @@ public class VendorBillServiceImpl implements VendorBillService {
             }
         }
 
+        Hotel hotel = null;
+        if (hotelId != null) {
+            hotel = hotelRepository.findById(hotelId).orElse(null);
+        }
+
         List<VendorBillLine> lines = new ArrayList<>();
+        final Hotel finalHotel = hotel;
         for (VendorBillLineDTO lineDTO : lineDTOs) {
             Long itemId = lineDTO.getItemId();
             if (itemId == null) {
@@ -190,6 +242,7 @@ public class VendorBillServiceImpl implements VendorBillService {
 
             VendorBillLine.VendorBillLineBuilder lineBuilder = VendorBillLine.builder()
                     .vendorBill(bill)
+                    .hotel(finalHotel)
                     .receivedQuantity(lineDTO.getReceivedQuantity())
                     .rate(lineDTO.getRate())
                     .totalAmount(lineDTO.getTotalAmount());
@@ -212,6 +265,8 @@ public class VendorBillServiceImpl implements VendorBillService {
         return VendorBillDTO.builder()
                 .id(bill.getId())
                 .billNumber(bill.getBillNumber())
+                .hotelId(bill.getHotel() != null ? bill.getHotel().getId() : null)
+                .hotelName(bill.getHotel() != null ? bill.getHotel().getName() : null)
                 .supplierId(bill.getSupplier() != null ? bill.getSupplier().getId() : null)
                 .supplierName(bill.getSupplier() != null ? bill.getSupplier().getSupplierName() : null)
                 .purchaseOrderId(bill.getPurchaseOrder() != null ? bill.getPurchaseOrder().getId() : null)
@@ -234,6 +289,8 @@ public class VendorBillServiceImpl implements VendorBillService {
         VendorBillLineDTO.VendorBillLineDTOBuilder builder = VendorBillLineDTO.builder()
                 .id(line.getId())
                 .vendorBillId(line.getVendorBill() != null ? line.getVendorBill().getId() : null)
+                .hotelId(line.getHotel() != null ? line.getHotel().getId() : null)
+                .hotelName(line.getHotel() != null ? line.getHotel().getName() : null)
                 .receivedQuantity(line.getReceivedQuantity())
                 .rate(line.getRate())
                 .totalAmount(line.getTotalAmount())

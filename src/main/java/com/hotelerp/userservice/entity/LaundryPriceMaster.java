@@ -18,6 +18,10 @@ public class LaundryPriceMaster {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "category", nullable = false, length = 50)
     private String category;
 

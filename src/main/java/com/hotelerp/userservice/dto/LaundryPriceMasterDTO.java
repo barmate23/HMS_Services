@@ -13,6 +13,8 @@ import java.util.Map;
 @Builder
 public class LaundryPriceMasterDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String category;
     private String itemName;
     private Double washFoldPrice;

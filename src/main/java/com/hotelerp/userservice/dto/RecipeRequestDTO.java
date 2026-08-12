@@ -13,6 +13,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RecipeRequestDTO {
 
+    private Long hotelId;
     private Long menuItemId;
     private String recipeName;
     private BigDecimal portionSize;

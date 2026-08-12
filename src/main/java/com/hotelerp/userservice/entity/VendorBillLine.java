@@ -24,6 +24,10 @@ public class VendorBillLine {
     private VendorBill vendorBill;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = true)
     private ItemConfig item;
 

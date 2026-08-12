@@ -16,6 +16,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PurchaseRequestDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String prNumber;
 
     private Long departmentId;
@@ -41,6 +43,8 @@ public class PurchaseRequestDTO {
     @AllArgsConstructor
     public static class PurchaseRequestItemDTO {
         private Long id;
+        private Long hotelId;
+        private String hotelName;
         private Long itemId;
         private String itemName;
         private String itemCode;

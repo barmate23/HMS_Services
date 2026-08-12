@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ItemConfigRepository extends JpaRepository<ItemConfig, Long> {
     Optional<ItemConfig> findByItemCode(String itemCode);
     List<ItemConfig> findAllByIsActiveTrue();
+    List<ItemConfig> findByHotel_IdAndIsActiveTrue(Long hotelId);
+    List<ItemConfig> findByHotel_Id(Long hotelId);
 }

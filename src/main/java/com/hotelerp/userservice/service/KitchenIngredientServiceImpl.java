@@ -1,13 +1,16 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.KitchenIngredientPageResponse;
 import com.hotelerp.userservice.dto.KitchenIngredientRequestDTO;
 import com.hotelerp.userservice.dto.KitchenIngredientResponseDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.KitchenIngredient;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.KitchenIngredientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,8 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
     private final KitchenIngredientRepository ingredientRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     // ──────────────────────────────────────────────────────────────────────
     //  CREATE
@@ -46,6 +51,14 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
             }
 
             KitchenIngredient entity = buildEntity(dto, null);
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                entity.setHotel(hotel);
+            }
+
             entity.setIngredientCode(generateCode());
             ingredientRepository.save(entity);
             return StandardResponse.success("Ingredient created successfully");
@@ -84,18 +97,19 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
     @Transactional(readOnly = true)
     public StandardResponse<KitchenIngredientPageResponse> getAllIngredients(Long categoryId, String search, int page, int size) {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             Pageable pageable = PageRequest.of(page, size);
-            Page<KitchenIngredient> pageResult = ingredientRepository.findAllActive(categoryId, search, pageable);
+            Page<KitchenIngredient> pageResult = ingredientRepository.findAllActive(hotelId, categoryId, search, pageable);
 
             List<KitchenIngredientResponseDTO> dtos = pageResult.getContent()
                     .stream()
                     .map(this::toResponseDTO)
                     .collect(Collectors.toList());
 
-            // Summary: always over ALL active records (not just the current page filter)
-            long total = ingredientRepository.countByIsDeletedFalse();
-            long lowStock = ingredientRepository.countLowStock();
-            long categories = ingredientRepository.countDistinctCategories();
+            // Summary: filtered by hotelId
+            long total = (hotelId != null) ? ingredientRepository.countByHotel_IdAndIsDeletedFalse(hotelId) : ingredientRepository.countByIsDeletedFalse();
+            long lowStock = ingredientRepository.countLowStock(hotelId);
+            long categories = ingredientRepository.countDistinctCategories(hotelId);
 
             KitchenIngredientPageResponse response = KitchenIngredientPageResponse.builder()
                     .total(total)
@@ -137,6 +151,14 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
             }
 
             applyUpdates(existing, dto);
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && existing.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                existing.setHotel(hotel);
+            }
+
             KitchenIngredient saved = ingredientRepository.save(existing);
             return StandardResponse.success(toResponseDTO(saved), "Ingredient updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -234,6 +256,8 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
     private KitchenIngredientResponseDTO toResponseDTO(KitchenIngredient e) {
         return KitchenIngredientResponseDTO.builder()
                 .id(e.getId())
+                .hotelId(e.getHotel() != null ? e.getHotel().getId() : null)
+                .hotelName(e.getHotel() != null ? e.getHotel().getName() : null)
                 .ingredientCode(e.getIngredientCode())
                 .ingredientName(e.getIngredientName())
                 .categoryId(e.getCategory() != null ? e.getCategory().getId() : null)

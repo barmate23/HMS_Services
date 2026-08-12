@@ -17,6 +17,10 @@ public class ItemConfig {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "item_code", nullable = false, unique = true)
     private String itemCode;
 

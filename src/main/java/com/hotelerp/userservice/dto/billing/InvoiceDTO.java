@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 @Builder
 public class InvoiceDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String invoiceNumber;
     private String folioNumber;
     private String roomNumber;

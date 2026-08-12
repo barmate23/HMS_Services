@@ -15,6 +15,8 @@ import java.util.List;
 public class RecipeResponseDTO {
 
     private Long id;
+    private Long hotelId;
+    private String hotelName;
 
     // Menu item reference
     private Long menuItemId;

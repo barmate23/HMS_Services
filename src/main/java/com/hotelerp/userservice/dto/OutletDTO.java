@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class OutletDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String name;
     private Long typeId;
     private String typeValue;

@@ -31,6 +31,10 @@ public class Reservation {
     // ── Relations ─────────────────────────────────────────────────────────
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotelId")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guestId", nullable = false)
     private Guest guest;
 

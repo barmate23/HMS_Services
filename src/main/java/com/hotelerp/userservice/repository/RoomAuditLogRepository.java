@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface RoomAuditLogRepository extends JpaRepository<RoomAuditLog, Long> {
     List<RoomAuditLog> findByRoomId(Long roomId);
+    List<RoomAuditLog> findByHotel_Id(Long hotelId);
     
     @Query("SELECT r FROM RoomAuditLog r WHERE r.room.id = :roomId ORDER BY r.auditDate DESC")
     List<RoomAuditLog> findLatestByRoomId(Long roomId);
@@ -19,5 +20,8 @@ public interface RoomAuditLogRepository extends JpaRepository<RoomAuditLog, Long
 
     @Query("SELECT r FROM RoomAuditLog r WHERE r.auditDate >= :start AND r.auditDate <= :end AND r.status.code IN :statusCodes")
     List<RoomAuditLog> findByAuditDateBetweenAndStatusCodeIn(java.time.LocalDateTime start, java.time.LocalDateTime end, java.util.List<String> statusCodes);
+
+    @Query("SELECT r FROM RoomAuditLog r WHERE (:hotelId IS NULL OR r.hotel.id = :hotelId) AND r.auditDate >= :start AND r.auditDate <= :end AND r.status.code IN :statusCodes")
+    List<RoomAuditLog> findByHotel_IdAndAuditDateBetweenAndStatusCodeIn(@org.springframework.data.repository.query.Param("hotelId") Long hotelId, java.time.LocalDateTime start, java.time.LocalDateTime end, java.util.List<String> statusCodes);
 }
 

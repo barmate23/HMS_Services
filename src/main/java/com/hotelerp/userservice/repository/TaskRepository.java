@@ -10,4 +10,7 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByRoomId(Long roomId);
     List<Task> findByStatusCodeInAndIsDeletedFalse(java.util.List<String> codes);
+
+    List<Task> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+    List<Task> findByHotel_IdAndStatus_CodeInAndIsDeletedFalse(Long hotelId, java.util.List<String> codes);
 }

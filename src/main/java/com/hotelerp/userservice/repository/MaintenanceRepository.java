@@ -12,4 +12,7 @@ public interface MaintenanceRepository extends JpaRepository<MaintenanceRequest,
     List<MaintenanceRequest> findByStatus(CommonMaster status);
     List<MaintenanceRequest> findByRoomId(Long roomId);
     List<MaintenanceRequest> findByStatusCodeInAndIsDeletedFalse(java.util.List<String> codes);
+    List<MaintenanceRequest> findByHotel_IdAndStatusCodeInAndIsDeletedFalse(Long hotelId, java.util.List<String> codes);
+    List<MaintenanceRequest> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+    List<MaintenanceRequest> findByIsDeletedFalse();
 }

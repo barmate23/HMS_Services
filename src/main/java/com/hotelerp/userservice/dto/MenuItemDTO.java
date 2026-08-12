@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 @Builder
 public class MenuItemDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long outletId;
     private String outletName;
     private String itemName;

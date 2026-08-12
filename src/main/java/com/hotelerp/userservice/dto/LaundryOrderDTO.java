@@ -13,6 +13,8 @@ import java.util.List;
 @Builder
 public class LaundryOrderDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String orderId;
     private Long roomId;
     private String roomNumber;

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ItemConfigDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String itemCode;
     private String itemName;
     

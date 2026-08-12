@@ -16,6 +16,10 @@ public class SOPCheckpoint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "checkpoint_id", nullable = false, length = 20)
     private String checkpointId; // e.g., D01, D02
 

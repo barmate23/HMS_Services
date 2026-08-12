@@ -11,4 +11,6 @@ public interface OutletRepository extends JpaRepository<Outlet, Long> {
     List<Outlet> findByIsActiveTrue();
     List<Outlet> findByIsActiveTrueAndIsDeletedFalse();
     List<Outlet> findByIsDeletedFalse();
+    List<Outlet> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+    List<Outlet> findByHotel_IdAndIsActiveTrueAndIsDeletedFalse(Long hotelId);
 }

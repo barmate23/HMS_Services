@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MinibarConsumptionDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     
     private Long roomId;
     private String roomNumber;

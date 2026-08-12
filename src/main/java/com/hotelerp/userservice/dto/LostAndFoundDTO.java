@@ -14,6 +14,8 @@ import java.time.LocalDate;
 @Builder
 public class LostAndFoundDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long roomId;
     private String roomNumber;
     private String itemDescription;

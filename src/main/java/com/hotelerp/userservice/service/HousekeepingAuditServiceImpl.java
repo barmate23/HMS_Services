@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.*;
 import com.hotelerp.userservice.dto.RoomAuditLogDTO;
 import com.hotelerp.userservice.entity.*;
@@ -28,6 +29,8 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private final RoomAuditLogRepository auditLogRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     public StandardResponse<List<CommonMasterDTO>> getMastersByCategory(String category) {
@@ -73,7 +76,15 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Responsible Role master data not found for ID: " + dto.getResponsibleRoleId()));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            }
+
             SOPCheckpoint checkpoint = SOPCheckpoint.builder()
+                    .hotel(hotel)
                     .checkpointId(dto.getCheckpointId())
                     .frequency(frequency)
                     .auditArea(dto.getAuditArea())
@@ -94,7 +105,11 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     @Override
     public StandardResponse<List<SOPCheckpointDTO>> getAllCheckpoints() {
         try {
-            List<SOPCheckpointDTO> dtos = checkpointRepository.findAll().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<SOPCheckpoint> checkpoints = (hotelId != null)
+                    ? checkpointRepository.findByHotel_Id(hotelId)
+                    : checkpointRepository.findAll();
+            List<SOPCheckpointDTO> dtos = checkpoints.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "SOP checkpoints fetched successfully");
@@ -107,7 +122,11 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     @Override
     public StandardResponse<List<SOPCheckpointDTO>> getCheckpointsByFrequency(String frequency) {
         try {
-            List<SOPCheckpointDTO> dtos = checkpointRepository.findByFrequencyCode(frequency).stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<SOPCheckpoint> checkpoints = (hotelId != null)
+                    ? checkpointRepository.findByHotel_IdAndFrequencyCode(hotelId, frequency)
+                    : checkpointRepository.findByFrequencyCode(frequency);
+            List<SOPCheckpointDTO> dtos = checkpoints.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "SOP checkpoints fetched successfully for frequency: " + frequency);
@@ -145,7 +164,10 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
             String frequencyCode) {
         try {
             List<Room> rooms = roomRepository.findByFloorId(floorId);
-            List<SOPCheckpoint> checkpoints = checkpointRepository.findByFrequencyCode(frequencyCode);
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<SOPCheckpoint> checkpoints = (hotelId != null)
+                    ? checkpointRepository.findByHotel_IdAndFrequencyCode(hotelId, frequencyCode)
+                    : checkpointRepository.findByFrequencyCode(frequencyCode);
 
             List<RoomAuditStatusDTO> statusList = rooms.stream().map(room -> {
                 List<RoomAuditLog> logs = auditLogRepository.findLatestByRoomId(room.getId());
@@ -200,6 +222,15 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Inspector user not found with ID: " + request.getInspectorId()));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : null;
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            } else if (room.getHotel() != null) {
+                hotel = room.getHotel();
+            }
+
             for (CheckpointAuditRequest auditRequest : request.getCheckpoints()) {
                 SOPCheckpoint checkpoint = checkpointRepository.findById(auditRequest.getCheckpointId())
                         .orElseThrow(() -> new ResourceNotFoundException(
@@ -210,6 +241,7 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
                                 "Audit status not found: " + auditRequest.getStatus()));
 
                 RoomAuditLog logEntry = RoomAuditLog.builder()
+                        .hotel(hotel)
                         .room(room)
                         .checkpoint(checkpoint)
                         .status(status)
@@ -261,8 +293,12 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
             LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
             List<String> codes = List.of("PENDING", "RECHECK");
 
-            List<RoomAuditLogDTO> dtos = auditLogRepository.findByAuditDateBetweenAndStatusCodeIn(start, end, codes)
-                    .stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<RoomAuditLog> logs = (hotelId != null)
+                    ? auditLogRepository.findByHotel_IdAndAuditDateBetweenAndStatusCodeIn(hotelId, start, end, codes)
+                    : auditLogRepository.findByAuditDateBetweenAndStatusCodeIn(start, end, codes);
+
+            List<RoomAuditLogDTO> dtos = logs.stream()
                     .map(this::convertToLogDTO)
                     .collect(Collectors.toList());
 
@@ -277,11 +313,13 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private RoomAuditLogDTO convertToLogDTO(RoomAuditLog auditLog) {
         return RoomAuditLogDTO.builder()
                 .id(auditLog.getId())
-                .roomId(auditLog.getRoom().getId())
-                .roomNumber(auditLog.getRoom().getRoomNumber())
-                .checkpointId(auditLog.getCheckpoint().getId())
-                .checkpointName(auditLog.getCheckpoint().getCheckpointId())
-                .auditArea(auditLog.getCheckpoint().getAuditArea())
+                .hotelId(auditLog.getHotel() != null ? auditLog.getHotel().getId() : null)
+                .hotelName(auditLog.getHotel() != null ? auditLog.getHotel().getName() : null)
+                .roomId(auditLog.getRoom() != null ? auditLog.getRoom().getId() : null)
+                .roomNumber(auditLog.getRoom() != null ? auditLog.getRoom().getRoomNumber() : null)
+                .checkpointId(auditLog.getCheckpoint() != null ? auditLog.getCheckpoint().getId() : null)
+                .checkpointName(auditLog.getCheckpoint() != null ? auditLog.getCheckpoint().getCheckpointId() : null)
+                .auditArea(auditLog.getCheckpoint() != null ? auditLog.getCheckpoint().getAuditArea() : null)
                 .statusId(auditLog.getStatus() != null ? auditLog.getStatus().getId() : null)
                 .statusName(auditLog.getStatus() != null ? auditLog.getStatus().getValue() : null)
                 .inspectorId(auditLog.getInspector() != null ? auditLog.getInspector().getId() : null)
@@ -293,7 +331,6 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     }
 
     private CommonMasterDTO convertToDTO(CommonMaster master) {
-
         CommonMasterDTO dto = new CommonMasterDTO();
         dto.setId(master.getId());
         dto.setCategory(master.getCategory());
@@ -306,6 +343,8 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     private SOPCheckpointDTO convertToDTO(SOPCheckpoint checkpoint) {
         SOPCheckpointDTO dto = new SOPCheckpointDTO();
         dto.setId(checkpoint.getId());
+        dto.setHotelId(checkpoint.getHotel() != null ? checkpoint.getHotel().getId() : null);
+        dto.setHotelName(checkpoint.getHotel() != null ? checkpoint.getHotel().getName() : null);
         dto.setCheckpointId(checkpoint.getCheckpointId());
 
         if (checkpoint.getFrequency() != null) {

@@ -13,4 +13,8 @@ public interface StoreIssueRepository extends JpaRepository<StoreIssue, Long> {
     Optional<StoreIssue> findByIdAndIsDeletedFalse(Long id);
     boolean existsByIssueNumber(String issueNumber);
     List<StoreIssue> findByIssueDateAndIsDeletedFalse(java.time.LocalDate issueDate);
+
+    List<StoreIssue> findByHotel_IdAndIsDeletedFalse(Long hotelId);
+    Optional<StoreIssue> findByIdAndHotel_IdAndIsDeletedFalse(Long id, Long hotelId);
+    List<StoreIssue> findByHotel_IdAndIssueDateAndIsDeletedFalse(Long hotelId, java.time.LocalDate issueDate);
 }

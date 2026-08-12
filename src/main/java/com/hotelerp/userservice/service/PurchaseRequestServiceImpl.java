@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.PurchaseRequestDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -23,6 +24,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final ItemConfigRepository itemConfigRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     private String generatePrNumber() {
         long count = purchaseRequestRepository.count();
@@ -33,7 +36,15 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     @Transactional
     public StandardResponse<PurchaseRequestDTO> createPurchaseRequest(PurchaseRequestDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            }
+
             PurchaseRequest pr = PurchaseRequest.builder()
+                    .hotel(hotel)
                     .prNumber(generatePrNumber())
                     .requestedBy(dto.getRequestedBy())
                     .neededBy(dto.getNeededBy())
@@ -63,6 +74,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                     ItemConfig config = itemConfigRepository.findById(itemDTO.getItemId())
                             .orElseThrow(() -> new RuntimeException("Item not found: " + itemDTO.getItemId()));
                     items.add(PurchaseRequestItem.builder()
+                            .hotel(hotel)
                             .purchaseRequest(pr)
                             .item(config)
                             .requiredQuantity(itemDTO.getRequiredQuantity())
@@ -102,12 +114,22 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                         .orElseThrow(() -> new RuntimeException("Status not found")));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && pr.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                pr.setHotel(hotel);
+            }
+
+            Hotel prHotel = pr.getHotel();
+
             if (dto.getItems() != null) {
                 pr.getItems().clear();
                 for (PurchaseRequestDTO.PurchaseRequestItemDTO itemDTO : dto.getItems()) {
                     ItemConfig config = itemConfigRepository.findById(itemDTO.getItemId())
                             .orElseThrow(() -> new RuntimeException("Item not found: " + itemDTO.getItemId()));
                     pr.getItems().add(PurchaseRequestItem.builder()
+                            .hotel(prHotel)
                             .purchaseRequest(pr)
                             .item(config)
                             .requiredQuantity(itemDTO.getRequiredQuantity())
@@ -138,7 +160,11 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     @Override
     public StandardResponse<List<PurchaseRequestDTO>> getAllPurchaseRequests() {
         try {
-            List<PurchaseRequestDTO> list = purchaseRequestRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<PurchaseRequest> requests = (hotelId != null) 
+                    ? purchaseRequestRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : purchaseRequestRepository.findByIsDeletedFalse();
+            List<PurchaseRequestDTO> list = requests.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Purchase requests fetched");
@@ -182,9 +208,11 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         List<PurchaseRequestDTO.PurchaseRequestItemDTO> itemDTOs = pr.getItems().stream()
                 .map(i -> PurchaseRequestDTO.PurchaseRequestItemDTO.builder()
                         .id(i.getId())
-                        .itemId(i.getItem().getId())
-                        .itemName(i.getItem().getItemName())
-                        .itemCode(i.getItem().getItemCode())
+                        .hotelId(i.getHotel() != null ? i.getHotel().getId() : null)
+                        .hotelName(i.getHotel() != null ? i.getHotel().getName() : null)
+                        .itemId(i.getItem() != null ? i.getItem().getId() : null)
+                        .itemName(i.getItem() != null ? i.getItem().getItemName() : null)
+                        .itemCode(i.getItem() != null ? i.getItem().getItemCode() : null)
                         .requiredQuantity(i.getRequiredQuantity())
                         .unitPrice(i.getUnitPrice())
                         .build())
@@ -192,6 +220,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
 
         return PurchaseRequestDTO.builder()
                 .id(pr.getId())
+                .hotelId(pr.getHotel() != null ? pr.getHotel().getId() : null)
+                .hotelName(pr.getHotel() != null ? pr.getHotel().getName() : null)
                 .prNumber(pr.getPrNumber())
                 .departmentId(pr.getDepartment() != null ? pr.getDepartment().getId() : null)
                 .departmentName(pr.getDepartment() != null ? pr.getDepartment().getValue() : null)

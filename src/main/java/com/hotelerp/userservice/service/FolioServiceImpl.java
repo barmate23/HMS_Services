@@ -2,6 +2,7 @@ package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
 
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.billing.*;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -33,11 +34,13 @@ public class FolioServiceImpl implements FolioService {
     private final BookingRepository bookingRepository;
     private final InvoiceService invoiceService;
     private final InvoiceRepository invoiceRepository;
+    private final LoginUser loginUser;
 
     @Override
     public StandardResponse<FolioLedgerDTO> getLedger(Long folioId) {
         try {
-            Folio folio = folioRepository.findById(folioId)
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Folio folio = folioRepository.findByIdAndHotelId(folioId, hotelId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
             List<FolioPosting> postings = folioPostingRepository.findByFolioIdAndIsDeletedFalse(folioId);
@@ -86,6 +89,7 @@ public class FolioServiceImpl implements FolioService {
     public StandardResponse<Void> postCharge(FolioPostingRequest request) {
         try {
             Long folioId = request.getFolioId();
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
 
             if (request.getRoomId() != null) {
                 LocalDate today = LocalDate.now();
@@ -94,7 +98,7 @@ public class FolioServiceImpl implements FolioService {
                                 "No active booking found for room " + request.getRoomId() + " on " + today));
 
                 Folio folioByRoom = folioRepository
-                        .findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
+                        .findByReservationIdAndHotelId(booking.getReservation().getId(), hotelId)
                         .orElseThrow(() -> new RuntimeException(
                                 "Folio not found for reservation of room " + request.getRoomId()));
 
@@ -105,7 +109,7 @@ public class FolioServiceImpl implements FolioService {
                 throw new RuntimeException("Folio ID or Room ID is required");
             }
 
-            Folio folio = folioRepository.findById(folioId)
+            Folio folio = folioRepository.findByIdAndHotelId(folioId, hotelId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
             // Basic tax calculation logic for demonstration
@@ -210,7 +214,8 @@ public class FolioServiceImpl implements FolioService {
     @Transactional
     public StandardResponse<Void> collectPayment(FolioPaymentRequest request) {
         try {
-            Folio folio = folioRepository.findById(request.getFolioId())
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Folio folio = folioRepository.findByIdAndHotelId(request.getFolioId(), hotelId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
             // Check if an invoice has already been generated for this folio
@@ -297,7 +302,8 @@ public class FolioServiceImpl implements FolioService {
     @Override
     public StandardResponse<List<FolioLedgerDTO>> getActiveFolios() {
         try {
-            List<FolioLedgerDTO> list = folioRepository.findAllOpenFolios(java.time.LocalDate.now()).stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<FolioLedgerDTO> list = folioRepository.findAllOpenFoliosByHotel(java.time.LocalDate.now(), hotelId).stream()
                     .map(this::convertToSummaryDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Active folios fetched successfully");
@@ -329,7 +335,8 @@ public class FolioServiceImpl implements FolioService {
     @Override
     public StandardResponse<List<FolioPaymentDTO>> getAllPayments() {
         try {
-            List<FolioPaymentDTO> list = folioPaymentRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<FolioPaymentDTO> list = folioPaymentRepository.findByHotelIdAndIsDeletedFalse(hotelId).stream()
                     .map(this::convertToPaymentDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Folio payments fetched successfully");

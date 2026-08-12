@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface SOPCheckpointRepository extends JpaRepository<SOPCheckpoint, Long> {
     List<SOPCheckpoint> findByFrequencyCode(String code);
+    List<SOPCheckpoint> findByHotel_IdAndFrequencyCode(Long hotelId, String code);
+    List<SOPCheckpoint> findByHotel_Id(Long hotelId);
 }

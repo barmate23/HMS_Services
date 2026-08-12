@@ -16,6 +16,9 @@ public class StoreIssueDTO {
     private Long id;
     private String issueNumber;
 
+    private Long hotelId;
+    private String hotelName;
+
     private Long departmentId;
     private String departmentName;
 

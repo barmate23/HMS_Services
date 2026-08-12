@@ -1,13 +1,16 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.DiningTableDTO;
 import com.hotelerp.userservice.dto.DiningTableWithoutOutletDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.DiningTable;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.Outlet;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.DiningTableRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,8 @@ public class DiningTableServiceImpl implements DiningTableService {
     private final OutletRepository outletRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final PosOrderRepository posOrderRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -69,7 +74,15 @@ public class DiningTableServiceImpl implements DiningTableService {
                                 "Status master data not found for ID: " + dto.getStatusId()));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            }
+
             DiningTable table = DiningTable.builder()
+                    .hotel(hotel)
                     .outlet(outlet)
                     .tableNumber(tableNumber)
                     .covers(dto.getCovers())
@@ -128,6 +141,13 @@ public class DiningTableServiceImpl implements DiningTableService {
                 table.setStatus(status);
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                table.setHotel(hotel);
+            }
+
             DiningTable updatedTable = diningTableRepository.save(table);
             return StandardResponse.success(convertToDTO(updatedTable), "Dining table updated successfully");
         } catch (ResourceNotFoundException e) {
@@ -155,9 +175,17 @@ public class DiningTableServiceImpl implements DiningTableService {
     @Override
     public StandardResponse<List<DiningTableWithoutOutletDTO>> getAllTables(Long outletId) {
         try {
-            List<DiningTable> tables = (outletId != null)
-                    ? diningTableRepository.findByOutletId(outletId)
-                    : diningTableRepository.findAll();
+            Long hotelId = (loginUser != null) ? loginUser.getHotelId() : null;
+            List<DiningTable> tables;
+            if (hotelId != null) {
+                tables = (outletId != null)
+                        ? diningTableRepository.findByHotel_IdAndOutletIdAndIsDeletedFalse(hotelId, outletId)
+                        : diningTableRepository.findByHotel_IdAndIsDeletedFalse(hotelId);
+            } else {
+                tables = (outletId != null)
+                        ? diningTableRepository.findByOutletId(outletId)
+                        : diningTableRepository.findAll();
+            }
 
             List<PosOrder> activeOrders = posOrderRepository.findByStatusCodeInAndIsDeletedFalse(List.of("OPEN"));
             Map<Long, PosOrder> activeOrderMap = activeOrders.stream()
@@ -212,6 +240,8 @@ public class DiningTableServiceImpl implements DiningTableService {
     private DiningTableDTO convertToDTO(DiningTable table) {
         return DiningTableDTO.builder()
                 .id(table.getId())
+                .hotelId(table.getHotel() != null ? table.getHotel().getId() : null)
+                .hotelName(table.getHotel() != null ? table.getHotel().getName() : null)
                 .outletId(table.getOutlet().getId())
                 .outletName(table.getOutlet().getName())
                 .tableNumber(table.getTableNumber())
@@ -228,6 +258,8 @@ public class DiningTableServiceImpl implements DiningTableService {
     private DiningTableWithoutOutletDTO convertToWithoutOutletDTO(DiningTable table) {
         return DiningTableWithoutOutletDTO.builder()
                 .id(table.getId())
+                .hotelId(table.getHotel() != null ? table.getHotel().getId() : null)
+                .hotelName(table.getHotel() != null ? table.getHotel().getName() : null)
                 .tableNumber(table.getTableNumber())
                 .covers(table.getCovers())
                 .sectionId(table.getSection() != null ? table.getSection().getId() : null)

@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 public class KitchenIngredientResponseDTO {
 
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String ingredientCode;
     private String ingredientName;
 

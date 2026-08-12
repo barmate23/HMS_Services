@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Builder
 public class LaundryServiceCatalogDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String serviceName;
     private String pricingBasis;
     private String description;

@@ -10,7 +10,9 @@ import java.util.Optional;
 @Repository
 public interface LaundryServiceCatalogRepository extends JpaRepository<LaundryServiceCatalog, Long> {
     List<LaundryServiceCatalog> findAllByOrderByDisplayOrderAscServiceNameAsc();
+    List<LaundryServiceCatalog> findByHotel_IdOrderByDisplayOrderAscServiceNameAsc(Long hotelId);
     List<LaundryServiceCatalog> findByStatusOrderByDisplayOrderAscServiceNameAsc(String status);
+    List<LaundryServiceCatalog> findByHotel_IdAndStatusOrderByDisplayOrderAscServiceNameAsc(Long hotelId, String status);
     Optional<LaundryServiceCatalog> findByServiceNameIgnoreCase(String serviceName);
     boolean existsByServiceNameIgnoreCase(String serviceName);
 }

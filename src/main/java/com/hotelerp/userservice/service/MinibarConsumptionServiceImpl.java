@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.MinibarConsumptionDTO;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -22,6 +23,8 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
     private final InventoryStockRepository inventoryStockRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final FolioService folioService;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -33,7 +36,17 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
             InventoryStock item = inventoryStockRepository.findByIdAndIsDeletedFalse(dto.getItemId())
                     .orElseThrow(() -> new RuntimeException("Inventory item not found"));
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+            } else if (room.getHotel() != null) {
+                hotel = room.getHotel();
+            }
+
             MinibarConsumption consumption = MinibarConsumption.builder()
+                    .hotel(hotel)
                     .room(room)
                     .item(item)
                     .parLevel(dto.getParLevel())
@@ -62,9 +75,6 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
                 
                 if (!folioResponse.isSuccess()) {
                     log.error("Failed to post minibar charge to folio: {}", folioResponse.getMessage());
-                    // We might not want to roll back the consumption record just because folio posting failed,
-                    // but in many cases, financial accuracy is critical.
-                    // For now, let's just log it or throw to rollback if preferred.
                     throw new RuntimeException("Failed to post charge to folio: " + folioResponse.getMessage());
                 }
             }
@@ -94,6 +104,13 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
                         .orElseThrow(() -> new RuntimeException("Status not found")));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null && consumption.getHotel() == null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
+                consumption.setHotel(hotel);
+            }
+
             consumption = minibarConsumptionRepository.save(consumption);
             return StandardResponse.success(convertToDTO(consumption), "Minibar consumption updated successfully");
         } catch (Exception e) {
@@ -116,7 +133,11 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
     @Override
     public StandardResponse<List<MinibarConsumptionDTO>> getAllConsumptions() {
         try {
-            List<MinibarConsumptionDTO> list = minibarConsumptionRepository.findByIsDeletedFalse().stream()
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<MinibarConsumption> consumptions = (hotelId != null) 
+                    ? minibarConsumptionRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : minibarConsumptionRepository.findByIsDeletedFalse();
+            List<MinibarConsumptionDTO> list = consumptions.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(list, "Minibar consumption records fetched");
@@ -142,11 +163,13 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
     private MinibarConsumptionDTO convertToDTO(MinibarConsumption c) {
         return MinibarConsumptionDTO.builder()
                 .id(c.getId())
-                .roomId(c.getRoom().getId())
-                .roomNumber(c.getRoom().getRoomNumber())
-                .itemId(c.getItem().getId())
-                .itemName(c.getItem().getItemConfig().getItemName())
-                .itemCode(c.getItem().getItemConfig().getItemCode())
+                .hotelId(c.getHotel() != null ? c.getHotel().getId() : null)
+                .hotelName(c.getHotel() != null ? c.getHotel().getName() : null)
+                .roomId(c.getRoom() != null ? c.getRoom().getId() : null)
+                .roomNumber(c.getRoom() != null ? c.getRoom().getRoomNumber() : null)
+                .itemId(c.getItem() != null ? c.getItem().getId() : null)
+                .itemName(c.getItem() != null && c.getItem().getItemConfig() != null ? c.getItem().getItemConfig().getItemName() : null)
+                .itemCode(c.getItem() != null && c.getItem().getItemConfig() != null ? c.getItem().getItemConfig().getItemCode() : null)
                 .parLevel(c.getParLevel())
                 .currentQty(c.getCurrentQty())
                 .consumedQty(c.getConsumedQty())
@@ -155,7 +178,6 @@ public class MinibarConsumptionServiceImpl implements MinibarConsumptionService 
                 .statusName(c.getStatus() != null ? c.getStatus().getValue() : null)
                 .statusCode(c.getStatus() != null ? c.getStatus().getCode() : null)
                 .remarks(c.getRemarks())
-
                 .consumptionDate(c.getConsumptionDate())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

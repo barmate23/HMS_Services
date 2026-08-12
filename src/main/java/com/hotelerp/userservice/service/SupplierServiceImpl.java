@@ -1,10 +1,12 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.SupplierDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.Supplier;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +23,21 @@ public class SupplierServiceImpl implements SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final CommonMasterRepository commonMasterRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
     public StandardResponse<SupplierDTO> createSupplier(SupplierDTO dto) {
         try {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+
             Supplier supplier = buildFromDTO(new Supplier(), dto);
+
+            if (hotelId != null) {
+                supplier.setHotel(hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new RuntimeException("Hotel not found")));
+            }
 
             // Default status to ACTIVE if none provided
             if (dto.getStatusId() == null) {
@@ -46,8 +57,15 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public StandardResponse<SupplierDTO> updateSupplier(Long id, SupplierDTO dto) {
         try {
-            Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Supplier supplier;
+            if (hotelId != null) {
+                supplier = supplierRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            } else {
+                supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            }
 
             supplier = buildFromDTO(supplier, dto);
             supplier = supplierRepository.save(supplier);
@@ -61,8 +79,15 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public StandardResponse<SupplierDTO> getSupplierById(Long id) {
         try {
-            Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Supplier supplier;
+            if (hotelId != null) {
+                supplier = supplierRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            } else {
+                supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            }
             return StandardResponse.success(convertToDTO(supplier), "Supplier fetched");
         } catch (Exception e) {
             return StandardResponse.error("Not found", "NOT_FOUND", e.getMessage());
@@ -72,9 +97,17 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public StandardResponse<List<SupplierDTO>> getAllSuppliers() {
         try {
-            List<SupplierDTO> list = supplierRepository.findByIsDeletedFalse().stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            List<SupplierDTO> list;
+            if (hotelId != null) {
+                list = supplierRepository.findByHotel_IdAndIsDeletedFalse(hotelId).stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            } else {
+                list = supplierRepository.findByIsDeletedFalse().stream()
+                        .map(this::convertToDTO)
+                        .collect(Collectors.toList());
+            }
             return StandardResponse.success(list, "Suppliers fetched");
         } catch (Exception e) {
             return StandardResponse.error("Failed to fetch suppliers", "INTERNAL_SERVER_ERROR", e.getMessage());
@@ -85,8 +118,15 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public StandardResponse<Void> deleteSupplier(Long id) {
         try {
-            Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Supplier supplier;
+            if (hotelId != null) {
+                supplier = supplierRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            } else {
+                supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            }
             supplier.setIsDeleted(true);
             supplierRepository.save(supplier);
             return StandardResponse.success("Supplier deleted");
@@ -99,8 +139,15 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public StandardResponse<SupplierDTO> updateStatus(Long id, Long statusId) {
         try {
-            Supplier supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            Supplier supplier;
+            if (hotelId != null) {
+                supplier = supplierRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            } else {
+                supplier = supplierRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            }
             CommonMaster status = commonMasterRepository.findById(statusId)
                     .orElseThrow(() -> new RuntimeException("Status not found"));
             supplier.setStatus(status);
@@ -150,6 +197,8 @@ public class SupplierServiceImpl implements SupplierService {
         return SupplierDTO.builder()
                 .id(s.getId())
                 .supplierName(s.getSupplierName())
+                .hotelId(s.getHotel() != null ? s.getHotel().getId() : null)
+                .hotelName(s.getHotel() != null ? s.getHotel().getName() : null)
                 .categoryId(s.getCategory() != null ? s.getCategory().getId() : null)
                 .categoryName(s.getCategory() != null ? s.getCategory().getValue() : null)
                 .contactPerson(s.getContactPerson())

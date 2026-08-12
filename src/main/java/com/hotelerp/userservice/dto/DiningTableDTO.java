@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class DiningTableDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long outletId;
     private String outletName;
     private String tableNumber;

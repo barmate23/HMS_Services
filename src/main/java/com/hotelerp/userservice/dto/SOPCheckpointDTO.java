@@ -5,6 +5,8 @@ import lombok.Data;
 @Data
 public class SOPCheckpointDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String checkpointId;
     
     private Long frequencyId;

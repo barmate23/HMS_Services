@@ -17,6 +17,10 @@ public class KitchenIngredient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     /** Auto-generated code: ING-001, ING-002, … */
     @Column(name = "ingredient_code", nullable = false, unique = true, length = 20)
     private String ingredientCode;

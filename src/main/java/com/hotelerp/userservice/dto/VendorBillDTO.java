@@ -19,6 +19,9 @@ public class VendorBillDTO {
     private Long id;
     private String billNumber;
 
+    private Long hotelId;
+    private String hotelName;
+
     private Long supplierId;
     private String supplierName;
 

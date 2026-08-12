@@ -18,20 +18,22 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     /** Find the active recipe for a specific MenuItem. */
     Optional<Recipe> findByMenuItemIdAndIsDeletedFalse(Long menuItemId);
 
-    /** Paginated list of all active recipes. */
+    /** Paginated list of all active recipes filtered by hotelId. */
     @Query("""
             SELECT r FROM Recipe r
             WHERE r.isDeleted = false
+              AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
             ORDER BY r.createdAt DESC
             """)
-    Page<Recipe> findAllActive(Pageable pageable);
+    Page<Recipe> findAllActive(@Param("hotelId") Long hotelId, Pageable pageable);
 
-    /** List of all active recipes for summary calculations. */
+    /** List of all active recipes for summary calculations filtered by hotelId. */
     @Query("""
             SELECT r FROM Recipe r
             WHERE r.isDeleted = false
+              AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
             """)
-    java.util.List<Recipe> findAllActiveList();
+    java.util.List<Recipe> findAllActiveList(@Param("hotelId") Long hotelId);
 
     /** Check if a recipe already exists for a given menu item (excluding a specific id on update). */
     boolean existsByMenuItemIdAndIsDeletedFalse(Long menuItemId);

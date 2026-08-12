@@ -17,6 +17,10 @@ public class DiningTable {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "outlet_id", nullable = false)
     private Outlet outlet;
 

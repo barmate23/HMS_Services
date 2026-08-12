@@ -19,6 +19,5 @@ public class PosItemStatDTO {
     private BigDecimal avgRate;
     private List<MonthlyStatDTO> monthlyTrend;
     private BigDecimal totalValue;
-    private String imageUrl;
     private byte[] itemImage;
 }

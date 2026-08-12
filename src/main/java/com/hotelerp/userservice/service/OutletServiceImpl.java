@@ -1,11 +1,14 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.OutletDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.Outlet;
 import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.OutletRepository;
 import com.hotelerp.userservice.repository.UserRepository;
 import com.hotelerp.userservice.exception.ResourceNotFoundException;
@@ -25,6 +28,8 @@ public class OutletServiceImpl implements OutletService {
     private final OutletRepository outletRepository;
     private final CommonMasterRepository commonMasterRepository;
     private final UserRepository userRepository;
+    private final HotelRepository hotelRepository;
+    private final LoginUser loginUser;
 
     @Override
     @Transactional
@@ -42,8 +47,16 @@ public class OutletServiceImpl implements OutletService {
                         .orElseThrow(() -> new ResourceNotFoundException("Manager (User) not found with ID: " + dto.getManagerId()));
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Hotel hotel = null;
+            if (hotelId != null) {
+                hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            }
+
             Outlet outlet = Outlet.builder()
                     .name(dto.getName())
+                    .hotel(hotel)
                     .type(type)
                     .location(dto.getLocation())
                     .timing(dto.getTiming())
@@ -83,6 +96,13 @@ public class OutletServiceImpl implements OutletService {
                 outlet.setManager(manager);
             }
 
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            if (hotelId != null) {
+                Hotel hotel = hotelRepository.findById(hotelId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+                outlet.setHotel(hotel);
+            }
+
             outlet.setLocation(dto.getLocation());
             outlet.setTiming(dto.getTiming());
             outlet.setTaxProfile(dto.getTaxProfile());
@@ -117,8 +137,15 @@ public class OutletServiceImpl implements OutletService {
     @Override
     public StandardResponse<List<OutletDTO>> getAllOutlets() {
         try {
-            List<OutletDTO> dtos = outletRepository.findAll().stream()
-                    .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
+            Long hotelId = (loginUser != null) ? loginUser.getHotelId() : null;
+            List<Outlet> outlets;
+            if (hotelId != null) {
+                outlets = outletRepository.findByHotel_IdAndIsDeletedFalse(hotelId);
+            } else {
+                outlets = outletRepository.findByIsDeletedFalse();
+            }
+
+            List<OutletDTO> dtos = outlets.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
             return StandardResponse.success(dtos, "All outlets fetched successfully");
@@ -148,6 +175,8 @@ public class OutletServiceImpl implements OutletService {
     private OutletDTO convertToDTO(Outlet outlet) {
         return OutletDTO.builder()
                 .id(outlet.getId())
+                .hotelId(outlet.getHotel() != null ? outlet.getHotel().getId() : null)
+                .hotelName(outlet.getHotel() != null ? outlet.getHotel().getName() : null)
                 .name(outlet.getName())
                 .typeId(outlet.getType().getId())
                 .typeValue(outlet.getType().getValue())

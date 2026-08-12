@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class GrnDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private String grnNumber;
 
     private Long purchaseOrderId;

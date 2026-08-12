@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class KitchenIngredientRequestDTO {
 
+    private Long hotelId;
     private String ingredientName;
 
     // Category ID from CommonMaster

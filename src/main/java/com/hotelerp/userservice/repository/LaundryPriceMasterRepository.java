@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface LaundryPriceMasterRepository extends JpaRepository<LaundryPriceMaster, Long> {
     List<LaundryPriceMaster> findByStatus(String status);
+    List<LaundryPriceMaster> findByHotel_IdAndStatus(Long hotelId, String status);
+    List<LaundryPriceMaster> findByHotel_Id(Long hotelId);
 }

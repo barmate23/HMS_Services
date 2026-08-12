@@ -19,6 +19,10 @@ public class PurchaseOrderLine {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_order_id", nullable = false)
     @JsonIgnore
     private PurchaseOrder purchaseOrder;

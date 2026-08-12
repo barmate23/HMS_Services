@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @Builder
 public class RoomAuditLogDTO {
     private Long id;
+    private Long hotelId;
+    private String hotelName;
     private Long roomId;
     private String roomNumber;
     private Long checkpointId;

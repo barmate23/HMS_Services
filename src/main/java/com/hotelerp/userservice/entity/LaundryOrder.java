@@ -16,6 +16,10 @@ public class LaundryOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
     @Column(name = "order_id", unique = true, nullable = false, length = 20)
     private String orderId;
 

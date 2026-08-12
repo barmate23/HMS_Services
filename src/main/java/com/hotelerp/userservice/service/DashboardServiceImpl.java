@@ -214,7 +214,6 @@ public class DashboardServiceImpl implements DashboardService {
                             .rate(item.getPrice())
                             .avgRate(totalQty > 0 ? totalVal.divide(BigDecimal.valueOf(totalQty), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO)
                             .totalValue(totalVal)
-                            .imageUrl(imageStr)
                             .itemImage(item.getItemImage())
                             .monthlyTrend(monthlyTrend)
                             .build();

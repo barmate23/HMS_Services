@@ -14,8 +14,10 @@ import java.util.Optional;
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
     List<PurchaseOrder> findByIsDeletedFalse();
+    List<PurchaseOrder> findByHotel_IdAndIsDeletedFalse(Long hotelId);
 
     Optional<PurchaseOrder> findByIdAndIsDeletedFalse(Long id);
+    Optional<PurchaseOrder> findByIdAndHotel_IdAndIsDeletedFalse(Long id, Long hotelId);
 
     Optional<PurchaseOrder> findByPoNumberAndIsDeletedFalse(String poNumber);
 
@@ -24,20 +26,22 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     // Count POs whose status code is NOT in the given list
     long countByStatus_CodeNotInAndIsDeletedFalse(List<String> statusCodes);
+    long countByHotel_IdAndStatus_CodeNotInAndIsDeletedFalse(Long hotelId, List<String> statusCodes);
 
     // Count POs by exact status code
     long countByStatus_CodeAndIsDeletedFalse(String statusCode);
+    long countByHotel_IdAndStatus_CodeAndIsDeletedFalse(Long hotelId, String statusCode);
 
     // Sum total PO amount (active records)
-    @Query("SELECT SUM(po.totalAmount) FROM PurchaseOrder po WHERE po.isDeleted = false")
-    BigDecimal sumTotalAmountByIsDeletedFalse();
+    @Query("SELECT SUM(po.totalAmount) FROM PurchaseOrder po WHERE po.isDeleted = false AND (:hotelId IS NULL OR po.hotel.id = :hotelId)")
+    BigDecimal sumTotalAmountByIsDeletedFalse(@Param("hotelId") Long hotelId);
 
     // Sum PO amount grouped by supplier category (for Supplier Categories section)
     @Query("""
             SELECT po.supplier.category.value, SUM(po.totalAmount)
             FROM PurchaseOrder po
-            WHERE po.isDeleted = false AND po.supplier.category IS NOT NULL
+            WHERE po.isDeleted = false AND (:hotelId IS NULL OR po.hotel.id = :hotelId) AND po.supplier.category IS NOT NULL
             GROUP BY po.supplier.category.id, po.supplier.category.value
             """)
-    List<Object[]> sumPoValueBySupplierCategory();
+    List<Object[]> sumPoValueBySupplierCategory(@Param("hotelId") Long hotelId);
 }

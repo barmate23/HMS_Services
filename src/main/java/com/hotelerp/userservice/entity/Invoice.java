@@ -18,6 +18,10 @@ public class Invoice {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id")
+    private Hotel hotel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folio_id", nullable = false)
     private Folio folio;
 
