@@ -1,5 +1,6 @@
 package com.hotelerp.userservice.service;
 
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.hkdashboard.*;
 import com.hotelerp.userservice.entity.*;
@@ -26,18 +27,37 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
         private final UserRoomMapRepository userRoomMapRepository;
         private final UserRepository userRepository;
         private final CommonMasterRepository commonMasterRepository;
+        private final LoginUser loginUser;
 
         @Override
         public StandardResponse<HousekeepingDashboardDTO> getHousekeepingDashboardData() {
                 try {
-                        List<Room> allRooms = roomRepository.findAll();
-                        List<Floor> allFloors = floorRepository.findAll();
-                        List<Task> allTasks = taskRepository.findAll();
-                        List<MaintenanceRequest> allMaintenance = maintenanceRepository.findAll();
-                        List<LostAndFoundItem> allLostFound = lostAndFoundRepository.findAll();
-                        List<RoomAuditLog> allAuditLogs = roomAuditLogRepository.findAll();
-                        List<SOPCheckpoint> allCheckpoints = sopCheckpointRepository.findAll();
-                        List<UserRoomMap> roomAssignments = userRoomMapRepository.findAll();
+                        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+
+                        List<Room> allRooms = (hotelId != null)
+                                        ? roomRepository.findByFloor_Hotel_IdAndIsDeletedFalse(hotelId)
+                                        : roomRepository.findByIsDeletedFalse();
+                        List<Floor> allFloors = (hotelId != null)
+                                        ? floorRepository.findByHotel_Id(hotelId)
+                                        : floorRepository.findAll();
+                        List<Task> allTasks = (hotelId != null)
+                                        ? taskRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : taskRepository.findByIsDeletedFalse();
+                        List<MaintenanceRequest> allMaintenance = (hotelId != null)
+                                        ? maintenanceRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : maintenanceRepository.findByIsDeletedFalse();
+                        List<LostAndFoundItem> allLostFound = (hotelId != null)
+                                        ? lostAndFoundRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : lostAndFoundRepository.findByIsDeletedFalse();
+                        List<RoomAuditLog> allAuditLogs = (hotelId != null)
+                                        ? roomAuditLogRepository.findByHotel_Id(hotelId)
+                                        : roomAuditLogRepository.findAll();
+                        List<SOPCheckpoint> allCheckpoints = (hotelId != null)
+                                        ? sopCheckpointRepository.findByHotel_Id(hotelId)
+                                        : sopCheckpointRepository.findAll();
+                        List<UserRoomMap> roomAssignments = (hotelId != null)
+                                        ? userRoomMapRepository.findByHotel_Id(hotelId)
+                                        : userRoomMapRepository.findAll();
 
                         // 1. Summary Metrics
                         int readyRooms = (int) allRooms.stream()
@@ -89,7 +109,9 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                                         .inProgress((int) allTasks.stream()
                                                         .filter(t -> t.getStatus() != null && "IN_PROGRESS".equals(t.getStatus().getCode()))
                                                         .count())
-                                        .staffProfiles((int) userRepository.count()) // simplified
+                                        .staffProfiles((hotelId != null)
+                                                        ? (int) userRepository.countByProperty_IdAndIsDeletedFalse(hotelId)
+                                                        : (int) userRepository.count())
                                         .build();
 
                         // 4. Audit Readiness

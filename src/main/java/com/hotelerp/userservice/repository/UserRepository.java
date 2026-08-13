@@ -46,4 +46,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.department.name = :department")
     java.util.List<User> findByDepartmentValue(@Param("department") String department);
 
+    long countByProperty_IdAndIsDeletedFalse(Long propertyId);
+
 }

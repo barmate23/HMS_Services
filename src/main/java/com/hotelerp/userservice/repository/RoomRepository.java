@@ -8,5 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface RoomRepository extends JpaRepository<Room, Long> {
     java.util.List<Room> findByFloorId(Long floorId);
     java.util.List<Room> findByIsDeletedFalse();
+    java.util.List<Room> findByFloor_Hotel_IdAndIsDeletedFalse(Long hotelId);
 }
 

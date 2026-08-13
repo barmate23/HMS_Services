@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface FloorRepository extends JpaRepository<Floor, Long> {
+    java.util.List<Floor> findByHotel_Id(Long hotelId);
 }
