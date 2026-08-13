@@ -52,7 +52,8 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<LaundryPriceMasterDTO> createPriceMaster(LaundryPriceMasterDTO dto) {
         try {
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             Hotel hotel = null;
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
@@ -74,7 +75,8 @@ public class LaundryServiceImpl implements LaundryService {
             return StandardResponse.success(convertToDTO(entity), "Price Master item created successfully");
         } catch (Exception e) {
             log.error("Error creating Price Master: ", e);
-            return StandardResponse.error("Failed to create Price Master item", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to create Price Master item", "INTERNAL_SERVER_ERROR",
+                    e.getMessage());
         }
     }
 
@@ -92,7 +94,8 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setServicePrices(normalizeServicePrices(dto.getServicePrices()));
             entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             if (hotelId != null && entity.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
@@ -103,14 +106,15 @@ public class LaundryServiceImpl implements LaundryService {
             return StandardResponse.success(convertToDTO(entity), "Price Master item updated successfully");
         } catch (Exception e) {
             log.error("Error updating Price Master: ", e);
-            return StandardResponse.error("Failed to update Price Master item", "INTERNAL_SERVER_ERROR", e.getMessage());
+            return StandardResponse.error("Failed to update Price Master item", "INTERNAL_SERVER_ERROR",
+                    e.getMessage());
         }
     }
 
     @Override
     public StandardResponse<List<LaundryPriceMasterDTO>> getAllPriceMasters() {
         Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
-        List<LaundryPriceMaster> list = (hotelId != null) 
+        List<LaundryPriceMaster> list = (hotelId != null)
                 ? priceMasterRepository.findByHotel_Id(hotelId)
                 : priceMasterRepository.findAll();
         List<LaundryPriceMasterDTO> dtos = list.stream()
@@ -142,13 +146,16 @@ public class LaundryServiceImpl implements LaundryService {
     public StandardResponse<LaundryServiceCatalogDTO> createServiceCatalog(LaundryServiceCatalogDTO dto) {
         try {
             if (dto.getServiceName() == null || dto.getServiceName().trim().isEmpty()) {
-                return StandardResponse.error("Service name is required", "VALIDATION_ERROR", "serviceName", "Service name cannot be blank");
+                return StandardResponse.error("Service name is required", "VALIDATION_ERROR", "serviceName",
+                        "Service name cannot be blank");
             }
             if (serviceCatalogRepository.existsByServiceNameIgnoreCase(dto.getServiceName().trim())) {
-                return StandardResponse.error("Service already exists", "DUPLICATE_SERVICE", "serviceName", dto.getServiceName());
+                return StandardResponse.error("Service already exists", "DUPLICATE_SERVICE", "serviceName",
+                        dto.getServiceName());
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             Hotel hotel = null;
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
@@ -189,7 +196,8 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setDisplayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : entity.getDisplayOrder());
             entity.setStatus(defaultString(dto.getStatus(), entity.getStatus()));
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             if (hotelId != null && entity.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
@@ -222,7 +230,8 @@ public class LaundryServiceImpl implements LaundryService {
         seedDefaultServiceCatalogIfEmpty();
         Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
         List<LaundryServiceCatalog> list = (hotelId != null)
-                ? serviceCatalogRepository.findByHotel_IdAndStatusOrderByDisplayOrderAscServiceNameAsc(hotelId, "ACTIVE")
+                ? serviceCatalogRepository.findByHotel_IdAndStatusOrderByDisplayOrderAscServiceNameAsc(hotelId,
+                        "ACTIVE")
                 : serviceCatalogRepository.findByStatusOrderByDisplayOrderAscServiceNameAsc("ACTIVE");
         List<LaundryServiceCatalogDTO> dtos = list.stream()
                 .map(this::convertToDTO)
@@ -252,15 +261,8 @@ public class LaundryServiceImpl implements LaundryService {
             Room room = roomRepository.findById(dto.getRoomId())
                     .orElseThrow(() -> new RuntimeException("Room not found"));
 
-            java.time.LocalDate today = java.time.LocalDate.now();
-            boolean hasActiveBooking = !bookingRepository.findActiveByRoomAndDate(room.getId(), today).isEmpty();
-            if (!hasActiveBooking) {
-                String floorNo = (room.getFloor() != null && room.getFloor().getFloorNumber() != null) ? room.getFloor().getFloorNumber() : "N/A";
-                String roomNo = room.getRoomNumber() != null ? room.getRoomNumber() : "N/A";
-                return StandardResponse.error("Room " + floorNo + " - " + roomNo + " is not booked", "ROOM_NOT_BOOKED", null);
-            }
-
-            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
+            double gstPercent = gstRuleRepository
+                    .findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
                     .map(r -> r.getIgstRate().doubleValue())
                     .orElse(0.0);
 
@@ -268,7 +270,8 @@ public class LaundryServiceImpl implements LaundryService {
             List<String> selectedServices = selectedServices(dto);
             String serviceType = joinServices(selectedServices);
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             Hotel hotel = null;
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
@@ -292,7 +295,8 @@ public class LaundryServiceImpl implements LaundryService {
             double totalAmount = 0;
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
-                        .orElseThrow(() -> new RuntimeException("Item not found in Price Master: " + itemDto.getPriceMasterId()));
+                        .orElseThrow(() -> new RuntimeException(
+                                "Item not found in Price Master: " + itemDto.getPriceMasterId()));
                 double basePrice = getPriceForServices(priceMaster, selectedServices);
                 double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 totalAmount += unitPrice * itemDto.getQuantity();
@@ -332,7 +336,6 @@ public class LaundryServiceImpl implements LaundryService {
                 }
             }
 
-
             return StandardResponse.success(convertToDTO(order), "Laundry order created successfully");
         } catch (Exception e) {
             log.error("Error creating laundry order: ", e);
@@ -347,7 +350,8 @@ public class LaundryServiceImpl implements LaundryService {
             LaundryOrder order = orderRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
 
-            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
+            double gstPercent = gstRuleRepository
+                    .findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
                     .map(r -> r.getIgstRate().doubleValue())
                     .orElse(0.0);
 
@@ -358,9 +362,11 @@ public class LaundryServiceImpl implements LaundryService {
             order.setExpectedDelivery(dto.getExpectedDelivery());
             order.setSpecialInstructions(dto.getSpecialInstructions());
             order.setGuestName(dto.getGuestName());
-            if (dto.getStatus() != null) order.setStatus(dto.getStatus());
+            if (dto.getStatus() != null)
+                order.setStatus(dto.getStatus());
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             if (hotelId != null && order.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
@@ -550,23 +556,33 @@ public class LaundryServiceImpl implements LaundryService {
         String normalized = normalizeServiceName(serviceType);
         if (item.getServicePrices() != null && item.getServicePrices().containsKey(normalized)) {
             Double configuredPrice = item.getServicePrices().get(normalized);
-            if (configuredPrice != null && configuredPrice > 0) return configuredPrice;
+            if (configuredPrice != null && configuredPrice > 0)
+                return configuredPrice;
         }
         String pricingBasis = pricingBasisForService(serviceType);
-        if ("washFold".equals(pricingBasis)) return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
-        if ("washPress".equals(pricingBasis)) return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
-        if ("dryClean".equals(pricingBasis)) return item.getDryCleanPrice() != null ? item.getDryCleanPrice() : 0.0;
+        if ("washFold".equals(pricingBasis))
+            return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
+        if ("washPress".equals(pricingBasis))
+            return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
+        if ("dryClean".equals(pricingBasis))
+            return item.getDryCleanPrice() != null ? item.getDryCleanPrice() : 0.0;
         if ("express".equals(pricingBasis)) {
-            double base = item.getWashPressPrice() != null ? item.getWashPressPrice() : item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
-            double surcharge = item.getExpressSurchargePercentage() != null ? item.getExpressSurchargePercentage() : 0.0;
+            double base = item.getWashPressPrice() != null ? item.getWashPressPrice()
+                    : item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
+            double surcharge = item.getExpressSurchargePercentage() != null ? item.getExpressSurchargePercentage()
+                    : 0.0;
             return base * (1 + surcharge / 100);
         }
-        if ("Wash & Fold".equalsIgnoreCase(serviceType)) return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
-        if ("Wash & Press".equalsIgnoreCase(serviceType)) return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
-        if ("Dry Clean".equalsIgnoreCase(serviceType)) return item.getDryCleanPrice() != null ? item.getDryCleanPrice() : 0.0;
+        if ("Wash & Fold".equalsIgnoreCase(serviceType))
+            return item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
+        if ("Wash & Press".equalsIgnoreCase(serviceType))
+            return item.getWashPressPrice() != null ? item.getWashPressPrice() : 0.0;
+        if ("Dry Clean".equalsIgnoreCase(serviceType))
+            return item.getDryCleanPrice() != null ? item.getDryCleanPrice() : 0.0;
         if ("Express".equalsIgnoreCase(serviceType)) {
             double base = item.getWashFoldPrice() != null ? item.getWashFoldPrice() : 0.0;
-            double surcharge = item.getExpressSurchargePercentage() != null ? item.getExpressSurchargePercentage() : 0.0;
+            double surcharge = item.getExpressSurchargePercentage() != null ? item.getExpressSurchargePercentage()
+                    : 0.0;
             return base * (1 + surcharge / 100);
         }
         return 0.0;
@@ -596,7 +612,8 @@ public class LaundryServiceImpl implements LaundryService {
     }
 
     private List<String> splitServices(String serviceType) {
-        if (serviceType == null || serviceType.trim().isEmpty()) return List.of();
+        if (serviceType == null || serviceType.trim().isEmpty())
+            return List.of();
         return List.of(serviceType.split(","))
                 .stream()
                 .map(String::trim)
@@ -620,17 +637,20 @@ public class LaundryServiceImpl implements LaundryService {
 
     private Map<String, Double> normalizeServicePrices(Map<String, Double> servicePrices) {
         Map<String, Double> normalized = new LinkedHashMap<>();
-        if (servicePrices == null) return normalized;
+        if (servicePrices == null)
+            return normalized;
         servicePrices.forEach((serviceName, price) -> {
             String key = normalizeServiceName(serviceName);
-            if (!key.isEmpty()) normalized.put(key, price != null ? price : 0.0);
+            if (!key.isEmpty())
+                normalized.put(key, price != null ? price : 0.0);
         });
         return normalized;
     }
 
     private Map<String, Double> servicePricesForDTO(LaundryPriceMaster entity) {
         Map<String, Double> prices = new LinkedHashMap<>();
-        if (entity.getServicePrices() != null) prices.putAll(entity.getServicePrices());
+        if (entity.getServicePrices() != null)
+            prices.putAll(entity.getServicePrices());
         putIfMissing(prices, "Wash & Fold", entity.getWashFoldPrice());
         putIfMissing(prices, "Wash & Press", entity.getWashPressPrice());
         putIfMissing(prices, "Dry Clean", entity.getDryCleanPrice());
@@ -639,7 +659,8 @@ public class LaundryServiceImpl implements LaundryService {
 
     private void putIfMissing(Map<String, Double> prices, String serviceName, Double price) {
         String key = normalizeServiceName(serviceName);
-        if (!prices.containsKey(key) && price != null) prices.put(key, price);
+        if (!prices.containsKey(key) && price != null)
+            prices.put(key, price);
     }
 
     private String normalizeServiceName(String serviceName) {
@@ -654,13 +675,19 @@ public class LaundryServiceImpl implements LaundryService {
     }
 
     private void seedDefaultServiceCatalogIfEmpty() {
-        if (serviceCatalogRepository.count() > 0) return;
+        if (serviceCatalogRepository.count() > 0)
+            return;
         List<LaundryServiceCatalog> defaults = List.of(
-                LaundryServiceCatalog.builder().serviceName("Wash & Fold").pricingBasis("washFold").description("Standard wash, dry and folded packaging.").displayOrder(1).status("ACTIVE").build(),
-                LaundryServiceCatalog.builder().serviceName("Wash & Press").pricingBasis("washPress").description("Washed garments with pressed finish.").displayOrder(2).status("ACTIVE").build(),
-                LaundryServiceCatalog.builder().serviceName("Dry Clean").pricingBasis("dryClean").description("Premium care for delicate garments.").displayOrder(3).status("ACTIVE").build(),
-                LaundryServiceCatalog.builder().serviceName("Express").pricingBasis("express").description("Priority room pickup and delivery surcharge.").displayOrder(4).status("ACTIVE").build()
-        );
+                LaundryServiceCatalog.builder().serviceName("Wash & Fold").pricingBasis("washFold")
+                        .description("Standard wash, dry and folded packaging.").displayOrder(1).status("ACTIVE")
+                        .build(),
+                LaundryServiceCatalog.builder().serviceName("Wash & Press").pricingBasis("washPress")
+                        .description("Washed garments with pressed finish.").displayOrder(2).status("ACTIVE").build(),
+                LaundryServiceCatalog.builder().serviceName("Dry Clean").pricingBasis("dryClean")
+                        .description("Premium care for delicate garments.").displayOrder(3).status("ACTIVE").build(),
+                LaundryServiceCatalog.builder().serviceName("Express").pricingBasis("express")
+                        .description("Priority room pickup and delivery surcharge.").displayOrder(4).status("ACTIVE")
+                        .build());
         serviceCatalogRepository.saveAll(defaults);
     }
 }
