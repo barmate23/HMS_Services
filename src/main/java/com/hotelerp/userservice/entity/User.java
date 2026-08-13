@@ -31,6 +31,11 @@ public class User {
     @Column(name = "fullName", nullable = false, length = 150)
     private String fullName;
 
+    /** e.g. HMS Cloud - Main Hotel */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    private Hotel property;
+
     @Column(name = "username", nullable = false, unique = true, length = 100)
     private String username;
 

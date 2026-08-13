@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.RoomAssignmentDTO;
 import com.hotelerp.userservice.dto.StaffDTO;
 import com.hotelerp.userservice.dto.TaskDTO;
@@ -31,12 +32,14 @@ public class StaffServiceImpl implements StaffService {
     private final TaskRepository taskRepository;
     private final UserRoomMapRepository userRoomMapRepository;
     private final RoomRepository roomRepository;
+    private final LoginUser loginUser;
 
     @Override
     public StandardResponse<List<StaffDTO>> getHousekeepingStaff() {
         try {
-            // Fetching staff from 'Housekeeping' department
-            List<User> staffList = userRepository.findByDepartmentValue("Housekeeping");
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            // Fetching staff from 'Housekeeping' department filtered by hotel property
+            List<User> staffList = userRepository.findByDepartmentValueAndPropertyId("Housekeeping", hotelId);
             
             List<StaffDTO> dtos = staffList.stream().map(user -> {
                 // Task Analysis

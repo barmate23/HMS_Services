@@ -46,6 +46,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.department.name = :department")
     java.util.List<User> findByDepartmentValue(@Param("department") String department);
 
+    @Query("SELECT u FROM User u WHERE u.department.name = :department AND (:propertyId IS NULL OR u.property.id = :propertyId) AND (u.isDeleted = false OR u.isDeleted IS NULL)")
+    java.util.List<User> findByDepartmentValueAndPropertyId(@Param("department") String department, @Param("propertyId") Long propertyId);
+
     long countByProperty_IdAndIsDeletedFalse(Long propertyId);
 
 }
