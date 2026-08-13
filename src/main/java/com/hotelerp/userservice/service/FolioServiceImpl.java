@@ -157,15 +157,25 @@ public class FolioServiceImpl implements FolioService {
             }
 
             LocalDate today = LocalDate.now();
-            Booking booking = bookingRepository.findActiveByRoomAndDate(roomId, today)
-                    .stream().findFirst()
-                    .orElseThrow(() -> new RuntimeException(
-                            "No active booking found for room " + roomId + " on " + today));
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            if (activeBookings.isEmpty()) {
+                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
+            }
 
-            Folio folio = folioRepository
-                    .findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Folio not found for reservation of room " + roomId));
+            if (activeBookings.isEmpty()) {
+                throw new RuntimeException("No active booking found for room ID: " + roomId);
+            }
+
+            Booking booking = activeBookings.get(0);
+
+            Folio folio = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
+                    .orElseGet(() -> {
+                        StandardResponse<Long> response = createFolioForReservation(booking.getReservation().getId());
+                        if (!response.isSuccess()) {
+                            throw new RuntimeException("Failed to create folio: " + response.getMessage());
+                        }
+                        return folioRepository.findById(response.getData()).get();
+                    });
 
             // Delegate to postCharge with the resolved folioId
             return postCharge(FolioPostingRequest.builder()
@@ -186,9 +196,17 @@ public class FolioServiceImpl implements FolioService {
     public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source,
             String description) {
         try {
-            Booking booking = bookingRepository.findByRoomIdAndIsDeletedFalse(roomId).stream()
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("No active booking found for room ID: " + roomId));
+            LocalDate today = LocalDate.now();
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            if (activeBookings.isEmpty()) {
+                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
+            }
+
+            if (activeBookings.isEmpty()) {
+                throw new RuntimeException("No active booking found for room ID: " + roomId);
+            }
+
+            Booking booking = activeBookings.get(0);
 
             Folio folio = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId())
                     .orElseGet(() -> {
