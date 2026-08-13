@@ -158,6 +158,7 @@ public class FolioServiceImpl implements FolioService {
 
             LocalDate today = LocalDate.now();
             Booking booking = bookingRepository.findActiveByRoomAndDate(roomId, today)
+                    .stream().findFirst()
                     .orElseThrow(() -> new RuntimeException(
                             "No active booking found for room " + roomId + " on " + today));
 

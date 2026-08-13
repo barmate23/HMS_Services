@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -22,12 +23,11 @@ public class RoomReservationServiceImpl implements RoomReservationService {
     private final RoomRepository    roomRepository;
 
     /**
-     * Finds the active Booking for today via the already-proven
-     * BookingRepository.findActiveByRoomAndDate query, then navigates
-     * to Reservation and Guest through the loaded entity graph.
+     * Finds the active Booking for today by looking up the room ID in the Booking
+     * table and matching checkInDate & checkOutDate from the linked Reservation table.
      *
-     * @Transactional is required because Room, RoomType, Floor, Reservation,
-     * Guest, bookingStatus, and reservationStatus are all LAZY-fetched.
+     * @Transactional ensures all LAZY-loaded associations (Reservation, Guest,
+     * RoomType, Floor, statuses) can be safely navigated.
      */
     @Override
     @Transactional(readOnly = true)
@@ -43,56 +43,62 @@ public class RoomReservationServiceImpl implements RoomReservationService {
 
             LocalDate today = LocalDate.now();
 
-            // 2. Find the active booking line for this room on today's date.
-            //    The query: checkInDate <= today < checkOutDate AND isDeleted = false
-            Optional<Booking> bookingOpt =
-                    bookingRepository.findActiveByRoomAndDate(roomId, today);
+            // 2. Find active booking for today where date is between Reservation's checkInDate & checkOutDate
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
 
-            if (bookingOpt.isEmpty()) {
+            // 3. Fallback: If no date-matched booking, find the latest booking record for this room
+            if (activeBookings.isEmpty()) {
+                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
+            }
+
+            if (activeBookings.isEmpty()) {
                 return StandardResponse.error(
                         "No active reservation found for room id: " + roomId,
                         "NO_ACTIVE_RESERVATION",
-                        "There is no active check-in on " + today + " for roomId = " + roomId);
+                        "There is no active reservation for roomId = " + roomId);
             }
 
-            Booking     booking     = bookingOpt.get();
-            Reservation reservation = booking.getReservation();   // LAZY – safe inside @Transactional
-            Guest       guest       = reservation.getGuest();      // LAZY – safe inside @Transactional
+            Booking booking = activeBookings.get(0);
+            Reservation reservation = booking.getReservation();
+            Guest guest = (reservation != null) ? reservation.getGuest() : null;
 
-            // 3. Map to DTO
+            // 4. Map details to DTO
             RoomReservationDTO dto = RoomReservationDTO.builder()
                     // Booking / Reservation IDs
                     .bookingId(booking.getId())
-                    .reservationId(reservation.getId())
+                    .reservationId(reservation != null ? reservation.getId() : null)
 
-                    // Room
-                    .roomId(booking.getRoom().getId())
-                    .roomNumber(booking.getRoom().getRoomNumber())
-                    .roomType(booking.getRoom().getRoomType() != null
+                    // Room Info (from Booking -> Room)
+                    .roomId(booking.getRoom() != null ? booking.getRoom().getId() : roomId)
+                    .roomNumber(booking.getRoom() != null ? booking.getRoom().getRoomNumber() : null)
+                    .roomType(booking.getRoom() != null && booking.getRoom().getRoomType() != null
                             ? booking.getRoom().getRoomType().getName() : null)
-                    .floorName(booking.getRoom().getFloor() != null
+                    .floorName(booking.getRoom() != null && booking.getRoom().getFloor() != null
                             ? booking.getRoom().getFloor().getFloorNumber() : null)
 
-                    // Guest
-                    .guestId(guest.getId())
+                    // Guest Info
+                    .guestId(guest != null ? guest.getId() : null)
                     .guestName(buildFullName(guest))
-                    .guestPhone(guest.getPhone())
-                    .guestEmail(guest.getEmail())
-                    .guestNationality(guest.getNationality())
-                    .isVip(guest.getIsVip())
+                    .guestPhone(guest != null ? guest.getPhone() : null)
+                    .guestEmail(guest != null ? guest.getEmail() : null)
+                    .guestNationality(guest != null ? guest.getNationality() : null)
+                    .isVip(guest != null ? guest.getIsVip() : false)
 
-                    // Stay
-                    .checkInDate(booking.getCheckInDate())
-                    .checkInTime(reservation.getCheckInTime())
-                    .checkOutDate(booking.getCheckOutDate())
-                    .checkOutTime(reservation.getCheckOutTime())
-                    .numberOfNights(booking.getNumberOfNights())
-                    .numberOfAdults(reservation.getNumberOfAdults())
-                    .numberOfChildren(reservation.getNumberOfChildren())
-                    .totalGuests(reservation.getTotalGuests())
+                    // Stay Info (Check-in & Check-out dates from Reservation entity)
+                    .checkInDate(reservation != null && reservation.getCheckInDate() != null
+                            ? reservation.getCheckInDate() : booking.getCheckInDate())
+                    .checkInTime(reservation != null ? reservation.getCheckInTime() : null)
+                    .checkOutDate(reservation != null && reservation.getCheckOutDate() != null
+                            ? reservation.getCheckOutDate() : booking.getCheckOutDate())
+                    .checkOutTime(reservation != null ? reservation.getCheckOutTime() : null)
+                    .numberOfNights(booking.getNumberOfNights() != null ? booking.getNumberOfNights()
+                            : (reservation != null ? reservation.getNumberOfNights() : null))
+                    .numberOfAdults(reservation != null ? reservation.getNumberOfAdults() : null)
+                    .numberOfChildren(reservation != null ? reservation.getNumberOfChildren() : 0)
+                    .totalGuests(reservation != null ? reservation.getTotalGuests() : null)
 
-                    // Rate
-                    .ratePlanName(reservation.getRatePlan() != null
+                    // Rate Info
+                    .ratePlanName(reservation != null && reservation.getRatePlan() != null
                             ? reservation.getRatePlan().getName() : null)
                     .ratePerNight(booking.getRatePerNight())
                     .ratePlanCharge(booking.getRatePlanCharge())
@@ -101,25 +107,25 @@ public class RoomReservationServiceImpl implements RoomReservationService {
                     .discountAmount(booking.getDiscountAmount())
                     .finalPrice(booking.getFinalPrice())
 
-                    // Billing
-                    .billingName(reservation.getBillingName())
-                    .billingMode(reservation.getBillingMode())
-                    .gstNumber(reservation.getGstNumber())
-                    .organisationName(reservation.getOrganisationName())
-                    .travelAgentName(reservation.getTravelAgentName())
-                    .businessSource(reservation.getBusinessSource())
-                    .marketSegment(reservation.getMarketSegment())
-                    .bookingReference(reservation.getBookingReference())
+                    // Billing Info
+                    .billingName(reservation != null ? reservation.getBillingName() : null)
+                    .billingMode(reservation != null ? reservation.getBillingMode() : null)
+                    .gstNumber(reservation != null ? reservation.getGstNumber() : null)
+                    .organisationName(reservation != null ? reservation.getOrganisationName() : null)
+                    .travelAgentName(reservation != null ? reservation.getTravelAgentName() : null)
+                    .businessSource(reservation != null ? reservation.getBusinessSource() : null)
+                    .marketSegment(reservation != null ? reservation.getMarketSegment() : null)
+                    .bookingReference(reservation != null ? reservation.getBookingReference() : null)
 
                     // Status
                     .bookingStatus(booking.getBookingStatus() != null
                             ? booking.getBookingStatus().getValue() : null)
-                    .reservationStatus(reservation.getReservationStatus() != null
+                    .reservationStatus(reservation != null && reservation.getReservationStatus() != null
                             ? reservation.getReservationStatus().getValue() : null)
 
                     // Notes
-                    .specialRequests(reservation.getSpecialRequests())
-                    .notes(reservation.getNotes())
+                    .specialRequests(reservation != null ? reservation.getSpecialRequests() : null)
+                    .notes(reservation != null ? reservation.getNotes() : null)
                     .build();
 
             return StandardResponse.success(dto, "Active reservation details fetched successfully");
@@ -135,11 +141,17 @@ public class RoomReservationServiceImpl implements RoomReservationService {
     // ── Helper ────────────────────────────────────────────────────────────────
 
     private String buildFullName(Guest guest) {
+        if (guest == null) return null;
         StringBuilder sb = new StringBuilder();
         if (guest.getTitle() != null) {
             sb.append(guest.getTitle().name()).append(" ");
         }
-        sb.append(guest.getFirstName()).append(" ").append(guest.getLastName());
+        if (guest.getFirstName() != null) {
+            sb.append(guest.getFirstName()).append(" ");
+        }
+        if (guest.getLastName() != null) {
+            sb.append(guest.getLastName());
+        }
         return sb.toString().trim();
     }
 }

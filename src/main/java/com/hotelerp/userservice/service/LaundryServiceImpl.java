@@ -253,7 +253,7 @@ public class LaundryServiceImpl implements LaundryService {
                     .orElseThrow(() -> new RuntimeException("Room not found"));
 
             java.time.LocalDate today = java.time.LocalDate.now();
-            boolean hasActiveBooking = bookingRepository.findActiveByRoomAndDate(room.getId(), today).isPresent();
+            boolean hasActiveBooking = !bookingRepository.findActiveByRoomAndDate(room.getId(), today).isEmpty();
             if (!hasActiveBooking) {
                 String floorNo = (room.getFloor() != null && room.getFloor().getFloorNumber() != null) ? room.getFloor().getFloorNumber() : "N/A";
                 String roomNo = room.getRoomNumber() != null ? room.getRoomNumber() : "N/A";
