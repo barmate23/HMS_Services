@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface GstRuleRepository extends JpaRepository<GstRule, Long> {
-    Optional<GstRule> findByServiceCategoryIgnoreCaseAndIsActiveTrue(String serviceCategory);
+    Optional<GstRule> findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue( String serviceCategory, Long hotelId);
 }

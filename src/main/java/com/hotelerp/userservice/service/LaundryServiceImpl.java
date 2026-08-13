@@ -12,7 +12,6 @@ import com.hotelerp.userservice.entity.LaundryOrderItem;
 import com.hotelerp.userservice.entity.LaundryPriceMaster;
 import com.hotelerp.userservice.entity.LaundryServiceCatalog;
 import com.hotelerp.userservice.entity.Room;
-import com.hotelerp.userservice.entity.GstRule;
 import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.LaundryOrderItemRepository;
 import com.hotelerp.userservice.repository.LaundryOrderRepository;
@@ -21,7 +20,6 @@ import com.hotelerp.userservice.repository.LaundryServiceCatalogRepository;
 import com.hotelerp.userservice.repository.RoomRepository;
 import com.hotelerp.userservice.repository.BookingRepository;
 import com.hotelerp.userservice.repository.GstRuleRepository;
-import com.hotelerp.userservice.service.FolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -262,7 +260,7 @@ public class LaundryServiceImpl implements LaundryService {
                 return StandardResponse.error("Room " + floorNo + " - " + roomNo + " is not booked", "ROOM_NOT_BOOKED", null);
             }
 
-            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndIsActiveTrue("Laundry")
+            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
                     .map(r -> r.getIgstRate().doubleValue())
                     .orElse(0.0);
 
@@ -349,7 +347,7 @@ public class LaundryServiceImpl implements LaundryService {
             LaundryOrder order = orderRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
 
-            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndIsActiveTrue("Laundry")
+            double gstPercent = gstRuleRepository.findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
                     .map(r -> r.getIgstRate().doubleValue())
                     .orElse(0.0);
 

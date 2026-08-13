@@ -21,6 +21,10 @@ public class GstRule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id", nullable = false)
+    private Hotel hotel;
+
     /** Service category (fetched from CommonMaster, e.g. Room, Food, Laundry) */
     @Column(name = "service_category", nullable = false, length = 100)
     private String serviceCategory;

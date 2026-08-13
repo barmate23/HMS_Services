@@ -92,7 +92,7 @@ public class PosBillServiceImpl implements PosBillService {
             }
             Hotel hotel = null;
             if (hotelId != null) {
-                final  Long finalHotelId =  hotelId;
+                final Long finalHotelId = hotelId;
                 hotel = hotelRepository.findById(finalHotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + finalHotelId));
             }
@@ -304,9 +304,9 @@ public class PosBillServiceImpl implements PosBillService {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             PosBill bill = (hotelId != null)
                     ? posBillRepository.findByIdAndHotelId(id, hotelId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id))
+                    .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id))
                     : posBillRepository.findById(id)
-                            .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id));
+                    .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id));
             return StandardResponse.success(convertToDTO(bill), "Bill fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -322,9 +322,9 @@ public class PosBillServiceImpl implements PosBillService {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             PosBill bill = (hotelId != null)
                     ? posBillRepository.findByOrderIdAndHotelId(orderId, hotelId)
-                            .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId))
+                    .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId))
                     : posBillRepository.findByOrderIdAndIsDeletedFalse(orderId)
-                            .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId));
+                    .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId));
             return StandardResponse.success(convertToDTO(bill), "Bill fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -438,21 +438,21 @@ public class PosBillServiceImpl implements PosBillService {
 
         List<PosOrderItemDTO> itemDTOs = (order != null && order.getItems() != null)
                 ? order.getItems().stream()
-                        .map(i -> PosOrderItemDTO.builder()
-                                .id(i.getId())
-                                .hotelId(i.getHotel() != null ? i.getHotel().getId() : (bill.getHotel() != null ? bill.getHotel().getId() : null))
-                                .hotelName(i.getHotel() != null ? i.getHotel().getName() : (bill.getHotel() != null ? bill.getHotel().getName() : null))
-                                .menuItemId(i.getMenuItem() != null ? i.getMenuItem().getId() : null)
-                                .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
-                                .quantity(i.getQuantity())
-                                .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
-                                .price(i.getPrice())
-                                .subtotal(i.getSubtotal())
-                                .kotStatusId(i.getKotStatus() != null ? i.getKotStatus().getId() : null)
-                                .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
-                                .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
-                                .build())
-                        .collect(Collectors.toList())
+                .map(i -> PosOrderItemDTO.builder()
+                        .id(i.getId())
+                        .hotelId(i.getHotel() != null ? i.getHotel().getId() : (bill.getHotel() != null ? bill.getHotel().getId() : null))
+                        .hotelName(i.getHotel() != null ? i.getHotel().getName() : (bill.getHotel() != null ? bill.getHotel().getName() : null))
+                        .menuItemId(i.getMenuItem() != null ? i.getMenuItem().getId() : null)
+                        .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
+                        .quantity(i.getQuantity())
+                        .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
+                        .price(i.getPrice())
+                        .subtotal(i.getSubtotal())
+                        .kotStatusId(i.getKotStatus() != null ? i.getKotStatus().getId() : null)
+                        .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
+                        .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
+                        .build())
+                .collect(Collectors.toList())
                 : List.of();
 
         return PosBillDTO.builder()
