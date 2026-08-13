@@ -91,19 +91,19 @@ public class FolioServiceImpl implements FolioService {
             Long folioId = request.getFolioId();
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
 
-            if (request.getRoomId() != null) {
-                LocalDate today = LocalDate.now();
-                Booking booking = bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
-                        .orElseThrow(() -> new RuntimeException(
-                                "No active booking found for room " + request.getRoomId() + " on " + today));
-
-                Folio folioByRoom = folioRepository
-                        .findByReservationIdAndHotelId(booking.getReservation().getId(), hotelId)
-                        .orElseThrow(() -> new RuntimeException(
-                                "Folio not found for reservation of room " + request.getRoomId()));
-
-                folioId = folioByRoom.getId();
-            }
+//            if (request.getRoomId() != null) {
+//                LocalDate today = LocalDate.now();
+//                Booking booking = bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
+//                        .orElseThrow(() -> new RuntimeException(
+//                                "No active booking found for room " + request.getRoomId() + " on " + today));
+//
+//                Folio folioByRoom = folioRepository
+//                        .findByReservationIdAndHotelId(booking.getReservation().getId(), hotelId)
+//                        .orElseThrow(() -> new RuntimeException(
+//                                "Folio not found for reservation of room " + request.getRoomId()));
+//
+//                folioId = folioByRoom.getId();
+//            }
 
             if (folioId == null) {
                 throw new RuntimeException("Folio ID or Room ID is required");
