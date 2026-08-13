@@ -47,5 +47,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             ORDER BY r.checkInDate DESC, r.id DESC
             """)
     List<Booking> findLatestBookingsByRoomId(@Param("roomId") Long roomId);
+
+    /**
+     * Retrieves all active bookings for a hotel where given date falls between reservation check-in and check-out dates.
+     */
+    @Query("""
+            SELECT b FROM Booking b 
+            JOIN b.reservation r 
+            WHERE (b.isDeleted = false OR b.isDeleted IS NULL) 
+              AND (r.isDeleted = false OR r.isDeleted IS NULL) 
+              AND :date BETWEEN r.checkInDate AND r.checkOutDate 
+              AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
+            ORDER BY r.id DESC
+            """)
+    List<Booking> findAllActiveBookingsByDateAndHotel(@Param("date") LocalDate date, @Param("hotelId") Long hotelId);
 }
+
 

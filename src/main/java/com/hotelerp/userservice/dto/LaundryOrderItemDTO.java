@@ -19,5 +19,7 @@ public class LaundryOrderItemDTO {
     private Integer quantity;
     private Double unitPrice;
     private Double total;
+    private String serviceType;
+    private List<String> serviceTypes;
     private String notes;
 }

@@ -30,7 +30,7 @@ public class LaundryOrder {
     @Column(name = "guest_name", length = 150)
     private String guestName;
 
-    @Column(name = "service_type", nullable = false, length = 500)
+    @Column(name = "service_type", length = 500)
     private String serviceType;
 
     @Column(name = "billing_option", nullable = false, length = 50)

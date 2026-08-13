@@ -36,6 +36,9 @@ public class LaundryOrderItem {
     @Column(name = "total", nullable = false)
     private Double total;
 
+    @Column(name = "service_type", length = 500)
+    private String serviceType;
+
     @Column(name = "notes", length = 255)
     private String notes;
 }

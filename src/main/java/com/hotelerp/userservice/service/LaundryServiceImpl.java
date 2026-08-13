@@ -267,8 +267,6 @@ public class LaundryServiceImpl implements LaundryService {
                     .orElse(0.0);
 
             String orderId = generateOrderId();
-            List<String> selectedServices = selectedServices(dto);
-            String serviceType = joinServices(selectedServices);
 
             Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
                     : dto.getHotelId();
@@ -278,31 +276,40 @@ public class LaundryServiceImpl implements LaundryService {
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
             }
 
+            double totalAmount = 0;
+            List<String> allOrderServices = new ArrayList<>();
+
+            for (LaundryOrderItemDTO itemDto : dto.getItems()) {
+                LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Item not found in Price Master: " + itemDto.getPriceMasterId()));
+                List<String> itemServices = selectedServicesForItem(itemDto, dto);
+                if (itemServices.isEmpty()) {
+                    throw new RuntimeException("At least one service must be selected for item: " + priceMaster.getItemName());
+                }
+                allOrderServices.addAll(itemServices);
+                double basePrice = getPriceForServices(priceMaster, itemServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
+                totalAmount += unitPrice * itemDto.getQuantity();
+            }
+
+            String summaryServiceType = joinServices(allOrderServices.stream().distinct().collect(Collectors.toList()));
+
             LaundryOrder order = LaundryOrder.builder()
                     .hotel(hotel)
                     .orderId(orderId)
                     .room(room)
                     .guestName(dto.getGuestName())
-                    .serviceType(serviceType)
+                    .serviceType(summaryServiceType)
                     .billingOption(dto.getBillingOption())
                     .pickupDatetime(dto.getPickupDatetime())
                     .expectedDelivery(dto.getExpectedDelivery())
                     .specialInstructions(dto.getSpecialInstructions())
                     .status(dto.getStatus() != null ? dto.getStatus() : "PENDING")
                     .gstPercent(gstPercent)
+                    .totalAmount(totalAmount)
                     .build();
 
-            double totalAmount = 0;
-            for (LaundryOrderItemDTO itemDto : dto.getItems()) {
-                LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
-                        .orElseThrow(() -> new RuntimeException(
-                                "Item not found in Price Master: " + itemDto.getPriceMasterId()));
-                double basePrice = getPriceForServices(priceMaster, selectedServices);
-                double unitPrice = basePrice * (1 + gstPercent / 100.0);
-                totalAmount += unitPrice * itemDto.getQuantity();
-            }
-
-            order.setTotalAmount(totalAmount);
             order = orderRepository.save(order);
 
             // Save items using repository
@@ -310,7 +317,9 @@ public class LaundryServiceImpl implements LaundryService {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Item not found in Price Master"));
 
-                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                List<String> itemServices = selectedServicesForItem(itemDto, dto);
+                String itemServiceType = joinServices(itemServices);
+                double basePrice = getPriceForServices(priceMaster, itemServices);
                 double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
@@ -321,6 +330,7 @@ public class LaundryServiceImpl implements LaundryService {
                         .quantity(itemDto.getQuantity())
                         .unitPrice(unitPrice)
                         .total(itemTotal)
+                        .serviceType(itemServiceType)
                         .notes(itemDto.getNotes())
                         .build();
                 orderItemRepository.save(item);
@@ -355,8 +365,23 @@ public class LaundryServiceImpl implements LaundryService {
                     .map(r -> r.getIgstRate().doubleValue())
                     .orElse(0.0);
 
-            List<String> selectedServices = selectedServices(dto);
-            order.setServiceType(joinServices(selectedServices));
+            double totalAmount = 0;
+            List<String> allOrderServices = new ArrayList<>();
+            for (LaundryOrderItemDTO itemDto : dto.getItems()) {
+                LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
+                        .orElseThrow(() -> new RuntimeException("Price master item not found"));
+                List<String> itemServices = selectedServicesForItem(itemDto, dto);
+                if (itemServices.isEmpty()) {
+                    throw new RuntimeException("At least one service must be selected for item: " + priceMaster.getItemName());
+                }
+                allOrderServices.addAll(itemServices);
+                double basePrice = getPriceForServices(priceMaster, itemServices);
+                double unitPrice = basePrice * (1 + gstPercent / 100.0);
+                totalAmount += unitPrice * itemDto.getQuantity();
+            }
+
+            String summaryServiceType = joinServices(allOrderServices.stream().distinct().collect(Collectors.toList()));
+            order.setServiceType(summaryServiceType);
             order.setBillingOption(dto.getBillingOption());
             order.setPickupDatetime(dto.getPickupDatetime());
             order.setExpectedDelivery(dto.getExpectedDelivery());
@@ -373,15 +398,6 @@ public class LaundryServiceImpl implements LaundryService {
                 order.setHotel(hotel);
             }
 
-            double totalAmount = 0;
-            for (LaundryOrderItemDTO itemDto : dto.getItems()) {
-                LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
-                        .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double basePrice = getPriceForServices(priceMaster, selectedServices);
-                double unitPrice = basePrice * (1 + gstPercent / 100.0);
-                totalAmount += unitPrice * itemDto.getQuantity();
-            }
-
             // Update total and save order first
             order.setTotalAmount(totalAmount);
             order.setGstPercent(gstPercent);
@@ -394,7 +410,9 @@ public class LaundryServiceImpl implements LaundryService {
             for (LaundryOrderItemDTO itemDto : dto.getItems()) {
                 LaundryPriceMaster priceMaster = priceMasterRepository.findById(itemDto.getPriceMasterId())
                         .orElseThrow(() -> new RuntimeException("Price master item not found"));
-                double basePrice = getPriceForServices(priceMaster, selectedServices);
+                List<String> itemServices = selectedServicesForItem(itemDto, dto);
+                String itemServiceType = joinServices(itemServices);
+                double basePrice = getPriceForServices(priceMaster, itemServices);
                 double unitPrice = basePrice * (1 + gstPercent / 100.0);
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
@@ -405,6 +423,7 @@ public class LaundryServiceImpl implements LaundryService {
                         .quantity(itemDto.getQuantity())
                         .unitPrice(unitPrice)
                         .total(itemTotal)
+                        .serviceType(itemServiceType)
                         .notes(itemDto.getNotes())
                         .build();
                 orderItemRepository.save(item);
@@ -542,6 +561,8 @@ public class LaundryServiceImpl implements LaundryService {
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
                 .total(item.getTotal())
+                .serviceType(item.getServiceType())
+                .serviceTypes(splitServices(item.getServiceType()))
                 .notes(item.getNotes())
                 .build();
     }
@@ -592,6 +613,38 @@ public class LaundryServiceImpl implements LaundryService {
         return serviceTypes.stream()
                 .mapToDouble(service -> getPriceForService(item, service))
                 .sum();
+    }
+
+    private List<String> selectedServicesForItem(LaundryOrderItemDTO itemDto, LaundryOrderDTO orderDto) {
+        if (itemDto != null) {
+            if (itemDto.getServiceTypes() != null && !itemDto.getServiceTypes().isEmpty()) {
+                List<String> services = itemDto.getServiceTypes().stream()
+                        .filter(service -> service != null && !service.trim().isEmpty())
+                        .map(String::trim)
+                        .distinct()
+                        .collect(Collectors.toList());
+                if (!services.isEmpty()) return services;
+            }
+            if (itemDto.getServiceType() != null && !itemDto.getServiceType().trim().isEmpty()) {
+                List<String> services = splitServices(itemDto.getServiceType());
+                if (!services.isEmpty()) return services;
+            }
+        }
+        if (orderDto != null) {
+            if (orderDto.getServiceTypes() != null && !orderDto.getServiceTypes().isEmpty()) {
+                List<String> services = orderDto.getServiceTypes().stream()
+                        .filter(service -> service != null && !service.trim().isEmpty())
+                        .map(String::trim)
+                        .distinct()
+                        .collect(Collectors.toList());
+                if (!services.isEmpty()) return services;
+            }
+            if (orderDto.getServiceType() != null && !orderDto.getServiceType().trim().isEmpty()) {
+                List<String> services = splitServices(orderDto.getServiceType());
+                if (!services.isEmpty()) return services;
+            }
+        }
+        return List.of();
     }
 
     private List<String> selectedServices(LaundryOrderDTO dto) {
