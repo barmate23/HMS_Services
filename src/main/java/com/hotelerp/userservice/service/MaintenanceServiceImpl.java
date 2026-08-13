@@ -53,6 +53,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             User reportedBy = userRepository.findById(dto.getReportedById())
                     .orElseThrow(() -> new ResourceNotFoundException("User (Reporter) not found with ID: " + dto.getReportedById()));
 
+            User assignedTo = null;
+            if (dto.getAssignedToId() != null) {
+                assignedTo = userRepository.findById(dto.getAssignedToId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User (Assigned Technician) not found with ID: " + dto.getAssignedToId()));
+            }
+
             CommonMaster status = null;
             if (dto.getStatusId() != null) {
                 status = commonMasterRepository.findById(dto.getStatusId())
@@ -76,6 +82,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     .category(category)
                     .priority(priority)
                     .reportedBy(reportedBy)
+                    .assignedTo(assignedTo)
+                    .repairNotes(dto.getRepairNotes())
                     .status(status)
                     .build();
 
