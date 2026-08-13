@@ -319,12 +319,58 @@ public class FolioServiceImpl implements FolioService {
     }
 
     @Override
+    @Transactional
     public StandardResponse<List<FolioLedgerDTO>> getActiveFolios() {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
-            List<FolioLedgerDTO> list = folioRepository.findAllOpenFoliosByHotel(java.time.LocalDate.now(), hotelId).stream()
-                    .map(this::convertToSummaryDTO)
-                    .collect(Collectors.toList());
+            LocalDate today = LocalDate.now();
+
+            // 1. Fetch folios directly via FolioRepository JPQL query
+            List<Folio> folios = folioRepository.findAllOpenFoliosByHotel(today, hotelId);
+
+            // 2. Also ensure all active checked-in bookings have folios created & included
+            List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(today, hotelId);
+
+            java.util.Set<Long> processedFolioIds = new java.util.HashSet<>();
+            List<FolioLedgerDTO> list = new ArrayList<>();
+
+            for (Folio f : folios) {
+                if (f != null && !processedFolioIds.contains(f.getId())) {
+                    processedFolioIds.add(f.getId());
+                    list.add(convertToSummaryDTO(f, null));
+                }
+            }
+
+            for (Booking booking : activeBookings) {
+                Reservation res = booking.getReservation();
+                if (res != null) {
+                    Folio folio = folioRepository.findByReservationIdAndIsDeletedFalse(res.getId())
+                            .orElseGet(() -> {
+                                StandardResponse<Long> response = createFolioForReservation(res.getId());
+                                if (response.isSuccess() && response.getData() != null) {
+                                    return folioRepository.findById(response.getData()).orElse(null);
+                                }
+                                return null;
+                            });
+
+                    if (folio != null && !processedFolioIds.contains(folio.getId())) {
+                        processedFolioIds.add(folio.getId());
+                        list.add(convertToSummaryDTO(folio, booking));
+                    }
+                }
+            }
+
+            // Fallback: if no date-matched folios found, fetch all folios by hotel
+            if (list.isEmpty()) {
+                List<Folio> allFolios = folioRepository.findByHotelId(hotelId);
+                for (Folio f : allFolios) {
+                    if (f != null && !processedFolioIds.contains(f.getId())) {
+                        processedFolioIds.add(f.getId());
+                        list.add(convertToSummaryDTO(f, null));
+                    }
+                }
+            }
+
             return StandardResponse.success(list, "Active folios fetched successfully");
         } catch (Exception e) {
             log.error("Error fetching active folios: ", e);
@@ -332,22 +378,45 @@ public class FolioServiceImpl implements FolioService {
         }
     }
 
-    private FolioLedgerDTO convertToSummaryDTO(Folio folio) {
+    private FolioLedgerDTO convertToSummaryDTO(Folio folio, Booking booking) {
         Reservation res = folio.getReservation();
-        String guestName = res != null && res.getGuest() != null
-                ? res.getGuest().getFirstName() + " " + res.getGuest().getLastName()
-                : "Unknown";
+        String guestName = "Unknown";
+        if (res != null && res.getGuest() != null) {
+            String title = res.getGuest().getTitle() != null ? res.getGuest().getTitle().name() + " " : "";
+            String first = res.getGuest().getFirstName() != null ? res.getGuest().getFirstName() : "";
+            String last = res.getGuest().getLastName() != null ? res.getGuest().getLastName() : "";
+            guestName = (title + first + " " + last).trim();
+        }
+
+        String roomNumber = "";
+        if (booking != null && booking.getRoom() != null) {
+            roomNumber = booking.getRoom().getRoomNumber();
+        } else if (res != null) {
+            List<Booking> bookings = bookingRepository.findByReservationId(res.getId());
+            roomNumber = bookings.stream()
+                    .map(b -> b.getRoom() != null ? b.getRoom().getRoomNumber() : "")
+                    .filter(r -> !r.isEmpty())
+                    .collect(Collectors.joining(", "));
+        }
+
+        String statusStr = "OPEN";
+        if (folio.getStatus() != null && folio.getStatus().getValue() != null) {
+            statusStr = folio.getStatus().getValue();
+        } else if (res != null && res.getReservationStatus() != null && res.getReservationStatus().getValue() != null) {
+            statusStr = res.getReservationStatus().getValue();
+        }
 
         return FolioLedgerDTO.builder()
                 .folioId(folio.getId())
                 .folioNumber(folio.getFolioNumber())
                 .reservationNumber(res != null ? res.getId().toString() : "")
                 .guestName(guestName)
+                .roomNumber(roomNumber)
                 .totalCharges(folio.getTotalCharges())
                 .totalPayments(folio.getTotalPayments())
                 .taxAmount(folio.getTaxAmount())
                 .balance(folio.getBalance())
-                .status(folio.getStatus() != null ? folio.getStatus().getValue() : "OPEN")
+                .status(statusStr)
                 .build();
     }
 
