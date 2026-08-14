@@ -196,6 +196,37 @@ public class PosServiceImpl implements PosService {
             if (dto.getGuestName() != null)
                 order.setGuestName(dto.getGuestName());
 
+            if (dto.getRoomId() != null) {
+                Room room = roomRepository.findById(dto.getRoomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + dto.getRoomId()));
+                order.setRoom(room);
+                order.setDiningTable(null); // Clear table if we are mapping to a room
+            } else if (dto.getRoomId() == null && dto.getTableId() == null && dto.getOrderTypeId() != null) {
+                // If it is TAKEAWAY or custom clearing
+                order.setRoom(null);
+                order.setDiningTable(null);
+            }
+
+            if (dto.getTableId() != null) {
+                DiningTable table = diningTableRepository.findById(dto.getTableId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Table not found with ID: " + dto.getTableId()));
+                order.setDiningTable(table);
+                order.setRoom(null); // Clear room if we are mapping to a table
+            }
+
+            if (dto.getOrderTypeId() != null) {
+                CommonMaster orderType = commonMasterRepository.findById(dto.getOrderTypeId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Order type master data not found for ID: " + dto.getOrderTypeId()));
+                order.setOrderType(orderType);
+            }
+
+            if (dto.getOutletId() != null) {
+                Outlet outlet = outletRepository.findById(dto.getOutletId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Outlet not found with ID: " + dto.getOutletId()));
+                order.setOutlet(outlet);
+            }
+
             if (dto.getItems() != null && !dto.getItems().isEmpty()) {
                 // Map existing order items by ID to update records in-place
                 Map<Long, PosOrderItem> existingItemsById = order.getItems().stream()
@@ -337,6 +368,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<PosOrderDTO> getOrderById(Long id) {
         try {
             PosOrder order = posOrderRepository.findById(id)
@@ -351,6 +383,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<List<PosOrderDTO>> getActiveOrders(Long tableId) {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
@@ -376,6 +409,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<List<PosOrderDTO>> getOrdersByOutlet(Long outletId) {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
@@ -398,6 +432,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<List<PosOrderDTO>> getOpenOrders(Long outletId) {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
@@ -420,6 +455,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<List<KitchenOrderCardDTO>> getKitchenOrders(Long outletId, Boolean isClosed) {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
@@ -511,6 +547,7 @@ public class PosServiceImpl implements PosService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StandardResponse<List<TableReservationDTO>> getReservationsByTable(Long tableId) {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
