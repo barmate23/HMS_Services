@@ -13,41 +13,41 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @Query("SELECT b FROM Booking b WHERE b.createdAt BETWEEN :startDate AND :endDate AND (b.isDeleted = false OR b.isDeleted IS NULL)")
-    List<Booking> findAllInDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+  @Query("SELECT b FROM Booking b WHERE b.createdAt BETWEEN :startDate AND :endDate AND (b.isDeleted = false OR b.isDeleted IS NULL)")
+  List<Booking> findAllInDateRange(@Param("startDate") LocalDateTime startDate,
+      @Param("endDate") LocalDateTime endDate);
 
-    List<Booking> findByRoomIdAndIsDeletedFalse(Long roomId);
+  List<Booking> findByRoomIdAndIsDeletedFalse(Long roomId);
 
-    List<Booking> findByReservationId(Long reservationId);
+  List<Booking> findByReservationId(Long reservationId);
 
-    /**
-     * Retrieves active bookings for a room by checking room.id in the Booking table
-     * and checkInDate / checkOutDate in the linked Reservation table.
-     */
-    @Query("""
-            SELECT b FROM Booking b 
-            JOIN b.reservation r 
-            WHERE b.room.id = :roomId 
-              AND (b.isDeleted = false OR b.isDeleted IS NULL) 
-              AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-              AND :date BETWEEN r.checkInDate AND r.checkOutDate 
-            ORDER BY r.id DESC
-            """)
-    List<Booking> findActiveByRoomAndDate(@Param("roomId") Long roomId, @Param("date") LocalDate date);
+  /**
+   * Retrieves active bookings for a room by checking room.id in the Booking table
+   * and checkInDate / checkOutDate in the linked Reservation table.
+   */
+  @Query("""
+      SELECT b FROM Booking b
+      JOIN b.reservation r
+      WHERE b.room.id = :roomId
+        AND (b.isDeleted = false OR b.isDeleted IS NULL)
+        AND (r.isDeleted = false OR r.isDeleted IS NULL)
+        AND CURDATE() BETWEEN r.checkInDate AND r.checkOutDate
+      ORDER BY r.id DESC
+      """)
+  List<Booking> findActiveByRoomAndDate(@Param("roomId") Long roomId);
 
-    /**
-     * Retrieves all active bookings for a hotel where given date falls between reservation check-in and check-out dates.
-     */
-    @Query("""
-            SELECT b FROM Booking b 
-            JOIN b.reservation r 
-            WHERE (b.isDeleted = false OR b.isDeleted IS NULL) 
-              AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-              AND :date BETWEEN r.checkInDate AND r.checkOutDate 
-              AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
-            ORDER BY r.id DESC
-            """)
-    List<Booking> findAllActiveBookingsByDateAndHotel(@Param("date") LocalDate date, @Param("hotelId") Long hotelId);
+  /**
+   * Retrieves all active bookings for a hotel where given date falls between
+   * reservation check-in and check-out dates.
+   */
+  @Query("""
+      SELECT b FROM Booking b
+      JOIN b.reservation r
+      WHERE (b.isDeleted = false OR b.isDeleted IS NULL)
+        AND (r.isDeleted = false OR r.isDeleted IS NULL)
+        AND :date BETWEEN r.checkInDate AND r.checkOutDate
+        AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
+      ORDER BY r.id DESC
+      """)
+  List<Booking> findAllActiveBookingsByDateAndHotel(@Param("date") LocalDate date, @Param("hotelId") Long hotelId);
 }
-
-
