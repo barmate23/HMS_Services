@@ -317,7 +317,7 @@ public class LaundryServiceImpl implements LaundryService {
                 List<String> itemServices = selectedServicesForItem(itemDto, dto);
                 String itemServiceType = joinServices(itemServices);
                 double basePrice = getPriceForServices(priceMaster, itemServices);
-                double unitPrice = basePrice * (1 + gstPercent / 100.0);
+                double unitPrice = basePrice ;
                 double itemTotal = unitPrice * itemDto.getQuantity();
 
                 LaundryOrderItem item = LaundryOrderItem.builder()
