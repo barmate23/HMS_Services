@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class PostToFolioRequest {
-    private Long roomId;        // Required: used to resolve the active folio
-    private String source;      // e.g. Room, POS, Laundry
+    private Long roomId; // Required: used to resolve the active folio
+    private String source; // e.g. Room, POS, Laundry
     private BigDecimal amount;
-    private String taxType;     // e.g. GST 12%
+    private BigDecimal taxAmount; // e.g. GST 12%
     private String description;
 }

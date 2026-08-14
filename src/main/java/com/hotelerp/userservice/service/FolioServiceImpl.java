@@ -94,19 +94,20 @@ public class FolioServiceImpl implements FolioService {
             Long folioId = request.getFolioId();
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
 
-//            if (request.getRoomId() != null) {
-//                LocalDate today = LocalDate.now();
-//                Booking booking = bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
-//                        .orElseThrow(() -> new RuntimeException(
-//                                "No active booking found for room " + request.getRoomId() + " on " + today));
-//
-//                Folio folioByRoom = folioRepository
-//                        .findByReservationIdAndHotelId(booking.getReservation().getId(), hotelId)
-//                        .orElseThrow(() -> new RuntimeException(
-//                                "Folio not found for reservation of room " + request.getRoomId()));
-//
-//                folioId = folioByRoom.getId();
-//            }
+            // if (request.getRoomId() != null) {
+            // LocalDate today = LocalDate.now();
+            // Booking booking =
+            // bookingRepository.findActiveByRoomAndDate(request.getRoomId(), today)
+            // .orElseThrow(() -> new RuntimeException(
+            // "No active booking found for room " + request.getRoomId() + " on " + today));
+            //
+            // Folio folioByRoom = folioRepository
+            // .findByReservationIdAndHotelId(booking.getReservation().getId(), hotelId)
+            // .orElseThrow(() -> new RuntimeException(
+            // "Folio not found for reservation of room " + request.getRoomId()));
+            //
+            // folioId = folioByRoom.getId();
+            // }
 
             if (folioId == null) {
                 throw new RuntimeException("Folio ID or Room ID is required");
@@ -115,15 +116,7 @@ public class FolioServiceImpl implements FolioService {
             Folio folio = folioRepository.findByIdAndHotelId(folioId, hotelId)
                     .orElseThrow(() -> new RuntimeException("Folio not found"));
 
-            // Basic tax calculation logic for demonstration
-            BigDecimal taxRate = BigDecimal.ZERO;
-            if (request.getTaxType() != null && request.getTaxType().contains("12")) {
-                taxRate = new BigDecimal("0.12");
-            } else if (request.getTaxType() != null && request.getTaxType().contains("5")) {
-                taxRate = new BigDecimal("0.05");
-            }
-
-            BigDecimal taxAmount = request.getAmount().multiply(taxRate);
+            BigDecimal taxAmount = request.getTaxAmount();
             BigDecimal totalAmount = request.getAmount().add(taxAmount);
 
             FolioPosting posting = FolioPosting.builder()
@@ -188,7 +181,7 @@ public class FolioServiceImpl implements FolioService {
                     .folioId(folio.getId())
                     .source(request.getSource())
                     .amount(request.getAmount())
-                    .taxType(request.getTaxType())
+                    .taxAmount(request.getTaxAmount())
                     .description(request.getDescription())
                     .build());
         } catch (Exception e) {
@@ -251,10 +244,10 @@ public class FolioServiceImpl implements FolioService {
             if (existingInvoice.isPresent()) {
                 Invoice inv = existingInvoice.get();
                 return StandardResponse.error(
-                        "Invoice '" + inv.getInvoiceNumber() + "' has already been generated for this folio. Payment cannot be collected again.",
+                        "Invoice '" + inv.getInvoiceNumber()
+                                + "' has already been generated for this folio. Payment cannot be collected again.",
                         "INVOICE_ALREADY_GENERATED",
-                        "Invoice already exists for folio ID: " + request.getFolioId()
-                );
+                        "Invoice already exists for folio ID: " + request.getFolioId());
             }
 
             Optional<CommonMaster> folioStatus = commonMasterRepository.findByCategoryAndCode("FOLIO_STATUS", "CLOSE");
@@ -273,7 +266,6 @@ public class FolioServiceImpl implements FolioService {
             folio.setBalance(folio.getTotalCharges().subtract(folio.getTotalPayments()));
             folio.setStatus(folioStatus.get());
             folioRepository.save(folio);
-
 
             StandardResponse<InvoiceDTO> invoiceResponse = invoiceService.generateInvoice(request.getFolioId());
             if (!invoiceResponse.isSuccess()) {

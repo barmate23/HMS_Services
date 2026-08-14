@@ -12,6 +12,6 @@ public class FolioPostingRequest {
     private String source; // Room, POS, Laundry
     private BigDecimal amount;
     private Long roomId;
-    private String taxType; // e.g. GST 12%
+    private BigDecimal taxAmount; // e.g. GST 12%
     private String description;
 }
