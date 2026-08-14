@@ -64,14 +64,14 @@ public class InvoiceServiceImpl implements InvoiceService {
                     throw new RuntimeException("Hotel not found with ID: " + hotelId);
                 }
             }
-            
+
             Invoice invoice = Invoice.builder()
                     .hotel(hotel)
                     .folio(folio)
                     .invoiceNumber("INV-2026-" + (1000 + folioId))
                     .status("PAID")
                     .issuedAt(LocalDateTime.now())
-                    .totalAmount(folio.getTotalCharges())
+                    .totalAmount(folio.getTotalPayments())
                     .taxAmount(folio.getTaxAmount())
                     .build();
 
@@ -194,17 +194,20 @@ public class InvoiceServiceImpl implements InvoiceService {
     // ─────────────────────────────────────────────────────────────────────────
 
     private StayRecordDTO buildStayRecord(Reservation res, Room room, Booking booking) {
-        if (res == null) return StayRecordDTO.builder().build();
+        if (res == null)
+            return StayRecordDTO.builder().build();
 
         String roomNumber = room != null ? room.getRoomNumber() : "";
         String roomTypeName = (room != null && room.getRoomType() != null) ? room.getRoomType().getName() : "";
 
         LocalDateTime checkIn = res.getCheckInDate() != null
-                ? res.getCheckInDate().atTime(res.getCheckInTime() != null ? res.getCheckInTime() : java.time.LocalTime.of(14, 0))
+                ? res.getCheckInDate()
+                        .atTime(res.getCheckInTime() != null ? res.getCheckInTime() : java.time.LocalTime.of(14, 0))
                 : null;
 
         LocalDateTime checkOut = res.getCheckOutDate() != null
-                ? res.getCheckOutDate().atTime(res.getCheckOutTime() != null ? res.getCheckOutTime() : java.time.LocalTime.of(11, 0))
+                ? res.getCheckOutDate()
+                        .atTime(res.getCheckOutTime() != null ? res.getCheckOutTime() : java.time.LocalTime.of(11, 0))
                 : null;
 
         return StayRecordDTO.builder()
@@ -219,7 +222,8 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private BillingToDTO buildBillingTo(Guest guest, Reservation res) {
-        if (guest == null) return BillingToDTO.builder().build();
+        if (guest == null)
+            return BillingToDTO.builder().build();
 
         String fullName = guest.getFirstName() + " " + guest.getLastName();
         // Place of supply = state (India convention)
@@ -270,14 +274,17 @@ public class InvoiceServiceImpl implements InvoiceService {
             String source = entry.getKey();
             List<FolioPosting> group = entry.getValue();
 
-            BigDecimal taxable = group.stream().map(FolioPosting::getChargeAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal taxTotal = group.stream().map(FolioPosting::getTaxAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal taxable = group.stream().map(FolioPosting::getChargeAmount).reduce(BigDecimal.ZERO,
+                    BigDecimal::add);
+            BigDecimal taxTotal = group.stream().map(FolioPosting::getTaxAmount).reduce(BigDecimal.ZERO,
+                    BigDecimal::add);
             BigDecimal cgst = taxTotal.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
             BigDecimal sgst = taxTotal.subtract(cgst);
 
             // Derive effective tax rate (for display)
             BigDecimal cgstRate = taxable.compareTo(BigDecimal.ZERO) > 0
-                    ? cgst.divide(taxable, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP)
+                    ? cgst.divide(taxable, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1,
+                            RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
 
             SacInfo sacInfo = resolveSac(source);
@@ -300,7 +307,8 @@ public class InvoiceServiceImpl implements InvoiceService {
      * SAC code mapping per the PDF prototype.
      */
     private SacInfo resolveSac(String source) {
-        if (source == null) return new SacInfo("999999", "Other Charges", "Other");
+        if (source == null)
+            return new SacInfo("999999", "Other Charges", "Other");
         return switch (source.toLowerCase()) {
             case "reservation", "room" -> new SacInfo("996311", "Room Accommodation Charges", "Room");
             case "pos", "food", "f&b", "fnb" -> new SacInfo("996331", "Food & Beverage (POS Billing)", "F&B");
@@ -316,13 +324,20 @@ public class InvoiceServiceImpl implements InvoiceService {
         Folio folio = invoice.getFolio();
         String guestName = "Unknown";
         if (folio != null && folio.getReservation() != null && folio.getReservation().getGuest() != null) {
-            guestName = folio.getReservation().getGuest().getFirstName() + " " + folio.getReservation().getGuest().getLastName();
+            guestName = folio.getReservation().getGuest().getFirstName() + " "
+                    + folio.getReservation().getGuest().getLastName();
         }
 
         return InvoiceDTO.builder()
                 .id(invoice.getId())
-                .hotelId(invoice.getHotel() != null ? invoice.getHotel().getId() : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null ? folio.getReservation().getHotel().getId() : null))
-                .hotelName(invoice.getHotel() != null ? invoice.getHotel().getName() : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null ? folio.getReservation().getHotel().getName() : null))
+                .hotelId(invoice.getHotel() != null ? invoice.getHotel().getId()
+                        : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null
+                                ? folio.getReservation().getHotel().getId()
+                                : null))
+                .hotelName(invoice.getHotel() != null ? invoice.getHotel().getName()
+                        : (folio != null && folio.getReservation() != null && folio.getReservation().getHotel() != null
+                                ? folio.getReservation().getHotel().getName()
+                                : null))
                 .invoiceNumber(invoice.getInvoiceNumber())
                 .folioNumber(folio != null ? folio.getFolioNumber() : "")
                 .guestName(guestName)
@@ -332,4 +347,3 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .build();
     }
 }
-
