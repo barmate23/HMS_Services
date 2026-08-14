@@ -66,5 +66,9 @@ public interface KitchenIngredientRepository extends JpaRepository<KitchenIngred
 
     boolean existsByIngredientNameIgnoreCaseAndIsDeletedFalseAndIdNot(String ingredientName, Long id);
 
+    boolean existsByHotel_IdAndIngredientNameIgnoreCaseAndIsDeletedFalse(Long hotelId, String ingredientName);
+
+    boolean existsByHotel_IdAndIngredientNameIgnoreCaseAndIsDeletedFalseAndIdNot(Long hotelId, String ingredientName, Long id);
+
     Optional<KitchenIngredient> findByIdAndIsDeletedFalse(Long id);
 }

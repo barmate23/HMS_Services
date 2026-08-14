@@ -45,14 +45,19 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
                 return StandardResponse.error("Ingredient name is required", "VALIDATION_ERROR", "ingredientName is mandatory");
             }
 
-            if (ingredientRepository.existsByIngredientNameIgnoreCaseAndIsDeletedFalse(dto.getIngredientName().trim())) {
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+
+            boolean exists = (hotelId != null)
+                    ? ingredientRepository.existsByHotel_IdAndIngredientNameIgnoreCaseAndIsDeletedFalse(hotelId, dto.getIngredientName().trim())
+                    : ingredientRepository.existsByIngredientNameIgnoreCaseAndIsDeletedFalse(dto.getIngredientName().trim());
+
+            if (exists) {
                 return StandardResponse.error("Ingredient with name '" + dto.getIngredientName() + "' already exists",
                         "DUPLICATE_ERROR", "ingredientName must be unique");
             }
 
             KitchenIngredient entity = buildEntity(dto, null);
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
             if (hotelId != null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
@@ -140,9 +145,12 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
             KitchenIngredient existing = ingredientRepository.findByIdAndIsDeletedFalse(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Ingredient not found with ID: " + id));
 
+            Long hotelId = existing.getHotel() != null ? existing.getHotel().getId() : ((loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId());
+
             if (dto.getIngredientName() != null && !dto.getIngredientName().isBlank()) {
-                boolean nameConflict = ingredientRepository
-                        .existsByIngredientNameIgnoreCaseAndIsDeletedFalseAndIdNot(dto.getIngredientName().trim(), id);
+                boolean nameConflict = (hotelId != null)
+                        ? ingredientRepository.existsByHotel_IdAndIngredientNameIgnoreCaseAndIsDeletedFalseAndIdNot(hotelId, dto.getIngredientName().trim(), id)
+                        : ingredientRepository.existsByIngredientNameIgnoreCaseAndIsDeletedFalseAndIdNot(dto.getIngredientName().trim(), id);
                 if (nameConflict) {
                     return StandardResponse.error("Ingredient with name '" + dto.getIngredientName() + "' already exists",
                             "DUPLICATE_ERROR", "ingredientName must be unique");
@@ -152,7 +160,6 @@ public class KitchenIngredientServiceImpl implements KitchenIngredientService {
 
             applyUpdates(existing, dto);
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
             if (hotelId != null && existing.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
