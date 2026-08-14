@@ -18,7 +18,9 @@ import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +37,8 @@ public class PosBillServiceImpl implements PosBillService {
     private final RecipeRepository recipeRepository;
     private final KitchenIngredientRepository kitchenIngredientRepository;
     private final HotelRepository hotelRepository;
+    private final BookingRepository bookingRepository;
+    private final FolioRepository folioRepository;
     private final LoginUser loginUser;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -416,11 +420,20 @@ public class PosBillServiceImpl implements PosBillService {
 
     private Long resolveActiveFolioId(Long roomId) {
         try {
-            return folioService.getActiveFolios().getData().stream()
-                    .filter(f -> f.getFolioId() != null)
-                    .mapToLong(f -> f.getFolioId())
-                    .findFirst()
-                    .orElse(-1L);
+            LocalDate today = LocalDate.now();
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            if (activeBookings.isEmpty()) {
+                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
+            }
+            if (activeBookings.isEmpty()) {
+                return -1L;
+            }
+            Booking booking = activeBookings.get(0);
+            if (booking.getReservation() == null) {
+                return -1L;
+            }
+            Optional<Folio> folioOpt = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId());
+            return folioOpt.map(Folio::getId).orElse(-1L);
         } catch (Exception e) {
             log.warn("Could not resolve active folio id for room {}: {}", roomId, e.getMessage());
             return -1L;
