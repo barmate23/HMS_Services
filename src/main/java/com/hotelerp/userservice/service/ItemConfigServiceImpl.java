@@ -40,7 +40,8 @@ public class ItemConfigServiceImpl implements ItemConfigService {
             CommonMaster category = null;
             if (dto.getCategoryId() != null) {
                 category = commonMasterRepository.findById(dto.getCategoryId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + dto.getCategoryId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Category not found with ID: " + dto.getCategoryId()));
             }
 
             CommonMaster uom = null;
@@ -78,7 +79,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
             InventoryStock stock = InventoryStock.builder()
                     .hotel(hotel)
                     .itemConfig(savedItem)
-                    .onHand(BigDecimal.ZERO)
+                    .onHand(dto.getOnHandStock() != null ? dto.getOnHandStock() : BigDecimal.ZERO)
                     .minimumQty(dto.getMinimumQty())
                     .maximumQty(dto.getMaximumQty())
                     .build();
@@ -99,10 +100,11 @@ public class ItemConfigServiceImpl implements ItemConfigService {
 
             item.setItemCode(dto.getItemCode());
             item.setItemName(dto.getItemName());
-            
+
             if (dto.getCategoryId() != null) {
                 CommonMaster category = commonMasterRepository.findById(dto.getCategoryId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + dto.getCategoryId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Category not found with ID: " + dto.getCategoryId()));
                 item.setCategory(category);
             }
 
@@ -158,7 +160,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
     public StandardResponse<List<ItemConfigDTO>> getAllItems() {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
-            List<ItemConfig> items = (hotelId != null) 
+            List<ItemConfig> items = (hotelId != null)
                     ? itemConfigRepository.findByHotel_Id(hotelId)
                     : itemConfigRepository.findAll();
             List<ItemConfigDTO> dtos = items.stream()

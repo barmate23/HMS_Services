@@ -19,6 +19,7 @@ public class ItemConfigRequestDTO {
     private BigDecimal gstTaxRate;
     private String hsnSacCode;
     private BigDecimal reorderLevel;
+    private BigDecimal onHandStock;
     private BigDecimal maxStockLevel;
     private BigDecimal minimumQty;
     private BigDecimal maximumQty;

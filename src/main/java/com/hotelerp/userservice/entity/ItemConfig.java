@@ -21,7 +21,7 @@ public class ItemConfig {
     @JoinColumn(name = "hotel_id")
     private Hotel hotel;
 
-    @Column(name = "item_code", nullable = false, unique = true)
+    @Column(name = "item_code", nullable = false)
     private String itemCode;
 
     @Column(name = "item_name", nullable = false)
@@ -73,7 +73,8 @@ public class ItemConfig {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (isActive == null) isActive = true;
+        if (isActive == null)
+            isActive = true;
     }
 
     @PreUpdate
