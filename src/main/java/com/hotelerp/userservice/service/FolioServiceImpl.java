@@ -152,14 +152,8 @@ public class FolioServiceImpl implements FolioService {
                 throw new RuntimeException("Room ID is required");
             }
 
-            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-            LocalDate today = istDateTime.toLocalDate();
-            LocalTime nowTime = istDateTime.toLocalTime();
-            LocalTime defaultCheckIn = LocalTime.of(14, 0);
-            LocalTime defaultCheckOut = LocalTime.of(11, 0);
-
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
-                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
+            LocalDate today = LocalDate.now();
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);
@@ -195,14 +189,8 @@ public class FolioServiceImpl implements FolioService {
     public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source,
             String description) {
         try {
-            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-            LocalDate today = istDateTime.toLocalDate();
-            LocalTime nowTime = istDateTime.toLocalTime();
-            LocalTime defaultCheckIn = LocalTime.of(14, 0);
-            LocalTime defaultCheckOut = LocalTime.of(11, 0);
-
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
-                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
+            LocalDate today = LocalDate.now();
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);

@@ -420,14 +420,9 @@ public class PosBillServiceImpl implements PosBillService {
 
     private Long resolveActiveFolioId(Long roomId) {
         try {
-            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-            LocalDate today = istDateTime.toLocalDate();
-            LocalTime nowTime = istDateTime.toLocalTime();
-            LocalTime defaultCheckIn = LocalTime.of(14, 0);
-            LocalTime defaultCheckOut = LocalTime.of(11, 0);
+            LocalDate today = LocalDate.now();
 
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
-                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
 
             if (activeBookings.isEmpty()) {
                 return -1L;

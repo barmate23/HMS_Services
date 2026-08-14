@@ -22,7 +22,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     /**
      * Retrieves active bookings for a room by checking room.id in the Booking table
-     * and checkInDate/checkInTime and checkOutDate/checkOutTime in the linked Reservation table.
+     * and checkInDate / checkOutDate in the linked Reservation table.
      */
     @Query("""
             SELECT b FROM Booking b 
@@ -30,16 +30,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             WHERE b.room.id = :roomId 
               AND (b.isDeleted = false OR b.isDeleted IS NULL) 
               AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-              AND (r.checkInDate < :currentDate OR (r.checkInDate = :currentDate AND COALESCE(r.checkInTime, :defaultCheckInTime) <= :currentTime))
-              AND (r.checkOutDate > :currentDate OR (r.checkOutDate = :currentDate AND COALESCE(r.checkOutTime, :defaultCheckOutTime) >= :currentTime))
+              AND :date BETWEEN r.checkInDate AND r.checkOutDate 
             ORDER BY r.id DESC
             """)
-    List<Booking> findActiveByRoomAndDate(
-            @Param("roomId") Long roomId, 
-            @Param("currentDate") LocalDate currentDate,
-            @Param("currentTime") java.time.LocalTime currentTime,
-            @Param("defaultCheckInTime") java.time.LocalTime defaultCheckInTime,
-            @Param("defaultCheckOutTime") java.time.LocalTime defaultCheckOutTime);
+    List<Booking> findActiveByRoomAndDate(@Param("roomId") Long roomId, @Param("date") LocalDate date);
 
     /**
      * Retrieves all active bookings for a hotel where given date falls between reservation check-in and check-out dates.

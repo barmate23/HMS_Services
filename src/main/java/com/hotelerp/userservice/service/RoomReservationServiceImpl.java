@@ -41,15 +41,10 @@ public class RoomReservationServiceImpl implements RoomReservationService {
                         "No room record exists for roomId = " + roomId);
             }
 
-            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-            LocalDate today = istDateTime.toLocalDate();
-            LocalTime nowTime = istDateTime.toLocalTime();
-            LocalTime defaultCheckIn = LocalTime.of(14, 0);
-            LocalTime defaultCheckOut = LocalTime.of(11, 0);
+            LocalDate today = LocalDate.now();
 
-            // 2. Find active booking for today where date/time is between Reservation's checkIn and checkOut
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
-                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
+            // 2. Find active booking for today where date is between Reservation's checkInDate & checkOutDate
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
 
             if (activeBookings.isEmpty()) {
                 return StandardResponse.error(
