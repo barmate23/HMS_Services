@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -156,11 +159,14 @@ public class FolioServiceImpl implements FolioService {
                 throw new RuntimeException("Room ID is required");
             }
 
-            LocalDate today = LocalDate.now();
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
-            if (activeBookings.isEmpty()) {
-                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
-            }
+            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+            LocalDate today = istDateTime.toLocalDate();
+            LocalTime nowTime = istDateTime.toLocalTime();
+            LocalTime defaultCheckIn = LocalTime.of(14, 0);
+            LocalTime defaultCheckOut = LocalTime.of(11, 0);
+
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
+                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);
@@ -196,11 +202,14 @@ public class FolioServiceImpl implements FolioService {
     public StandardResponse<Void> postChargeByRoom(Long roomId, java.math.BigDecimal amount, String source,
             String description) {
         try {
-            LocalDate today = LocalDate.now();
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
-            if (activeBookings.isEmpty()) {
-                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
-            }
+            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+            LocalDate today = istDateTime.toLocalDate();
+            LocalTime nowTime = istDateTime.toLocalTime();
+            LocalTime defaultCheckIn = LocalTime.of(14, 0);
+            LocalTime defaultCheckOut = LocalTime.of(11, 0);
+
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
+                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);

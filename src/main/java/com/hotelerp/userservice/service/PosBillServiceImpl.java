@@ -19,6 +19,9 @@ import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -417,11 +420,15 @@ public class PosBillServiceImpl implements PosBillService {
 
     private Long resolveActiveFolioId(Long roomId) {
         try {
-            LocalDate today = LocalDate.now();
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
-            if (activeBookings.isEmpty()) {
-                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
-            }
+            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+            LocalDate today = istDateTime.toLocalDate();
+            LocalTime nowTime = istDateTime.toLocalTime();
+            LocalTime defaultCheckIn = LocalTime.of(14, 0);
+            LocalTime defaultCheckOut = LocalTime.of(11, 0);
+
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
+                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
+
             if (activeBookings.isEmpty()) {
                 return -1L;
             }

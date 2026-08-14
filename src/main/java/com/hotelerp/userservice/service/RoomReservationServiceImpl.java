@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +26,8 @@ public class RoomReservationServiceImpl implements RoomReservationService {
     private final RoomRepository    roomRepository;
 
     /**
-     * Finds the active Booking for today by looking up the room ID in the Booking
-     * table and matching checkInDate & checkOutDate from the linked Reservation table.
-     *
-     * @Transactional ensures all LAZY-loaded associations (Reservation, Guest,
-     * RoomType, Floor, statuses) can be safely navigated.
+     * Finds active Reservation for the given Room.
+     * Reservation details (like RoomType, Floor, statuses) can be safely navigated.
      */
     @Override
     @Transactional(readOnly = true)
@@ -41,15 +41,15 @@ public class RoomReservationServiceImpl implements RoomReservationService {
                         "No room record exists for roomId = " + roomId);
             }
 
-            LocalDate today = LocalDate.now();
+            ZonedDateTime istDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+            LocalDate today = istDateTime.toLocalDate();
+            LocalTime nowTime = istDateTime.toLocalTime();
+            LocalTime defaultCheckIn = LocalTime.of(14, 0);
+            LocalTime defaultCheckOut = LocalTime.of(11, 0);
 
-            // 2. Find active booking for today where date is between Reservation's checkInDate & checkOutDate
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
-
-            // 3. Fallback: If no date-matched booking, find the latest booking record for this room
-            if (activeBookings.isEmpty()) {
-                activeBookings = bookingRepository.findLatestBookingsByRoomId(roomId);
-            }
+            // 2. Find active booking for today where date/time is between Reservation's checkIn and checkOut
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(
+                    roomId, today, nowTime, defaultCheckIn, defaultCheckOut);
 
             if (activeBookings.isEmpty()) {
                 return StandardResponse.error(

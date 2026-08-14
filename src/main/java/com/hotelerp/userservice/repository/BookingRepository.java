@@ -22,7 +22,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     /**
      * Retrieves active bookings for a room by checking room.id in the Booking table
-     * and checkInDate / checkOutDate in the linked Reservation table.
+     * and checkInDate/checkInTime and checkOutDate/checkOutTime in the linked Reservation table.
      */
     @Query("""
             SELECT b FROM Booking b 
@@ -30,23 +30,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             WHERE b.room.id = :roomId 
               AND (b.isDeleted = false OR b.isDeleted IS NULL) 
               AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-              AND :date BETWEEN r.checkInDate AND r.checkOutDate 
+              AND (r.checkInDate < :currentDate OR (r.checkInDate = :currentDate AND COALESCE(r.checkInTime, :defaultCheckInTime) <= :currentTime))
+              AND (r.checkOutDate > :currentDate OR (r.checkOutDate = :currentDate AND COALESCE(r.checkOutTime, :defaultCheckOutTime) >= :currentTime))
             ORDER BY r.id DESC
             """)
-    List<Booking> findActiveByRoomAndDate(@Param("roomId") Long roomId, @Param("date") LocalDate date);
-
-    /**
-     * Retrieves latest non-deleted bookings for a room ordered by reservation check-in date.
-     */
-    @Query("""
-            SELECT b FROM Booking b 
-            JOIN b.reservation r 
-            WHERE b.room.id = :roomId 
-              AND (b.isDeleted = false OR b.isDeleted IS NULL) 
-              AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-            ORDER BY r.checkInDate DESC, r.id DESC
-            """)
-    List<Booking> findLatestBookingsByRoomId(@Param("roomId") Long roomId);
+    List<Booking> findActiveByRoomAndDate(
+            @Param("roomId") Long roomId, 
+            @Param("currentDate") LocalDate currentDate,
+            @Param("currentTime") java.time.LocalTime currentTime,
+            @Param("defaultCheckInTime") java.time.LocalTime defaultCheckInTime,
+            @Param("defaultCheckOutTime") java.time.LocalTime defaultCheckOutTime);
 
     /**
      * Retrieves all active bookings for a hotel where given date falls between reservation check-in and check-out dates.
