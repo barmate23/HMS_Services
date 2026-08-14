@@ -2,6 +2,7 @@ package com.hotelerp.userservice.controller;
 
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.dto.ItemConfigDTO;
+import com.hotelerp.userservice.dto.ItemConfigRequestDTO;
 import com.hotelerp.userservice.service.ItemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +18,12 @@ public class ItemConfigController {
     private final ItemConfigService itemConfigService;
 
     @PostMapping("/createItem")
-    public ResponseEntity<StandardResponse<ItemConfigDTO>> createItem(@RequestBody ItemConfigDTO dto) {
+    public ResponseEntity<StandardResponse<ItemConfigDTO>> createItem(@RequestBody ItemConfigRequestDTO dto) {
         return ResponseEntity.ok(itemConfigService.createItem(dto));
     }
 
     @PutMapping("/updateItem/{id}")
-    public ResponseEntity<StandardResponse<ItemConfigDTO>> updateItem(@PathVariable Long id, @RequestBody ItemConfigDTO dto) {
+    public ResponseEntity<StandardResponse<ItemConfigDTO>> updateItem(@PathVariable Long id, @RequestBody ItemConfigRequestDTO dto) {
         return ResponseEntity.ok(itemConfigService.updateItem(id, dto));
     }
 

@@ -3,6 +3,7 @@ package com.hotelerp.userservice.service;
 import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.ItemConfigDTO;
+import com.hotelerp.userservice.dto.ItemConfigRequestDTO;
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.ItemConfig;
@@ -34,7 +35,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
 
     @Override
     @Transactional
-    public StandardResponse<ItemConfigDTO> createItem(ItemConfigDTO dto) {
+    public StandardResponse<ItemConfigDTO> createItem(ItemConfigRequestDTO dto) {
         try {
             CommonMaster category = null;
             if (dto.getCategoryId() != null) {
@@ -48,12 +49,12 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                         .orElseThrow(() -> new ResourceNotFoundException("UOM not found with ID: " + dto.getUomId()));
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
-            Hotel hotel = null;
-            if (hotelId != null) {
-                hotel = hotelRepository.findById(hotelId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+            if (loginUser == null || loginUser.getHotelId() == null) {
+                throw new IllegalArgumentException("Hotel ID must be present in token session");
             }
+            Long hotelId = loginUser.getHotelId();
+            Hotel hotel = hotelRepository.findById(hotelId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
 
             ItemConfig item = ItemConfig.builder()
                     .hotel(hotel)
@@ -91,7 +92,7 @@ public class ItemConfigServiceImpl implements ItemConfigService {
 
     @Override
     @Transactional
-    public StandardResponse<ItemConfigDTO> updateItem(Long id, ItemConfigDTO dto) {
+    public StandardResponse<ItemConfigDTO> updateItem(Long id, ItemConfigRequestDTO dto) {
         try {
             ItemConfig item = itemConfigRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + id));
@@ -123,8 +124,11 @@ public class ItemConfigServiceImpl implements ItemConfigService {
                 item.setIsActive(dto.getIsActive());
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
-            if (hotelId != null && item.getHotel() == null) {
+            if (loginUser == null || loginUser.getHotelId() == null) {
+                throw new IllegalArgumentException("Hotel ID must be present in token session");
+            }
+            Long hotelId = loginUser.getHotelId();
+            if (item.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
                 item.setHotel(hotel);
