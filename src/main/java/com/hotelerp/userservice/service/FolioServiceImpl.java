@@ -153,7 +153,7 @@ public class FolioServiceImpl implements FolioService {
             }
 
             LocalDate today = LocalDate.now();
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);
@@ -190,7 +190,7 @@ public class FolioServiceImpl implements FolioService {
             String description) {
         try {
             LocalDate today = LocalDate.now();
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId);
 
             if (activeBookings.isEmpty()) {
                 throw new RuntimeException("No active booking found for room ID: " + roomId);

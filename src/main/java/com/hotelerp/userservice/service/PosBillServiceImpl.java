@@ -422,7 +422,7 @@ public class PosBillServiceImpl implements PosBillService {
         try {
             LocalDate today = LocalDate.now();
 
-            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId, today);
+            List<Booking> activeBookings = bookingRepository.findActiveByRoomAndDate(roomId);
 
             if (activeBookings.isEmpty()) {
                 return -1L;
