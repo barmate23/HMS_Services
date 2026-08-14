@@ -42,7 +42,7 @@ public class PosBillServiceImpl implements PosBillService {
     private final LoginUser loginUser;
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  CREATE
+    // CREATE
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -64,14 +64,16 @@ public class PosBillServiceImpl implements PosBillService {
             CommonMaster paymentMethod = null;
             if (dto.getPaymentMethodId() != null) {
                 paymentMethod = commonMasterRepository.findById(dto.getPaymentMethodId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Payment method not found: " + dto.getPaymentMethodId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Payment method not found: " + dto.getPaymentMethodId()));
             }
 
             // 4. Comp/Void reason (optional)
             CommonMaster compVoidReason = null;
             if (dto.getCompVoidReasonId() != null) {
                 compVoidReason = commonMasterRepository.findById(dto.getCompVoidReasonId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Comp/Void reason not found: " + dto.getCompVoidReasonId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Comp/Void reason not found: " + dto.getCompVoidReasonId()));
             }
 
             // 5. Default bill status → OPEN
@@ -83,14 +85,16 @@ public class PosBillServiceImpl implements PosBillService {
             BigDecimal discount = dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO;
             BigDecimal baseAmount = gross.subtract(discount);
             BigDecimal gstPercent = dto.getGstPercent() != null ? dto.getGstPercent() : BigDecimal.ZERO;
-            BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2,
+                    RoundingMode.HALF_UP);
             BigDecimal net = baseAmount.add(gstAmount);
             BigDecimal paid = dto.getPaidAmount() != null ? dto.getPaidAmount() : BigDecimal.ZERO;
 
             // 7. Generate bill number
             String billNumber = generateBillNumber();
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             if (hotelId == null && order.getHotel() != null) {
                 hotelId = order.getHotel().getId();
             }
@@ -129,27 +133,6 @@ public class PosBillServiceImpl implements PosBillService {
                             "NO_ROOM_LINKED", null);
                 }
 
-                final Long roomId = order.getRoom().getId();
-                final String description = "POS Bill " + billNumber
-                        + " | Order: " + order.getId()
-                        + (order.getGuestName() != null ? " | Guest: " + order.getGuestName() : "");
-
-                StandardResponse<Void> folioResponse = folioService.postChargeByRoom(
-                        roomId, net, "POS", description);
-
-                if (!folioResponse.isSuccess()) {
-                    throw new RuntimeException("Folio posting failed: " + folioResponse.getMessage());
-                }
-
-                final PosBill billToUpdate = savedBill;
-                folioPostingRepository.findByFolioIdAndIsDeletedFalse(
-                                resolveActiveFolioId(roomId)
-                        ).stream()
-                        .reduce((first, second) -> second)
-                        .ifPresent(posting -> {
-                            billToUpdate.setFolioPosting(posting);
-                            posBillRepository.save(billToUpdate);
-                        });
             }
 
             // 10. Update order status to BILLED
@@ -177,11 +160,15 @@ public class PosBillServiceImpl implements PosBillService {
                                     if (recipe.getIngredients() != null) {
                                         for (RecipeIngredient ri : recipe.getIngredients()) {
                                             if (ri.getIngredient() != null) {
-                                                BigDecimal qtyPerPortion = ri.getGrossQty() != null ? ri.getGrossQty() : (ri.getNetQty() != null ? ri.getNetQty() : BigDecimal.ZERO);
-                                                BigDecimal totalConsumed = qtyPerPortion.multiply(BigDecimal.valueOf(item.getQuantity()));
+                                                BigDecimal qtyPerPortion = ri.getGrossQty() != null ? ri.getGrossQty()
+                                                        : (ri.getNetQty() != null ? ri.getNetQty() : BigDecimal.ZERO);
+                                                BigDecimal totalConsumed = qtyPerPortion
+                                                        .multiply(BigDecimal.valueOf(item.getQuantity()));
 
                                                 KitchenIngredient ing = ri.getIngredient();
-                                                BigDecimal currentStock = ing.getCurrentStockLevel() != null ? ing.getCurrentStockLevel() : BigDecimal.ZERO;
+                                                BigDecimal currentStock = ing.getCurrentStockLevel() != null
+                                                        ? ing.getCurrentStockLevel()
+                                                        : BigDecimal.ZERO;
                                                 ing.setCurrentStockLevel(currentStock.subtract(totalConsumed));
                                                 kitchenIngredientRepository.save(ing);
                                             }
@@ -203,7 +190,7 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  UPDATE
+    // UPDATE
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -213,42 +200,51 @@ public class PosBillServiceImpl implements PosBillService {
             PosBill bill = posBillRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id));
 
-            if (dto.getDiscount() != null) bill.setDiscount(dto.getDiscount());
-            if (dto.getGstPercent() != null) bill.setGstPercent(dto.getGstPercent());
+            if (dto.getDiscount() != null)
+                bill.setDiscount(dto.getDiscount());
+            if (dto.getGstPercent() != null)
+                bill.setGstPercent(dto.getGstPercent());
 
             // Recalculate net amount
             BigDecimal gross = bill.getGrossAmount() != null ? bill.getGrossAmount() : BigDecimal.ZERO;
             BigDecimal discount = bill.getDiscount() != null ? bill.getDiscount() : BigDecimal.ZERO;
             BigDecimal baseAmount = gross.subtract(discount);
             BigDecimal gstPercent = bill.getGstPercent() != null ? bill.getGstPercent() : BigDecimal.ZERO;
-            BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal gstAmount = baseAmount.multiply(gstPercent).divide(BigDecimal.valueOf(100), 2,
+                    RoundingMode.HALF_UP);
             BigDecimal net = baseAmount.add(gstAmount);
 
             bill.setGstAmount(gstAmount);
             bill.setNetAmount(net);
 
-            if (dto.getPaidAmount() != null) bill.setPaidAmount(dto.getPaidAmount());
-            if (dto.getNotes() != null) bill.setNotes(dto.getNotes());
+            if (dto.getPaidAmount() != null)
+                bill.setPaidAmount(dto.getPaidAmount());
+            if (dto.getNotes() != null)
+                bill.setNotes(dto.getNotes());
 
             if (dto.getPaymentMethodId() != null) {
                 CommonMaster paymentMethod = commonMasterRepository.findById(dto.getPaymentMethodId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Payment method not found: " + dto.getPaymentMethodId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Payment method not found: " + dto.getPaymentMethodId()));
                 bill.setPaymentMethod(paymentMethod);
             }
 
             if (dto.getStatusId() != null) {
                 CommonMaster status = commonMasterRepository.findById(dto.getStatusId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Bill status not found: " + dto.getStatusId()));
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Bill status not found: " + dto.getStatusId()));
                 bill.setStatus(status);
             }
 
             if (dto.getCompVoidReasonId() != null) {
                 CommonMaster compVoidReason = commonMasterRepository.findById(dto.getCompVoidReasonId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Comp/Void reason not found: " + dto.getCompVoidReasonId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Comp/Void reason not found: " + dto.getCompVoidReasonId()));
                 bill.setCompVoidReason(compVoidReason);
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
             if (hotelId != null && bill.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
@@ -267,7 +263,7 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  VOID
+    // VOID
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -283,7 +279,8 @@ public class PosBillServiceImpl implements PosBillService {
 
             if (compVoidReasonId != null) {
                 CommonMaster reason = commonMasterRepository.findById(compVoidReasonId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Comp/Void reason not found: " + compVoidReasonId));
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Comp/Void reason not found: " + compVoidReasonId));
                 bill.setCompVoidReason(reason);
             }
 
@@ -299,7 +296,7 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  READ
+    // READ
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -308,9 +305,9 @@ public class PosBillServiceImpl implements PosBillService {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             PosBill bill = (hotelId != null)
                     ? posBillRepository.findByIdAndHotelId(id, hotelId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id))
+                            .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id))
                     : posBillRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id));
+                            .orElseThrow(() -> new ResourceNotFoundException("Bill not found with ID: " + id));
             return StandardResponse.success(convertToDTO(bill), "Bill fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -326,9 +323,9 @@ public class PosBillServiceImpl implements PosBillService {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
             PosBill bill = (hotelId != null)
                     ? posBillRepository.findByOrderIdAndHotelId(orderId, hotelId)
-                    .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId))
+                            .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId))
                     : posBillRepository.findByOrderIdAndIsDeletedFalse(orderId)
-                    .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId));
+                            .orElseThrow(() -> new ResourceNotFoundException("No bill found for order ID: " + orderId));
             return StandardResponse.success(convertToDTO(bill), "Bill fetched successfully");
         } catch (ResourceNotFoundException e) {
             return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
@@ -389,7 +386,7 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  DELETE (soft)
+    // DELETE (soft)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -410,7 +407,7 @@ public class PosBillServiceImpl implements PosBillService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  HELPERS
+    // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
 
     private String generateBillNumber() {
@@ -432,7 +429,8 @@ public class PosBillServiceImpl implements PosBillService {
             if (booking.getReservation() == null) {
                 return -1L;
             }
-            Optional<Folio> folioOpt = folioRepository.findByReservationIdAndIsDeletedFalse(booking.getReservation().getId());
+            Optional<Folio> folioOpt = folioRepository
+                    .findByReservationIdAndIsDeletedFalse(booking.getReservation().getId());
             return folioOpt.map(Folio::getId).orElse(-1L);
         } catch (Exception e) {
             log.warn("Could not resolve active folio id for room {}: {}", roomId, e.getMessage());
@@ -445,39 +443,46 @@ public class PosBillServiceImpl implements PosBillService {
 
         String orderFrom = "TAKEAWAY";
         if (order != null) {
-            if (order.getDiningTable() != null) orderFrom = "TABLE";
-            else if (order.getRoom() != null) orderFrom = "ROOM";
+            if (order.getDiningTable() != null)
+                orderFrom = "TABLE";
+            else if (order.getRoom() != null)
+                orderFrom = "ROOM";
         }
 
         List<PosOrderItemDTO> itemDTOs = (order != null && order.getItems() != null)
                 ? order.getItems().stream()
-                .map(i -> PosOrderItemDTO.builder()
-                        .id(i.getId())
-                        .hotelId(i.getHotel() != null ? i.getHotel().getId() : (bill.getHotel() != null ? bill.getHotel().getId() : null))
-                        .hotelName(i.getHotel() != null ? i.getHotel().getName() : (bill.getHotel() != null ? bill.getHotel().getName() : null))
-                        .menuItemId(i.getMenuItem() != null ? i.getMenuItem().getId() : null)
-                        .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
-                        .quantity(i.getQuantity())
-                        .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
-                        .price(i.getPrice())
-                        .subtotal(i.getSubtotal())
-                        .kotStatusId(i.getKotStatus() != null ? i.getKotStatus().getId() : null)
-                        .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
-                        .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
-                        .build())
-                .collect(Collectors.toList())
+                        .map(i -> PosOrderItemDTO.builder()
+                                .id(i.getId())
+                                .hotelId(i.getHotel() != null ? i.getHotel().getId()
+                                        : (bill.getHotel() != null ? bill.getHotel().getId() : null))
+                                .hotelName(i.getHotel() != null ? i.getHotel().getName()
+                                        : (bill.getHotel() != null ? bill.getHotel().getName() : null))
+                                .menuItemId(i.getMenuItem() != null ? i.getMenuItem().getId() : null)
+                                .itemName(i.getMenuItem() != null ? i.getMenuItem().getItemName() : null)
+                                .quantity(i.getQuantity())
+                                .readyQuantity(i.getReadyQuantity() != null ? i.getReadyQuantity() : 0)
+                                .price(i.getPrice())
+                                .subtotal(i.getSubtotal())
+                                .kotStatusId(i.getKotStatus() != null ? i.getKotStatus().getId() : null)
+                                .kotStatusCode(i.getKotStatus() != null ? i.getKotStatus().getCode() : null)
+                                .kotStatusName(i.getKotStatus() != null ? i.getKotStatus().getValue() : null)
+                                .build())
+                        .collect(Collectors.toList())
                 : List.of();
 
         return PosBillDTO.builder()
                 .id(bill.getId())
-                .hotelId(bill.getHotel() != null ? bill.getHotel().getId() : (order != null && order.getHotel() != null ? order.getHotel().getId() : null))
-                .hotelName(bill.getHotel() != null ? bill.getHotel().getName() : (order != null && order.getHotel() != null ? order.getHotel().getName() : null))
+                .hotelId(bill.getHotel() != null ? bill.getHotel().getId()
+                        : (order != null && order.getHotel() != null ? order.getHotel().getId() : null))
+                .hotelName(bill.getHotel() != null ? bill.getHotel().getName()
+                        : (order != null && order.getHotel() != null ? order.getHotel().getName() : null))
                 .billNumber(bill.getBillNumber())
                 .orderId(order != null ? order.getId() : null)
                 .orderRef(order != null ? "ORD-" + order.getId() : null)
                 .orderFrom(orderFrom)
                 .tableId((order != null && order.getDiningTable() != null) ? order.getDiningTable().getId() : null)
-                .tableNumber((order != null && order.getDiningTable() != null) ? order.getDiningTable().getTableNumber() : null)
+                .tableNumber((order != null && order.getDiningTable() != null) ? order.getDiningTable().getTableNumber()
+                        : null)
                 .roomId((order != null && order.getRoom() != null) ? order.getRoom().getId() : null)
                 .roomNumber((order != null && order.getRoom() != null) ? order.getRoom().getRoomNumber() : null)
                 .guestName(order != null ? order.getGuestName() : null)
