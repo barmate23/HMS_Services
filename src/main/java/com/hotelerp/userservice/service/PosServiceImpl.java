@@ -147,15 +147,6 @@ public class PosServiceImpl implements PosService {
 
             posOrderRepository.save(order);
 
-            if (order.getRoom() != null) {
-                StandardResponse<Void> folioResponse = folioService.postChargeByRoom(order.getRoom().getId(),
-                        order.getTotalAmount(),
-                        "POS",
-                        "POS Order: " + order.getId() + " - " + order.getOutlet().getName());
-                if (!folioResponse.isSuccess()) {
-                    throw new RuntimeException("Failed to post charge to folio: " + folioResponse.getMessage());
-                }
-            }
 
             // ── SSE: notify KDS screens that a new order was created ──────
             broadcastKdsUpdate(order.getOutlet() != null ? order.getOutlet().getId() : null, "NEW_ORDER");
