@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.posdashboard.*;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -24,12 +25,16 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         private final DiningTableRepository diningTableRepository;
         private final PosOrderItemRepository posOrderItemRepository;
         private final OutletRepository outletRepository;
+        private final LoginUser loginUser;
 
         @Override
         public StandardResponse<PosOpsDashboardDTO> getPosDashboardData() {
                 try {
+                        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
                         // 1. Floor Pulse
-                        List<DiningTable> allTables = diningTableRepository.findByIsDeletedFalse();
+                        List<DiningTable> allTables = (hotelId != null)
+                                        ? diningTableRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : diningTableRepository.findByIsDeletedFalse();
                         int totalTables = allTables.size();
                         int occupied = (int) allTables.stream()
                                         .filter(t -> t.getStatus() != null
@@ -55,7 +60,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .build();
 
                         // 2. KOT Queue (Active Orders)
-                        List<PosOrder> activeOrders = posOrderRepository.findAll().stream()
+                        List<PosOrder> activeOrders = ((hotelId != null)
+                                        ? posOrderRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : posOrderRepository.findAll()).stream()
                                         .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
                                         .filter(o -> o.getOutlet() == null || !Boolean.TRUE.equals(o.getOutlet().getIsDeleted()))
                                         .filter(o -> o.getStatus() != null && ("OPEN"
@@ -77,7 +84,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .build()).collect(Collectors.toList());
 
                         // 3. Revenue Mix & 4. Payment Split
-                        List<PosBill> nonVoidBills = posBillRepository.findAll().stream()
+                        List<PosBill> nonVoidBills = ((hotelId != null)
+                                        ? posBillRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : posBillRepository.findAll()).stream()
                                         .filter(b -> b.getIsDeleted() == null || !b.getIsDeleted())
                                         .filter(b -> b.getStatus() == null
                                                         || !"VOID".equalsIgnoreCase(b.getStatus().getValue()))
@@ -134,7 +143,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         }).collect(Collectors.toList());
 
                         // 5. Fast Moving Items
-                        Map<MenuItem, Integer> itemSales = posOrderItemRepository.findAll().stream()
+                        Map<MenuItem, Integer> itemSales = ((hotelId != null)
+                                        ? posOrderItemRepository.findByHotel_Id(hotelId)
+                                        : posOrderItemRepository.findAll()).stream()
                                         .collect(Collectors.groupingBy(PosOrderItem::getMenuItem,
                                                         Collectors.summingInt(PosOrderItem::getQuantity)));
 
@@ -165,7 +176,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .collect(Collectors.toList());
 
                         // 6. Billing Watch
-                        List<PosBill> allBills = posBillRepository.findAll();
+                        List<PosBill> allBills = (hotelId != null)
+                                        ? posBillRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : posBillRepository.findAll();
                         List<PosBill> openBills = allBills.stream()
                                         .filter(b -> b.getStatus() == null
                                                         || "OPEN".equalsIgnoreCase(b.getStatus().getValue())
@@ -254,8 +267,11 @@ public class PosDashboardServiceImpl implements PosDashboardService {
         public StandardResponse<PosDashboardCardsDTO> getPosDashboardCards(Long outletId, LocalDateTime startDate,
                         LocalDateTime endDate) {
                 try {
+                        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
                         // 1. Active Outlets Count (excluding deleted)
-                        List<Outlet> outlets = outletRepository.findByIsActiveTrueAndIsDeletedFalse();
+                        List<Outlet> outlets = (hotelId != null)
+                                        ? outletRepository.findByHotel_IdAndIsActiveTrueAndIsDeletedFalse(hotelId)
+                                        : outletRepository.findByIsActiveTrueAndIsDeletedFalse();
                         if (outletId != null) {
                                 outlets = outlets.stream()
                                                 .filter(o -> o.getId().equals(outletId))
@@ -264,7 +280,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                         int activeOutlets = outlets.size();
 
                         // Fetch POS Orders filtered by outlet and date range
-                        List<PosOrder> allOrders = posOrderRepository.findAll();
+                        List<PosOrder> allOrders = (hotelId != null)
+                                        ? posOrderRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : posOrderRepository.findAll();
                         List<PosOrder> filteredOrders = allOrders.stream()
                                         .filter(o -> !Boolean.TRUE.equals(o.getIsDeleted()))
                                         .filter(o -> o.getOutlet() == null || !Boolean.TRUE.equals(o.getOutlet().getIsDeleted()))
@@ -296,7 +314,9 @@ public class PosDashboardServiceImpl implements PosDashboardService {
                                         .count();
 
                         // Fetch POS Bills filtered by outlet and date range
-                        List<PosBill> allBills = posBillRepository.findByIsDeletedFalse();
+                        List<PosBill> allBills = (hotelId != null)
+                                        ? posBillRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                                        : posBillRepository.findByIsDeletedFalse();
                         List<PosBill> filteredBills = allBills.stream()
                                         .filter(b -> b.getOrder() == null || b.getOrder().getOutlet() == null || !Boolean.TRUE.equals(b.getOrder().getOutlet().getIsDeleted()))
                                         .filter(b -> outletId == null || (b.getOrder() != null

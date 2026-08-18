@@ -12,6 +12,8 @@ public interface HousekeepingAuditService {
 
     // SOP Checkpoints
     StandardResponse<Void> createCheckpoint(SOPCheckpointDTO dto);
+    StandardResponse<Void> updateCheckpoint(Long id, SOPCheckpointDTO dto);
+    StandardResponse<Void> deleteCheckpoint(Long id);
     StandardResponse<List<SOPCheckpointDTO>> getAllCheckpoints();
     StandardResponse<List<SOPCheckpointDTO>> getCheckpointsByFrequency(String frequency);
     

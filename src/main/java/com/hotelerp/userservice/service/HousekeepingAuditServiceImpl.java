@@ -103,6 +103,53 @@ public class HousekeepingAuditServiceImpl implements HousekeepingAuditService {
     }
 
     @Override
+    @Transactional
+    public StandardResponse<Void> updateCheckpoint(Long id, SOPCheckpointDTO dto) {
+        try {
+            SOPCheckpoint checkpoint = checkpointRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("SOP Checkpoint not found with ID: " + id));
+
+            CommonMaster frequency = masterRepository.findById(dto.getFrequencyId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Frequency master data not found for ID: " + dto.getFrequencyId()));
+
+            CommonMaster responsibleRole = masterRepository.findById(dto.getResponsibleRoleId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Responsible Role master data not found for ID: " + dto.getResponsibleRoleId()));
+
+            checkpoint.setCheckpointId(dto.getCheckpointId());
+            checkpoint.setFrequency(frequency);
+            checkpoint.setAuditArea(dto.getAuditArea());
+            checkpoint.setResponsibleRole(responsibleRole);
+            checkpoint.setDescription(dto.getDescription());
+
+            checkpointRepository.save(checkpoint);
+            return StandardResponse.success("SOP checkpoint updated successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating SOP checkpoint: ", e);
+            return StandardResponse.error("Failed to update SOP checkpoint", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public StandardResponse<Void> deleteCheckpoint(Long id) {
+        try {
+            SOPCheckpoint checkpoint = checkpointRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("SOP Checkpoint not found with ID: " + id));
+            checkpointRepository.delete(checkpoint);
+            return StandardResponse.success("SOP checkpoint deleted successfully");
+        } catch (ResourceNotFoundException e) {
+            return StandardResponse.error(e.getMessage(), "RESOURCE_NOT_FOUND", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting SOP checkpoint: ", e);
+            return StandardResponse.error("Failed to delete SOP checkpoint", "INTERNAL_SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    @Override
     public StandardResponse<List<SOPCheckpointDTO>> getAllCheckpoints() {
         try {
             Long hotelId = loginUser != null ? loginUser.getHotelId() : null;

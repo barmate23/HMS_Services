@@ -51,6 +51,22 @@ public class HousekeepingAuditController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping(ServiceConstant.UPDATE_CHECKPOINT)
+    public ResponseEntity<StandardResponse<Void>> updateCheckpoint(
+            @PathVariable Long id,
+            @RequestBody SOPCheckpointDTO dto) {
+        StandardResponse<Void> response = auditService.updateCheckpoint(id, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @DeleteMapping(ServiceConstant.DELETE_CHECKPOINT)
+    public ResponseEntity<StandardResponse<Void>> deleteCheckpoint(@PathVariable Long id) {
+        StandardResponse<Void> response = auditService.deleteCheckpoint(id);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(response);
+    }
+
     // Live Room Audit Status Endpoint
     @GetMapping(ServiceConstant.GET_ROOM_LIVE_STATUS)
     public ResponseEntity<StandardResponse<Object>> getRoomAuditStatus(@PathVariable Long roomId) {

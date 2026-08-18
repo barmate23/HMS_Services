@@ -15,6 +15,8 @@ public class ServiceConstant {
     public static final String CREATE_CHECKPOINT = "/createCheckpoints";
     public static final String GET_ALL_CHECKPOINTS = "/getAllCheckpoints";
     public static final String GET_CHECKPOINTS_BY_FREQUENCY = "/getCheckpointsByFrequency/{frequency}";
+    public static final String UPDATE_CHECKPOINT = "/updateCheckpoint/{id}";
+    public static final String DELETE_CHECKPOINT = "/deleteCheckpoint/{id}";
     public static final String GET_COMMON_MASTER = "/getCommonMaster/{category}";
     public static final String SAVE_COMMON_MASTER = "/saveCommonMaster";
     public static final String UPDATE_COMMON_MASTER_DATA = "/updateCommonMasterData";

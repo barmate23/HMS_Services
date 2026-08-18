@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PosOrderItemRepository extends JpaRepository<PosOrderItem, Long> {
+    java.util.List<PosOrderItem> findByHotel_Id(Long hotelId);
 }
