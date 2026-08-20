@@ -146,13 +146,19 @@ public class LaundryServiceImpl implements LaundryService {
                 return StandardResponse.error("Service name is required", "VALIDATION_ERROR", "serviceName",
                         "Service name cannot be blank");
             }
-            if (serviceCatalogRepository.existsByServiceNameIgnoreCase(dto.getServiceName().trim())) {
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
+
+            boolean exists = (hotelId != null)
+                    ? serviceCatalogRepository.existsByServiceNameIgnoreCaseAndHotel_Id(dto.getServiceName().trim(), hotelId)
+                    : serviceCatalogRepository.existsByServiceNameIgnoreCaseAndHotelIsNull(dto.getServiceName().trim());
+
+            if (exists) {
                 return StandardResponse.error("Service already exists", "DUPLICATE_SERVICE", "serviceName",
                         dto.getServiceName());
             }
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
-                    : dto.getHotelId();
             Hotel hotel = null;
             if (hotelId != null) {
                 hotel = hotelRepository.findById(hotelId)
@@ -180,9 +186,17 @@ public class LaundryServiceImpl implements LaundryService {
         try {
             LaundryServiceCatalog entity = serviceCatalogRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Laundry service not found"));
+
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
+
             String serviceName = dto.getServiceName() != null ? dto.getServiceName().trim() : entity.getServiceName();
-            serviceCatalogRepository.findByServiceNameIgnoreCase(serviceName)
-                    .filter(existing -> !existing.getId().equals(id))
+            
+            Optional<LaundryServiceCatalog> existingCatalog = (hotelId != null)
+                    ? serviceCatalogRepository.findByServiceNameIgnoreCaseAndHotel_Id(serviceName, hotelId)
+                    : serviceCatalogRepository.findByServiceNameIgnoreCaseAndHotelIsNull(serviceName);
+
+            existingCatalog.filter(existing -> !existing.getId().equals(id))
                     .ifPresent(existing -> {
                         throw new IllegalArgumentException("Service name already exists");
                     });
@@ -193,8 +207,6 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setDisplayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : entity.getDisplayOrder());
             entity.setStatus(defaultString(dto.getStatus(), entity.getStatus()));
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
-                    : dto.getHotelId();
             if (hotelId != null && entity.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));

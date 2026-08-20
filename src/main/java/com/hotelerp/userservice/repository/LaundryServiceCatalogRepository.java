@@ -15,4 +15,8 @@ public interface LaundryServiceCatalogRepository extends JpaRepository<LaundrySe
     List<LaundryServiceCatalog> findByHotel_IdAndStatusOrderByDisplayOrderAscServiceNameAsc(Long hotelId, String status);
     Optional<LaundryServiceCatalog> findByServiceNameIgnoreCase(String serviceName);
     boolean existsByServiceNameIgnoreCase(String serviceName);
+    Optional<LaundryServiceCatalog> findByServiceNameIgnoreCaseAndHotel_Id(String serviceName, Long hotelId);
+    boolean existsByServiceNameIgnoreCaseAndHotel_Id(String serviceName, Long hotelId);
+    Optional<LaundryServiceCatalog> findByServiceNameIgnoreCaseAndHotelIsNull(String serviceName);
+    boolean existsByServiceNameIgnoreCaseAndHotelIsNull(String serviceName);
 }
