@@ -17,6 +17,10 @@ public class PosOpsDashboardDTO {
     private List<OutletRevenueDTO> revenueMix;
     private List<PaymentSplitDTO> paymentSplit;
     private List<FastMovingItemDTO> fastMovingItems;
+    private List<FastMovingItemDTO> lessMovingItems;
     private BillingWatchDTO billingWatch;
     private List<RecentActivityDTO> recentActivity;
+    private java.math.BigDecimal orderValue;
+    private java.math.BigDecimal avgOrder;
+    private Integer menuItemsCount;
 }

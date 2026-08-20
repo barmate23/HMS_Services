@@ -15,4 +15,9 @@ public class FastMovingItemDTO {
     private int soldQty;
     private String imageUrl;
     private byte[] itemImage;
+    private String categoryName;
+    private String itemType;
+    private java.math.BigDecimal rate;
+    private java.math.BigDecimal totalAmount;
+    private java.util.Map<String, Integer> monthlySales;
 }

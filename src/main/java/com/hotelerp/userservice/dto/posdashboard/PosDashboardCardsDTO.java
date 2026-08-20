@@ -13,9 +13,15 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PosDashboardCardsDTO {
     private Integer activeOutlets;
+    private String outletStatus;
+    private Integer totalTables;
+    private Integer totalSeats;
     private Integer openOrders;
     private Integer kotRunning;
     private Integer bills;
     private Integer roomPostings;
     private BigDecimal grossSales;
+    private String revenueTrend;
+    private Integer totalOrders;
+    private String orderTrend;
 }
