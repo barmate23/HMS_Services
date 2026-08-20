@@ -50,5 +50,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     java.util.List<User> findByDepartmentValueAndPropertyId(@Param("department") String department, @Param("propertyId") Long propertyId);
 
     long countByProperty_IdAndIsDeletedFalse(Long propertyId);
+    java.util.List<User> findByProperty_IdAndIsDeletedFalse(Long propertyId);
 
 }

@@ -103,15 +103,25 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                                         .type("LOST_FOUND").build());
 
                         // 3. Team Load
+                        List<User> allUsers = (hotelId != null)
+                                        ? userRepository.findByProperty_IdAndIsDeletedFalse(hotelId)
+                                        : userRepository.findAll().stream().filter(u -> !Boolean.TRUE.equals(u.getIsDeleted())).collect(Collectors.toList());
+
+                        int housekeepingStaffCount = (int) allUsers.stream()
+                                        .filter(u -> u.getRole() != null && u.getRole().getName() != null 
+                                                && (u.getRole().getName().toLowerCase().contains("housekeeping") 
+                                                    || u.getRole().getName().toLowerCase().contains("room attendant") 
+                                                    || (u.getRole().getDepartment() != null && "housekeeping".equalsIgnoreCase(u.getRole().getDepartment().getName()))
+                                                    || (u.getDepartment() != null && "housekeeping".equalsIgnoreCase(u.getDepartment().getName()))))
+                                        .count();
+
                         HkTeamLoadDTO teamLoad = HkTeamLoadDTO.builder()
                                         .pendingSubmissions((int) allTasks.stream()
-                                                        .filter(t -> t.getStatus() != null && "PENDING".equals(t.getStatus().getCode())).count())
+                                                         .filter(t -> t.getStatus() != null && "PENDING".equals(t.getStatus().getCode())).count())
                                         .inProgress((int) allTasks.stream()
-                                                        .filter(t -> t.getStatus() != null && "IN_PROGRESS".equals(t.getStatus().getCode()))
-                                                        .count())
-                                        .staffProfiles((hotelId != null)
-                                                        ? (int) userRepository.countByProperty_IdAndIsDeletedFalse(hotelId)
-                                                        : (int) userRepository.count())
+                                                         .filter(t -> t.getStatus() != null && "IN_PROGRESS".equals(t.getStatus().getCode()))
+                                                         .count())
+                                        .staffProfiles(housekeepingStaffCount)
                                         .build();
 
                         // 4. Audit Readiness
@@ -125,11 +135,15 @@ public class HousekeepingDashboardServiceImpl implements HousekeepingDashboardSe
                                         .filter(a -> a.getStatus() != null && "RECHECK".equals(a.getStatus().getCode()))
                                         .count();
 
+                        int checkpointsCount = (int) allCheckpoints.stream()
+                                        .filter(c -> c.getFrequency() != null && "DAILY".equalsIgnoreCase(c.getFrequency().getCode()))
+                                        .count();
+
                         HkAuditReadinessDTO auditReadiness = HkAuditReadinessDTO.builder()
                                         .activeSop("DAILY")
-                                        .checkpoints(allCheckpoints.size())
+                                        .checkpoints(checkpointsCount)
                                         .roomsTracked((int) allAuditLogs.stream().map(RoomAuditLog::getRoom).distinct()
-                                                        .count())
+                                                         .count())
                                         .pendingAudits(pendingAudits)
                                         .doneAudits(doneAudits)
                                         .recheckAudits(recheckAudits)
