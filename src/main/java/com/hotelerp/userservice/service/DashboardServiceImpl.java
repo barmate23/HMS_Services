@@ -51,14 +51,21 @@ public class DashboardServiceImpl implements DashboardService {
                     ? posOrderRepository.findAllInDateRangeAndHotelId(startDate, endDate, hotelId)
                     : posOrderRepository.findAllInDateRange(startDate, endDate);
 
+            List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(hotelId);
+            Set<Long> occupiedRoomIds = activeBookings.stream()
+                    .filter(b -> b.getRoom() != null && b.getRoom().getId() != null)
+                    .map(b -> b.getRoom().getId())
+                    .collect(Collectors.toSet());
+
             // 3. Summary Stats
             int totalRooms = allRooms.size();
             int occupiedRooms = (int) allRooms.stream()
-                    .filter(r -> isStatus(r.getStatus(), "OCCUPIED"))
+                    .filter(r -> isOccupied(r, occupiedRoomIds))
                     .count();
-            int availableRooms = (int) allRooms.stream()
-                    .filter(r -> isStatus(r.getStatus(), "VACANT"))
+            int blockedRooms = (int) allRooms.stream()
+                    .filter(r -> !isOccupied(r, occupiedRoomIds) && isBlocked(r))
                     .count();
+            int availableRooms = Math.max(0, totalRooms - occupiedRooms - blockedRooms);
             
             BigDecimal fyBookingRevenue = bookings.stream()
                     .map(b -> b.getFinalPrice() != null ? b.getFinalPrice() : BigDecimal.ZERO)
@@ -89,13 +96,13 @@ public class DashboardServiceImpl implements DashboardService {
             // 5. Floor-wise Rooms
             List<FloorStatDTO> floorWiseRooms = allFloors.stream().map(floor -> {
                 List<Room> roomsOnFloor = allRooms.stream()
-                        .filter(r -> r.getFloor().getId().equals(floor.getId()))
+                        .filter(r -> r.getFloor() != null && r.getFloor().getId() != null && r.getFloor().getId().equals(floor.getId()))
                         .collect(Collectors.toList());
                 
                 int total = roomsOnFloor.size();
-                int available = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "VACANT")).count();
-                int occupied = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "OCCUPIED")).count();
-                int blocked = (int) roomsOnFloor.stream().filter(r -> isStatus(r.getStatus(), "MAINTENANCE")).count();
+                int occupied = (int) roomsOnFloor.stream().filter(r -> isOccupied(r, occupiedRoomIds)).count();
+                int blocked = (int) roomsOnFloor.stream().filter(r -> !isOccupied(r, occupiedRoomIds) && isBlocked(r)).count();
+                int available = Math.max(0, total - occupied - blocked);
                 
                 return FloorStatDTO.builder()
                         .floorName(floor.getFloorNumber())
@@ -240,7 +247,31 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
 
-    private boolean isStatus(CommonMaster status, String expected) {
-        return status != null && expected.equalsIgnoreCase(status.getValue());
+    private boolean isOccupied(Room room, Set<Long> occupiedRoomIds) {
+        if (room == null) return false;
+        if (occupiedRoomIds != null && occupiedRoomIds.contains(room.getId())) {
+            return true;
+        }
+        return matchesStatus(room.getStatus(), "OCCUPIED")
+                || matchesStatus(room.getHkStatus(), "OCCUPIED");
+    }
+
+    private boolean isBlocked(Room room) {
+        if (room == null) return false;
+        return matchesStatus(room.getStatus(), "MAINTENANCE", "BLOCKED", "OUT_OF_ORDER", "UNDER_MAINTENANCE")
+                || matchesStatus(room.getHkStatus(), "MAINTENANCE", "DO NOT DISTURB", "DND", "BLOCKED", "UNDER MAINTENANCE");
+    }
+
+    private boolean matchesStatus(CommonMaster status, String... expectedKeywords) {
+        if (status == null) return false;
+        String code = status.getCode() != null ? status.getCode().toUpperCase() : "";
+        String value = status.getValue() != null ? status.getValue().toUpperCase() : "";
+        for (String kw : expectedKeywords) {
+            String target = kw.toUpperCase();
+            if (code.equals(target) || code.contains(target) || value.equals(target) || value.contains(target)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
