@@ -249,11 +249,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private boolean isOccupied(Room room, Set<Long> occupiedRoomIds) {
         if (room == null) return false;
-        if (occupiedRoomIds != null && occupiedRoomIds.contains(room.getId())) {
-            return true;
-        }
-        return matchesStatus(room.getStatus(), "OCCUPIED")
-                || matchesStatus(room.getHkStatus(), "OCCUPIED");
+        return occupiedRoomIds != null && occupiedRoomIds.contains(room.getId());
     }
 
     private boolean isBlocked(Room room) {
