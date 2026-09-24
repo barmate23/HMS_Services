@@ -54,7 +54,8 @@ public class DashboardServiceImpl implements DashboardService {
 
             List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(hotelId);
             LocalDate today = LocalDate.now();
-            Set<Long> occupiedRoomIds = activeBookings.stream()
+
+            List<Booking> todayBookings = activeBookings.stream()
                     .filter(b -> b.getRoom() != null && b.getRoom().getId() != null)
                     .filter(b -> {
                         LocalDate checkIn = b.getCheckInDate() != null ? b.getCheckInDate()
@@ -81,18 +82,31 @@ public class DashboardServiceImpl implements DashboardService {
                         }
                         return true;
                     })
+                    .collect(Collectors.toList());
+
+            Set<Long> occupiedRoomIds = todayBookings.stream()
+                    .filter(this::isCheckedIn)
+                    .map(b -> b.getRoom().getId())
+                    .collect(Collectors.toSet());
+
+            Set<Long> bookedRoomIds = todayBookings.stream()
+                    .filter(b -> !isCheckedIn(b))
                     .map(b -> b.getRoom().getId())
                     .collect(Collectors.toSet());
 
             // 3. Summary Stats
             int totalRooms = allRooms.size();
             int occupiedRooms = (int) allRooms.stream()
-                    .filter(r -> isOccupied(r, occupiedRoomIds))
+                    .filter(r -> occupiedRoomIds.contains(r.getId()))
+                    .count();
+            int bookedRooms = (int) allRooms.stream()
+                    .filter(r -> bookedRoomIds.contains(r.getId()) && !occupiedRoomIds.contains(r.getId()))
                     .count();
             int blockedRooms = (int) allRooms.stream()
-                    .filter(r -> !isOccupied(r, occupiedRoomIds) && isBlocked(r))
+                    .filter(r -> !occupiedRoomIds.contains(r.getId()) && !bookedRoomIds.contains(r.getId()) && isBlocked(r))
                     .count();
-            int availableRooms = Math.max(0, totalRooms - occupiedRooms - blockedRooms);
+            int availableRooms = Math.max(0, totalRooms - occupiedRooms - bookedRooms - blockedRooms);
+            int totalBookings = todayBookings.size();
             
             BigDecimal fyBookingRevenue = bookings.stream()
                     .map(b -> b.getFinalPrice() != null ? b.getFinalPrice() : BigDecimal.ZERO)
@@ -100,8 +114,12 @@ public class DashboardServiceImpl implements DashboardService {
 
             DashboardSummaryDTO summary = DashboardSummaryDTO.builder()
                     .totalRooms(totalRooms)
+                    .totalBookings(totalBookings)
                     .availableRooms(availableRooms)
                     .occupiedRooms(occupiedRooms)
+                    .bookedRooms(bookedRooms)
+                    .blockedRooms(blockedRooms)
+                    .underMaintenanceRooms(blockedRooms)
                     .fyBookingRevenue(fyBookingRevenue)
                     .posOrders(posOrders.size())
                     .build();
@@ -127,20 +145,25 @@ public class DashboardServiceImpl implements DashboardService {
                         .collect(Collectors.toList());
                 
                 int total = roomsOnFloor.size();
-                int occupied = (int) roomsOnFloor.stream().filter(r -> isOccupied(r, occupiedRoomIds)).count();
-                int blocked = (int) roomsOnFloor.stream().filter(r -> !isOccupied(r, occupiedRoomIds) && isBlocked(r)).count();
-                int available = Math.max(0, total - occupied - blocked);
+                int occupied = (int) roomsOnFloor.stream().filter(r -> occupiedRoomIds.contains(r.getId())).count();
+                int booked = (int) roomsOnFloor.stream().filter(r -> bookedRoomIds.contains(r.getId()) && !occupiedRoomIds.contains(r.getId())).count();
+                int blocked = (int) roomsOnFloor.stream().filter(r -> !occupiedRoomIds.contains(r.getId()) && !bookedRoomIds.contains(r.getId()) && isBlocked(r)).count();
+                int available = Math.max(0, total - occupied - booked - blocked);
                 
                 return FloorStatDTO.builder()
+                        .floorId(floor.getId())
                         .floorName(floor.getFloorNumber())
                         .total(total)
                         .available(available)
                         .occupied(occupied)
+                        .booked(booked)
+                        .bookedRooms(booked)
                         .blocked(blocked)
+                        .underMaintenanceRooms(blocked)
                         .build();
             }).collect(Collectors.toList());
 
-            double overallOccupancy = totalRooms > 0 ? (double) occupiedRooms / totalRooms * 100 : 0;
+            double overallOccupancy = totalRooms > 0 ? (double) (occupiedRooms + bookedRooms) / totalRooms * 100 : 0;
 
             // 6. POS Performance
             BigDecimal totalPosValue = posOrders.stream()
@@ -273,6 +296,27 @@ public class DashboardServiceImpl implements DashboardService {
         return itemStats;
     }
 
+
+    private boolean isCheckedIn(Booking b) {
+        if (b == null) return false;
+        if (b.getBookingStatus() != null) {
+            String code = b.getBookingStatus().getCode() != null ? b.getBookingStatus().getCode().toUpperCase() : "";
+            String val = b.getBookingStatus().getValue() != null ? b.getBookingStatus().getValue().toUpperCase() : "";
+            if (code.contains("CHECKED_IN") || code.contains("CHECK_IN") || code.contains("OCCUPIED")
+                    || val.contains("CHECKED IN") || val.contains("CHECK IN") || val.contains("OCCUPIED")) {
+                return true;
+            }
+        }
+        if (b.getReservation() != null && b.getReservation().getReservationStatus() != null) {
+            String code = b.getReservation().getReservationStatus().getCode() != null ? b.getReservation().getReservationStatus().getCode().toUpperCase() : "";
+            String val = b.getReservation().getReservationStatus().getValue() != null ? b.getReservation().getReservationStatus().getValue().toUpperCase() : "";
+            if (code.contains("CHECKED_IN") || code.contains("CHECK_IN") || code.contains("OCCUPIED")
+                    || val.contains("CHECKED IN") || val.contains("CHECK IN") || val.contains("OCCUPIED")) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private boolean isOccupied(Room room, Set<Long> occupiedRoomIds) {
         if (room == null) return false;
