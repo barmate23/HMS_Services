@@ -37,6 +37,8 @@ public class PosBillDTO {
     private String orderFrom;         // TABLE | ROOM | TAKEAWAY
     private Long tableId;
     private String tableNumber;
+    private Long floorId;
+    private String floorName;
     private Long roomId;
     private String roomNumber;
     private String guestName;

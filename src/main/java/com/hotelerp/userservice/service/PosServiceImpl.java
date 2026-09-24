@@ -633,6 +633,8 @@ public class PosServiceImpl implements PosService {
                 .orderTypeName(order.getOrderType() != null ? order.getOrderType().getValue() : null)
                 .tableId(order.getDiningTable() != null ? order.getDiningTable().getId() : null)
                 .tableNumber(order.getDiningTable() != null ? order.getDiningTable().getTableNumber() : null)
+                .floorId((order.getRoom() != null && order.getRoom().getFloor() != null) ? order.getRoom().getFloor().getId() : null)
+                .floorName((order.getRoom() != null && order.getRoom().getFloor() != null) ? order.getRoom().getFloor().getFloorNumber() : null)
                 .roomId(order.getRoom() != null ? order.getRoom().getId() : null)
                 .roomNumber(order.getRoom() != null ? order.getRoom().getRoomNumber() : null)
                 .guestName(order.getGuestName())

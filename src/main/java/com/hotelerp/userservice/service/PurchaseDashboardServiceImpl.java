@@ -4,6 +4,7 @@ import com.hotelerp.userservice.common.StandardResponse;
 import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.dashboard.PurchaseDashboardDTO;
 import com.hotelerp.userservice.entity.InventoryStock;
+import com.hotelerp.userservice.entity.PurchaseOrder;
 import com.hotelerp.userservice.repository.InventoryStockRepository;
 import com.hotelerp.userservice.repository.PurchaseOrderRepository;
 import com.hotelerp.userservice.repository.SupplierRepository;
