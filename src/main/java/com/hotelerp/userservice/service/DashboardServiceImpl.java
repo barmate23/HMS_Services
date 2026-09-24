@@ -1,6 +1,7 @@
 package com.hotelerp.userservice.service;
 
 import com.hotelerp.userservice.common.StandardResponse;
+import com.hotelerp.userservice.config.LoginUser;
 import com.hotelerp.userservice.dto.dashboard.*;
 import com.hotelerp.userservice.entity.*;
 import com.hotelerp.userservice.repository.*;
@@ -23,6 +24,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final BookingRepository bookingRepository;
     private final PosOrderRepository posOrderRepository;
     private final MenuItemRepository menuItemRepository;
+    private final LoginUser loginUser;
 
     @Override
     public StandardResponse<DashboardDTO> getDashboardData(String financialYear) {
@@ -33,11 +35,21 @@ public class DashboardServiceImpl implements DashboardService {
             LocalDateTime startDate = LocalDateTime.of(startYear, Month.APRIL, 1, 0, 0);
             LocalDateTime endDate = LocalDateTime.of(startYear + 1, Month.MARCH, 31, 23, 59, 59);
 
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+
             // 2. Fetch Data
-            List<Room> allRooms = roomRepository.findAll();
-            List<Floor> allFloors = floorRepository.findAll();
-            List<Booking> bookings = bookingRepository.findAllInDateRange(startDate, endDate);
-            List<PosOrder> posOrders = posOrderRepository.findAllInDateRange(startDate, endDate);
+            List<Room> allRooms = (hotelId != null)
+                    ? roomRepository.findByFloor_Hotel_IdAndIsDeletedFalse(hotelId)
+                    : roomRepository.findByIsDeletedFalse();
+            List<Floor> allFloors = (hotelId != null)
+                    ? floorRepository.findByHotel_Id(hotelId)
+                    : floorRepository.findAll();
+            List<Booking> bookings = (hotelId != null)
+                    ? bookingRepository.findAllInDateRangeAndHotelId(startDate, endDate, hotelId)
+                    : bookingRepository.findAllInDateRange(startDate, endDate);
+            List<PosOrder> posOrders = (hotelId != null)
+                    ? posOrderRepository.findAllInDateRangeAndHotelId(startDate, endDate, hotelId)
+                    : posOrderRepository.findAllInDateRange(startDate, endDate);
 
             // 3. Summary Stats
             int totalRooms = allRooms.size();
@@ -112,7 +124,9 @@ public class DashboardServiceImpl implements DashboardService {
             PosPerformanceDTO posPerformance = PosPerformanceDTO.builder()
                     .orderValue(totalPosValue)
                     .avgOrder(avgOrder)
-                    .menuItemsCount((int) menuItemRepository.count())
+                    .menuItemsCount((hotelId != null) 
+                            ? menuItemRepository.findByHotel_IdAndIsDeletedFalse(hotelId).size() 
+                            : (int) menuItemRepository.count())
                     .topSellingItems(topSellingItems)
                     .lessSellingItems(lessSellingItems)
                     .build();

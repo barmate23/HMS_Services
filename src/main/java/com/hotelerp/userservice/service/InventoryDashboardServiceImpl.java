@@ -26,10 +26,14 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
     @Override
     public StandardResponse<InventoryDashboardDTO> getDashboardData() {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+
             // ── 1. Stock Data & Health ──────────────────────────────────────────────────
-            List<InventoryStock> allStocks = inventoryStockRepository.findByIsDeletedFalse();
+            List<InventoryStock> allStocks = (hotelId != null)
+                    ? inventoryStockRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : inventoryStockRepository.findByIsDeletedFalse();
             long totalSkus = allStocks.size();
-            BigDecimal totalValue = inventoryStockRepository.calculateTotalStockValue(loginUser.getHotelId());
+            BigDecimal totalValue = inventoryStockRepository.calculateTotalStockValue(hotelId);
             if (totalValue == null) totalValue = BigDecimal.ZERO;
 
             long healthyCount = 0;
@@ -63,7 +67,9 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
                     .build();
 
             // ── 2. PR Pipeline & Stats ──────────────────────────────────────────────────
-            List<PurchaseRequest> allPrs = purchaseRequestRepository.findByIsDeletedFalse();
+            List<PurchaseRequest> allPrs = (hotelId != null)
+                    ? purchaseRequestRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : purchaseRequestRepository.findByIsDeletedFalse();
             long totalOpenPrs = 0;
             
             InventoryDashboardDTO.PrPipelineStageDTO draft = new InventoryDashboardDTO.PrPipelineStageDTO(0L, BigDecimal.ZERO);
@@ -114,7 +120,9 @@ public class InventoryDashboardServiceImpl implements InventoryDashboardService 
                     .build();
 
             // ── 3. Store Movement & Issues ─────────────────────────────────────────────
-            List<StoreIssue> allIssues = storeIssueRepository.findByIsDeletedFalse();
+            List<StoreIssue> allIssues = (hotelId != null)
+                    ? storeIssueRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : storeIssueRepository.findByIsDeletedFalse();
             long openStoreIssuesCount = allIssues.stream()
                     .filter(issue -> issue.getStatus() != null && "OPEN".equalsIgnoreCase(issue.getStatus().getCode()))
                     .count();

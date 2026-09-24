@@ -19,4 +19,5 @@ public interface LaundryServiceCatalogRepository extends JpaRepository<LaundrySe
     boolean existsByServiceNameIgnoreCaseAndHotel_Id(String serviceName, Long hotelId);
     Optional<LaundryServiceCatalog> findByServiceNameIgnoreCaseAndHotelIsNull(String serviceName);
     boolean existsByServiceNameIgnoreCaseAndHotelIsNull(String serviceName);
+    Optional<LaundryServiceCatalog> findByIdAndHotel_Id(Long id, Long hotelId);
 }

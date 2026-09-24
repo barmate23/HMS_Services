@@ -315,10 +315,10 @@ public class FolioServiceImpl implements FolioService {
             LocalDate today = LocalDate.now();
 
             // 1. Fetch folios directly via FolioRepository JPQL query
-            List<Folio> folios = folioRepository.findAllOpenFoliosByHotel(today, hotelId);
+            List<Folio> folios = folioRepository.findAllOpenFoliosByHotel( hotelId);
 
             // 2. Also ensure all active checked-in bookings have folios created & included
-            List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(today, hotelId);
+            List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(hotelId);
 
             java.util.Set<Long> processedFolioIds = new java.util.HashSet<>();
             List<FolioLedgerDTO> list = new ArrayList<>();

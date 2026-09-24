@@ -25,16 +25,15 @@ public interface FolioRepository extends JpaRepository<Folio, Long> {
      * Retrieves active open folios for a hotel where today's date falls between reservation check-in and check-out dates.
      */
     @Query("""
-            SELECT f FROM Folio f 
-            JOIN f.reservation r 
-            WHERE (f.isDeleted = false OR f.isDeleted IS NULL) 
-              AND (r.isDeleted = false OR r.isDeleted IS NULL) 
-              AND :today BETWEEN r.checkInDate AND r.checkOutDate 
-              AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
-            ORDER BY f.id DESC
-            """)
-    List<Folio> findAllOpenFoliosByHotel(@Param("today") LocalDate today, @Param("hotelId") Long hotelId);
-
+        SELECT f FROM Folio f
+        JOIN f.reservation r
+        WHERE (f.isDeleted = false OR f.isDeleted IS NULL)
+          AND (r.isDeleted = false OR r.isDeleted IS NULL)
+          AND CURRENT_DATE BETWEEN r.checkInDate AND r.checkOutDate
+          AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
+        ORDER BY f.id DESC
+        """)
+    List<Folio> findAllOpenFoliosByHotel(@Param("hotelId") Long hotelId);
     @Query("SELECT f FROM Folio f JOIN f.reservation r WHERE (f.isDeleted = false OR f.isDeleted IS NULL) AND :today BETWEEN r.checkInDate AND r.checkOutDate AND (:hotelId IS NULL OR r.hotel.id = :hotelId)")
     List<Folio> findActiveByDateAndHotelId(@Param("today") LocalDate today, @Param("hotelId") Long hotelId);
 

@@ -30,17 +30,21 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
     @Override
     public StandardResponse<PurchaseDashboardDTO> getDashboardData() {
         try {
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
 
             // ── 1. KPI Stats ────────────────────────────────────────────────────
-            long suppliersCount = supplierRepository.countByIsDeletedFalse();
+            long suppliersCount = (hotelId != null)
+                    ? supplierRepository.countByHotel_IdAndIsDeletedFalse(hotelId)
+                    : supplierRepository.countByIsDeletedFalse();
 
-            long openPosCount = purchaseOrderRepository
-                    .countByStatus_CodeNotInAndIsDeletedFalse(OPEN_STATUSES_EXCLUDED);
+            long openPosCount = (hotelId != null)
+                    ? purchaseOrderRepository.countByHotel_IdAndStatus_CodeNotInAndIsDeletedFalse(hotelId, OPEN_STATUSES_EXCLUDED)
+                    : purchaseOrderRepository.countByStatus_CodeNotInAndIsDeletedFalse(OPEN_STATUSES_EXCLUDED);
 
-            BigDecimal poValue = purchaseOrderRepository.sumTotalAmountByIsDeletedFalse(loginUser.getHotelId());
+            BigDecimal poValue = purchaseOrderRepository.sumTotalAmountByIsDeletedFalse(hotelId);
             if (poValue == null) poValue = BigDecimal.ZERO;
 
-            long lowStockCount = inventoryStockRepository.countLowStockItems(loginUser.getHotelId());
+            long lowStockCount = inventoryStockRepository.countLowStockItems(hotelId);
 
             PurchaseDashboardDTO.PurchaseStats stats = PurchaseDashboardDTO.PurchaseStats.builder()
                     .suppliersCount(suppliersCount)
@@ -50,8 +54,12 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
                     .build();
 
             // ── 2. Pending Procurement ───────────────────────────────────────────
+            List<PurchaseOrder> allPOs = (hotelId != null)
+                    ? purchaseOrderRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : purchaseOrderRepository.findByIsDeletedFalse();
+
             List<PurchaseDashboardDTO.PendingProcurementDTO> pendingProcurement =
-                    purchaseOrderRepository.findByIsDeletedFalse().stream()
+                    allPOs.stream()
                             .filter(po -> !OPEN_STATUSES_EXCLUDED.contains(po.getStatus().getCode()))
                             .map(po -> PurchaseDashboardDTO.PendingProcurementDTO.builder()
                                     .poId(po.getId())
@@ -66,7 +74,7 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
 
             // ── 3. Reorder & Low Stock Alerts ───────────────────────────────────
             List<PurchaseDashboardDTO.LowStockAlertDTO> lowStockAlerts =
-                    inventoryStockRepository.findLowStockItems(loginUser.getHotelId()).stream()
+                    inventoryStockRepository.findLowStockItems(hotelId).stream()
                             .map(stock -> PurchaseDashboardDTO.LowStockAlertDTO.builder()
                                     .itemConfigId(stock.getItemConfig().getId())
                                     .itemCode(stock.getItemConfig().getItemCode())
@@ -82,12 +90,14 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
             // ── 4. Supplier Categories ───────────────────────────────────────────
             // Step 4a: supplier counts per category
             Map<String, Long> supplierCountByCategory = new LinkedHashMap<>();
-            supplierRepository.countSuppliersByCategory()
-                    .forEach(row -> supplierCountByCategory.put((String) row[0], (Long) row[1]));
+            List<Object[]> supplierCounts = (hotelId != null)
+                    ? supplierRepository.countSuppliersByCategoryAndHotelId(hotelId)
+                    : supplierRepository.countSuppliersByCategory();
+            supplierCounts.forEach(row -> supplierCountByCategory.put((String) row[0], (Long) row[1]));
 
             // Step 4b: PO value sum per category
             Map<String, BigDecimal> poValueByCategory = new LinkedHashMap<>();
-            purchaseOrderRepository.sumPoValueBySupplierCategory(loginUser.getHotelId())
+            purchaseOrderRepository.sumPoValueBySupplierCategory(hotelId)
                     .forEach(row -> poValueByCategory.put(
                             (String) row[0],
                             row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO));
@@ -103,10 +113,18 @@ public class PurchaseDashboardServiceImpl implements PurchaseDashboardService {
                             .collect(Collectors.toList());
 
             // ── 5. Procurement Pipeline ──────────────────────────────────────────
-            long draftCount        = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("DRAFT");
-            long approvedCount     = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("APPROVED");
-            long partialCount      = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("PARTIALLY_RECEIVED");
-            long closedCount       = purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("CLOSED");
+            long draftCount        = (hotelId != null)
+                    ? purchaseOrderRepository.countByHotel_IdAndStatus_CodeAndIsDeletedFalse(hotelId, "DRAFT")
+                    : purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("DRAFT");
+            long approvedCount     = (hotelId != null)
+                    ? purchaseOrderRepository.countByHotel_IdAndStatus_CodeAndIsDeletedFalse(hotelId, "APPROVED")
+                    : purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("APPROVED");
+            long partialCount      = (hotelId != null)
+                    ? purchaseOrderRepository.countByHotel_IdAndStatus_CodeAndIsDeletedFalse(hotelId, "PARTIALLY_RECEIVED")
+                    : purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("PARTIALLY_RECEIVED");
+            long closedCount       = (hotelId != null)
+                    ? purchaseOrderRepository.countByHotel_IdAndStatus_CodeAndIsDeletedFalse(hotelId, "CLOSED")
+                    : purchaseOrderRepository.countByStatus_CodeAndIsDeletedFalse("CLOSED");
             long totalPos          = draftCount + approvedCount + partialCount + closedCount;
 
             PurchaseDashboardDTO.ProcurementPipeline pipeline = PurchaseDashboardDTO.ProcurementPipeline.builder()

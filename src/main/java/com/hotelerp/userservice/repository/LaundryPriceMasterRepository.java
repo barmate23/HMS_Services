@@ -11,4 +11,6 @@ public interface LaundryPriceMasterRepository extends JpaRepository<LaundryPrice
     List<LaundryPriceMaster> findByStatus(String status);
     List<LaundryPriceMaster> findByHotel_IdAndStatus(Long hotelId, String status);
     List<LaundryPriceMaster> findByHotel_Id(Long hotelId);
+    java.util.Optional<LaundryPriceMaster> findByIdAndIsDeletedFalse(Long id);
+    java.util.Optional<LaundryPriceMaster> findByIdAndHotel_IdAndIsDeletedFalse(Long id, Long hotelId);
 }

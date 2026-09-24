@@ -20,6 +20,10 @@ public interface PosOrderRepository extends JpaRepository<PosOrder, Long> {
        List<PosOrder> findAllInDateRange(@Param("startDate") LocalDateTime startDate,
                      @Param("endDate") LocalDateTime endDate);
 
+       @Query("SELECT p FROM PosOrder p WHERE p.createdAt >= :startDate AND p.createdAt <= :endDate AND (:hotelId IS NULL OR p.hotel.id = :hotelId)")
+       List<PosOrder> findAllInDateRangeAndHotelId(@Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate, @Param("hotelId") Long hotelId);
+
        List<PosOrder> findByStatusCodeInAndIsDeletedFalse(List<String> codes);
 
        List<PosOrder> findByDiningTableIdAndStatusCodeInAndIsDeletedFalse(Long tableId, List<String> codes);

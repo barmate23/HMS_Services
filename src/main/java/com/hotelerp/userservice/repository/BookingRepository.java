@@ -17,6 +17,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
   List<Booking> findAllInDateRange(@Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate);
 
+  @Query("SELECT b FROM Booking b JOIN b.reservation r WHERE b.createdAt BETWEEN :startDate AND :endDate AND (b.isDeleted = false OR b.isDeleted IS NULL) AND (:hotelId IS NULL OR r.hotel.id = :hotelId)")
+  List<Booking> findAllInDateRangeAndHotelId(@Param("startDate") LocalDateTime startDate,
+      @Param("endDate") LocalDateTime endDate, @Param("hotelId") Long hotelId);
+
   List<Booking> findByRoomIdAndIsDeletedFalse(Long roomId);
 
   List<Booking> findByReservationId(Long reservationId);
@@ -45,9 +49,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
       JOIN b.reservation r
       WHERE (b.isDeleted = false OR b.isDeleted IS NULL)
         AND (r.isDeleted = false OR r.isDeleted IS NULL)
-        AND :date BETWEEN r.checkInDate AND r.checkOutDate
+        AND CURRENT_DATE BETWEEN r.checkInDate AND r.checkOutDate
         AND (:hotelId IS NULL OR r.hotel.id = :hotelId)
       ORDER BY r.id DESC
       """)
-  List<Booking> findAllActiveBookingsByDateAndHotel(@Param("date") LocalDate date, @Param("hotelId") Long hotelId);
+  List<Booking> findAllActiveBookingsByDateAndHotel(@Param("hotelId") Long hotelId);
 }

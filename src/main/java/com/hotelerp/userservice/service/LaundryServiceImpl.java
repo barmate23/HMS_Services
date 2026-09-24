@@ -80,8 +80,15 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<LaundryPriceMasterDTO> updatePriceMaster(Long id, LaundryPriceMasterDTO dto) {
         try {
-            LaundryPriceMaster entity = priceMasterRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Price Master item not found"));
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
+
+            LaundryPriceMaster entity = (hotelId != null)
+                    ? priceMasterRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                            .orElseThrow(() -> new RuntimeException("Price Master item not found"))
+                    : priceMasterRepository.findByIdAndIsDeletedFalse(id)
+                            .orElseThrow(() -> new RuntimeException("Price Master item not found"));
+
             entity.setCategory(dto.getCategory());
             entity.setItemName(dto.getItemName());
             entity.setWashFoldPrice(dto.getWashFoldPrice());
@@ -91,8 +98,6 @@ public class LaundryServiceImpl implements LaundryService {
             entity.setServicePrices(normalizeServicePrices(dto.getServicePrices()));
             entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
-                    : dto.getHotelId();
             if (hotelId != null && entity.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
@@ -123,15 +128,22 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<LaundryPriceMasterDTO> getPriceMasterById(Long id) {
-        return priceMasterRepository.findById(id)
-                .map(entity -> StandardResponse.success(convertToDTO(entity), "Price Master item fetched"))
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        Optional<LaundryPriceMaster> entityOpt = (hotelId != null)
+                ? priceMasterRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                : priceMasterRepository.findByIdAndIsDeletedFalse(id);
+        return entityOpt.map(entity -> StandardResponse.success(convertToDTO(entity), "Price Master item fetched"))
                 .orElse(StandardResponse.error("Price Master item not found", "NOT_FOUND", null));
     }
 
     @Override
     public StandardResponse<Void> deletePriceMaster(Long id) {
-        LaundryPriceMaster entity = priceMasterRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Price Master item not found with ID: " + id));
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        LaundryPriceMaster entity = (hotelId != null)
+                ? priceMasterRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Price Master item not found with ID: " + id))
+                : priceMasterRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Price Master item not found with ID: " + id));
         entity.setIsDeleted(true);
         priceMasterRepository.save(entity);
         return StandardResponse.success("Price Master item deleted successfully");
@@ -250,14 +262,23 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<LaundryServiceCatalogDTO> getServiceCatalogById(Long id) {
-        return serviceCatalogRepository.findById(id)
-                .map(entity -> StandardResponse.success(convertToDTO(entity), "Laundry service fetched"))
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        Optional<LaundryServiceCatalog> entityOpt = (hotelId != null)
+                ? serviceCatalogRepository.findByIdAndHotel_Id(id, hotelId)
+                : serviceCatalogRepository.findById(id);
+        return entityOpt.map(entity -> StandardResponse.success(convertToDTO(entity), "Laundry service fetched"))
                 .orElse(StandardResponse.error("Laundry service not found", "NOT_FOUND", null));
     }
 
     @Override
     public StandardResponse<Void> deleteServiceCatalog(Long id) {
-        serviceCatalogRepository.deleteById(id);
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        LaundryServiceCatalog entity = (hotelId != null)
+                ? serviceCatalogRepository.findByIdAndHotel_Id(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Laundry service not found with ID: " + id))
+                : serviceCatalogRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Laundry service not found with ID: " + id));
+        serviceCatalogRepository.delete(entity);
         return StandardResponse.success("Laundry service deleted successfully");
     }
 
@@ -366,8 +387,14 @@ public class LaundryServiceImpl implements LaundryService {
     @Transactional
     public StandardResponse<LaundryOrderDTO> updateLaundryOrder(Long id, LaundryOrderDTO dto) {
         try {
-            LaundryOrder order = orderRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
+                    : dto.getHotelId();
+
+            LaundryOrder order = (hotelId != null)
+                    ? orderRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                            .orElseThrow(() -> new RuntimeException("Order not found"))
+                    : orderRepository.findByIdAndIsDeletedFalse(id)
+                            .orElseThrow(() -> new RuntimeException("Order not found"));
 
             double gstPercent = gstRuleRepository
                     .findByServiceCategoryIgnoreCaseAndHotelIdAndIsActiveTrue("Laundry", loginUser.getHotelId())
@@ -399,8 +426,6 @@ public class LaundryServiceImpl implements LaundryService {
             if (dto.getStatus() != null)
                 order.setStatus(dto.getStatus());
 
-            Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId()
-                    : dto.getHotelId();
             if (hotelId != null && order.getHotel() == null) {
                 Hotel hotel = hotelRepository.findById(hotelId)
                         .orElseThrow(() -> new RuntimeException("Hotel not found with ID: " + hotelId));
@@ -447,8 +472,11 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<LaundryOrderDTO> getLaundryOrderById(Long id) {
-        return orderRepository.findById(id)
-                .map(order -> StandardResponse.success(convertToDTO(order), "Order fetched"))
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        Optional<LaundryOrder> orderOpt = (hotelId != null)
+                ? orderRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                : orderRepository.findByIdAndIsDeletedFalse(id);
+        return orderOpt.map(order -> StandardResponse.success(convertToDTO(order), "Order fetched"))
                 .orElse(StandardResponse.error("Order not found", "NOT_FOUND", null));
     }
 
@@ -479,8 +507,12 @@ public class LaundryServiceImpl implements LaundryService {
     @Override
     public StandardResponse<LaundryOrderDTO> updateOrderStatus(Long id, String status) {
         try {
-            LaundryOrder order = orderRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+            LaundryOrder order = (hotelId != null)
+                    ? orderRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                            .orElseThrow(() -> new RuntimeException("Order not found"))
+                    : orderRepository.findByIdAndIsDeletedFalse(id)
+                            .orElseThrow(() -> new RuntimeException("Order not found"));
             order.setStatus(status);
             order = orderRepository.save(order);
             return StandardResponse.success(convertToDTO(order), "Order status updated");
@@ -491,8 +523,12 @@ public class LaundryServiceImpl implements LaundryService {
 
     @Override
     public StandardResponse<Void> deleteLaundryOrder(Long id) {
-        LaundryOrder order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Laundry order not found with ID: " + id));
+        Long hotelId = loginUser != null ? loginUser.getHotelId() : null;
+        LaundryOrder order = (hotelId != null)
+                ? orderRepository.findByIdAndHotel_IdAndIsDeletedFalse(id, hotelId)
+                        .orElseThrow(() -> new RuntimeException("Laundry order not found with ID: " + id))
+                : orderRepository.findByIdAndIsDeletedFalse(id)
+                        .orElseThrow(() -> new RuntimeException("Laundry order not found with ID: " + id));
         order.setIsDeleted(true);
         orderRepository.save(order);
         return StandardResponse.success("Order deleted successfully");

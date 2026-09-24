@@ -41,10 +41,16 @@ public class StaffServiceImpl implements StaffService {
             // Fetching staff from 'Housekeeping' department filtered by hotel property
             List<User> staffList = userRepository.findByDepartmentValueAndPropertyId("Housekeeping", hotelId);
             
+            // Fetch tasks filtered by hotelId and isDeleted=false
+            List<Task> allHotelTasks = hotelId != null 
+                    ? taskRepository.findByHotel_IdAndIsDeletedFalse(hotelId)
+                    : taskRepository.findByIsDeletedFalse();
+
+            LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+
             List<StaffDTO> dtos = staffList.stream().map(user -> {
                 // Task Analysis
-                LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-                List<Task> userTasks = taskRepository.findAll().stream()
+                List<Task> userTasks = allHotelTasks.stream()
                         .filter(t -> t.getAssignedHousekeeper() != null && t.getAssignedHousekeeper().getId().equals(user.getId()))
                         .collect(Collectors.toList());
 
@@ -57,15 +63,18 @@ public class StaffServiceImpl implements StaffService {
                         .filter(t -> t.getStatus() == null || !"COMPLETED".equals(t.getStatus().getCode()))
                         .collect(Collectors.toList());
 
-                // Room Mapping Analysis
-                List<UserRoomMap> roomMappings = userRoomMapRepository.findByUserId(user.getId());
+                // Room Mapping Analysis filtered by hotelId
+                List<UserRoomMap> roomMappings = hotelId != null
+                        ? userRoomMapRepository.findByHotel_IdAndUserId(hotelId, user.getId())
+                        : userRoomMapRepository.findByUserId(user.getId());
+
                 List<RoomAssignmentDTO> roomDetails = roomMappings.stream().map(mapping -> {
                     Room room = mapping.getRoom();
                     return RoomAssignmentDTO.builder()
-                            .id(room.getId())
-                            .roomNumber(room.getRoomNumber())
-                            .roomTypeName(room.getRoomType() != null ? room.getRoomType().getName() : "Unknown")
-                            .status(room.getStatus() != null ? room.getStatus().getValue() : "UNKNOWN")
+                            .id(room != null ? room.getId() : null)
+                            .roomNumber(room != null ? room.getRoomNumber() : null)
+                            .roomTypeName(room != null && room.getRoomType() != null ? room.getRoomType().getName() : "Unknown")
+                            .status(room != null && room.getStatus() != null ? room.getStatus().getValue() : "UNKNOWN")
                             .assignedUserId(user.getId())
                             .assignedUserName(user.getFullName())
                             .isAssignedToCurrentUser(true)
@@ -96,9 +105,9 @@ public class StaffServiceImpl implements StaffService {
     private TaskDTO convertToTaskDTO(Task task) {
         return TaskDTO.builder()
                 .id(task.getId())
-                .roomId(task.getRoom().getId())
-                .roomNumber(task.getRoom().getRoomNumber())
-                .floorNumber(task.getRoom().getFloor().getFloorNumber())
+                .roomId(task.getRoom() != null ? task.getRoom().getId() : null)
+                .roomNumber(task.getRoom() != null ? task.getRoom().getRoomNumber() : null)
+                .floorNumber(task.getRoom() != null && task.getRoom().getFloor() != null ? task.getRoom().getFloor().getFloorNumber() : null)
                 .taskType(task.getTaskType())
                 .priority(task.getPriority())
                 .assignedUserId(task.getAssignedHousekeeper() != null ? task.getAssignedHousekeeper().getId() : null)
