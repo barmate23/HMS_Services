@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.*;
@@ -52,8 +53,34 @@ public class DashboardServiceImpl implements DashboardService {
                     : posOrderRepository.findAllInDateRange(startDate, endDate);
 
             List<Booking> activeBookings = bookingRepository.findAllActiveBookingsByDateAndHotel(hotelId);
+            LocalDate today = LocalDate.now();
             Set<Long> occupiedRoomIds = activeBookings.stream()
                     .filter(b -> b.getRoom() != null && b.getRoom().getId() != null)
+                    .filter(b -> {
+                        LocalDate checkIn = b.getCheckInDate() != null ? b.getCheckInDate()
+                                : (b.getReservation() != null ? b.getReservation().getCheckInDate() : null);
+                        LocalDate checkOut = b.getCheckOutDate() != null ? b.getCheckOutDate()
+                                : (b.getReservation() != null ? b.getReservation().getCheckOutDate() : null);
+                        if (checkIn == null || checkOut == null) return false;
+                        // Strictly for TODAY only (today is within [checkInDate, checkOutDate]) - no future dates
+                        return !today.isBefore(checkIn) && !today.isAfter(checkOut);
+                    })
+                    .filter(b -> {
+                        // Exclude cancelled or checked-out bookings
+                        if (b.getBookingStatus() != null) {
+                            String st = b.getBookingStatus().getCode() != null ? b.getBookingStatus().getCode().toUpperCase() : "";
+                            if (st.contains("CANCEL") || st.contains("NO_SHOW") || st.contains("CHECKED_OUT") || st.contains("CHECK_OUT")) {
+                                return false;
+                            }
+                        }
+                        if (b.getReservation() != null && b.getReservation().getReservationStatus() != null) {
+                            String st = b.getReservation().getReservationStatus().getCode() != null ? b.getReservation().getReservationStatus().getCode().toUpperCase() : "";
+                            if (st.contains("CANCEL") || st.contains("NO_SHOW") || st.contains("CHECKED_OUT") || st.contains("CHECK_OUT")) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
                     .map(b -> b.getRoom().getId())
                     .collect(Collectors.toSet());
 
