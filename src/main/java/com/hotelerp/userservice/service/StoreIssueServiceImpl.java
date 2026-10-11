@@ -38,8 +38,7 @@ public class StoreIssueServiceImpl implements StoreIssueService {
         try {
             Long hotelId = (loginUser != null && loginUser.getHotelId() != null) ? loginUser.getHotelId() : dto.getHotelId();
 
-            InventoryStock item = inventoryStockRepository.findByIdAndIsDeletedFalse(dto.getItemId())
-                    .orElseThrow(() -> new RuntimeException("Item not found"));
+            InventoryStock item = inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(dto.getItemId());;
 
             StoreIssue issue = StoreIssue.builder()
                     .issueNumber(generateIssueNumber())

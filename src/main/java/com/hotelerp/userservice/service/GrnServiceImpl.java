@@ -107,7 +107,7 @@ public class GrnServiceImpl implements GrnService {
                             } else {
                                 List<InventoryStock> stocks = (hotelId != null) 
                                         ? inventoryStockRepository.findByHotel_IdAndItemConfigIdAndIsDeletedFalse(hotelId, line.getItemId())
-                                        : inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId());
+                                        : List.of(inventoryStockRepository.findByItemConfigIdAndIsDeletedFalse(line.getItemId()));
                                 for (InventoryStock stock : stocks) {
                                     BigDecimal current = stock.getOnHand() != null ? stock.getOnHand() : BigDecimal.ZERO;
                                     stock.setOnHand(current.add(line.getReceivedQuantity()));

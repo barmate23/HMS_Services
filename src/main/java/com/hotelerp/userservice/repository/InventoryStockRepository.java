@@ -12,7 +12,7 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
     List<InventoryStock> findByIsDeletedFalse();
     List<InventoryStock> findByHotel_IdAndIsDeletedFalse(Long hotelId);
     Optional<InventoryStock> findByIdAndIsDeletedFalse(Long id);
-    List<InventoryStock> findByItemConfigIdAndIsDeletedFalse(Long itemConfigId);
+    InventoryStock findByItemConfigIdAndIsDeletedFalse(Long itemConfigId);
     List<InventoryStock> findByHotel_IdAndItemConfigIdAndIsDeletedFalse(Long hotelId, Long itemConfigId);
     List<InventoryStock> findByStoreIdAndIsDeletedFalse(Long storeId);
     List<InventoryStock> findByHotel_IdAndStoreIdAndIsDeletedFalse(Long hotelId, Long storeId);
