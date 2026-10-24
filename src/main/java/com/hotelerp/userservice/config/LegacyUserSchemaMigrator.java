@@ -24,6 +24,31 @@ public class LegacyUserSchemaMigrator implements ApplicationRunner {
         if (!isMySql()) return;
         makeLegacyColumnNullable("role");
         makeLegacyColumnNullable("department");
+        ensureColumnExists("must_change_password", "BOOLEAN DEFAULT FALSE");
+        ensureColumnExists("default_password_generated_at", "DATETIME NULL");
+    }
+
+    private void ensureColumnExists(String columnName, String columnDefinition) {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'users'
+                  AND column_name = ?
+                """,
+                Integer.class,
+                columnName
+        );
+
+        if (count != null && count > 0) return;
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN " + columnName + " " + columnDefinition);
+            log.info("Added missing users.{} column", columnName);
+        } catch (Exception e) {
+            log.debug("users.{} column migration check: {}", columnName, e.getMessage());
+        }
     }
 
     private boolean isMySql() throws SQLException {
