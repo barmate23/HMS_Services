@@ -63,6 +63,12 @@ public class User {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "must_change_password", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean mustChangePassword;
+
+    @Column(name = "default_password_generated_at")
+    private LocalDateTime defaultPasswordGeneratedAt;
+
     /** Comma-separated list of floors, e.g. "Floor 1,Floor 2" or "All Floors" */
     @Column(name = "floorAccess", columnDefinition = "TEXT")
     private String floorAccess;

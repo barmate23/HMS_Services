@@ -14,7 +14,7 @@ import java.time.LocalTime;
 @Table(name = "reservations", indexes = {
         @Index(name = "idx_res_guest_id", columnList = "guestId"),
         @Index(name = "idx_res_checkin_date", columnList = "checkInDate"),
-        @Index(name = "idx_res_status", columnList = "reservationStatus"),
+        @Index(name = "idx_res_status", columnList = "reservation_status_id"),
         @Index(name = "idx_res_is_deleted", columnList = "isDeleted")
 })
 @Data
