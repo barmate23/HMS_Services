@@ -26,6 +26,29 @@ public class LegacyUserSchemaMigrator implements ApplicationRunner {
         makeLegacyColumnNullable("department");
         ensureColumnExists("must_change_password", "BOOLEAN DEFAULT FALSE");
         ensureColumnExists("default_password_generated_at", "DATETIME NULL");
+        ensureDefaultHotelRow();
+    }
+
+    private void ensureDefaultHotelRow() {
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'hotels'",
+                    Integer.class
+            );
+            if (count != null && count > 0) {
+                Integer hotelCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM hotels WHERE id = 1", Integer.class);
+                if (hotelCount == null || hotelCount == 0) {
+                    jdbcTemplate.execute("""
+                        INSERT INTO hotels (id, name, email, phone, address, city, state, country, zip_code, total_rooms, currency, is_active, created_at, updated_at)
+                        VALUES (1, 'HMS Cloud - Main Hotel', 'admin@hmscloud.com', '9999999999', '100 Hospitality Way', 'Metropolis', 'Central', 'United States', '10001', 100, 'USD', 1, NOW(), NOW())
+                        ON DUPLICATE KEY UPDATE id = id
+                    """);
+                    log.info("Ensured default hotel with ID: 1 in database via SQL.");
+                }
+            }
+        } catch (Exception e) {
+            log.debug("ensureDefaultHotelRow check: {}", e.getMessage());
+        }
     }
 
     private void ensureColumnExists(String columnName, String columnDefinition) {
