@@ -15,13 +15,7 @@ import java.time.LocalDateTime;
  * One Reservation can have many Bookings (one per room selected).
  */
 @Entity
-@Table(name = "bookings", indexes = {
-        @Index(name = "idx_bk_reservation_id", columnList = "reservationId"),
-        @Index(name = "idx_bk_room_id",        columnList = "roomId"),
-        @Index(name = "idx_bk_checkin_date",   columnList = "checkInDate"),
-        @Index(name = "idx_bk_status", columnList = "booking_status"),
-        @Index(name = "idx_bk_is_deleted",     columnList = "isDeleted")
-})
+@Table(name = "bookings")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
