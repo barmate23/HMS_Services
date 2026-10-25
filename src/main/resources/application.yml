@@ -6,9 +6,9 @@ spring:
     name: hmsservice
 
   datasource:
-    url: jdbc:mysql://100.120.107.63:3306/hms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+    url: jdbc:mysql://200.141.8.178:3306/hms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
     username: root
-    password: root
+    password: Helixion2026
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

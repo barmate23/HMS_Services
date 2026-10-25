@@ -71,56 +71,56 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        seedCommonMasters();
+//        seedCommonMasters();
         seedBootstrapAdmin();
     }
 
-    private void seedCommonMasters() {
-        if (commonMasterRepository.count() == 0) {
-            log.info("Seeding common master data...");
-            List<CommonMaster> masters = Arrays.asList(
-                // SOP Frequency
-                CommonMaster.builder().category("SOP_FREQUENCY").code("DAILY").value("Daily").build(),
-                CommonMaster.builder().category("SOP_FREQUENCY").code("WEEKLY").value("Weekly").build(),
-                CommonMaster.builder().category("SOP_FREQUENCY").code("MONTHLY").value("Monthly").build(),
-                
-                // Responsible Roles
-                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("HOUSEKEEPER").value("Housekeeper").build(),
-                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("INSPECTOR").value("Inspector").build(),
-                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("SUPERVISOR").value("Supervisor").build(),
-
-                // Task Priority
-                CommonMaster.builder().category("PRIORITY").code("LOW").value("Low").build(),
-                CommonMaster.builder().category("PRIORITY").code("NORMAL").value("Normal").build(),
-                CommonMaster.builder().category("PRIORITY").code("HIGH").value("High").build(),
-                CommonMaster.builder().category("PRIORITY").code("URGENT").value("Urgent").build(),
-
-                // POS Outlet Types
-                CommonMaster.builder().category("OUTLET_TYPE").code("RESTAURANT").value("Restaurant").build(),
-                CommonMaster.builder().category("OUTLET_TYPE").code("BAR").value("Bar").build(),
-                CommonMaster.builder().category("OUTLET_TYPE").code("SPA").value("Spa").build(),
-                CommonMaster.builder().category("OUTLET_TYPE").code("ROOM_SERVICE").value("Room Service").build(),
-
-                // Lost & Found Categories
-                CommonMaster.builder().category("LOST_FOUND_CAT").code("PERSONAL").value("Personal Items").build(),
-                CommonMaster.builder().category("LOST_FOUND_CAT").code("JEWELLERY").value("Jewellery").build(),
-                CommonMaster.builder().category("LOST_FOUND_CAT").code("ELECTRONICS").value("Electronics").build(),
-
-                // Table Sections
-                CommonMaster.builder().category("TABLE_SECTION").code("INDOOR").value("Indoor").build(),
-                CommonMaster.builder().category("TABLE_SECTION").code("OUTDOOR").value("Outdoor").build(),
-                CommonMaster.builder().category("TABLE_SECTION").code("ROOFTOP").value("Rooftop").build(),
-
-                // Table Status
-                CommonMaster.builder().category("TABLE_STATUS").code("AVAILABLE").value("Available").build(),
-                CommonMaster.builder().category("TABLE_STATUS").code("OCCUPIED").value("Occupied").build(),
-                CommonMaster.builder().category("TABLE_STATUS").code("RESERVED").value("Reserved").build(),
-                CommonMaster.builder().category("TABLE_STATUS").code("DIRTY").value("Dirty").build()
-            );
-            commonMasterRepository.saveAll(masters);
-            log.info("Successfully seeded {} master records", masters.size());
-        }
-    }
+//    private void seedCommonMasters() {
+//        if (commonMasterRepository.count() == 0) {
+//            log.info("Seeding common master data...");
+//            List<CommonMaster> masters = Arrays.asList(
+//                // SOP Frequency
+//                CommonMaster.builder().category("SOP_FREQUENCY").code("DAILY").value("Daily").build(),
+//                CommonMaster.builder().category("SOP_FREQUENCY").code("WEEKLY").value("Weekly").build(),
+//                CommonMaster.builder().category("SOP_FREQUENCY").code("MONTHLY").value("Monthly").build(),
+//
+//                // Responsible Roles
+//                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("HOUSEKEEPER").value("Housekeeper").build(),
+//                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("INSPECTOR").value("Inspector").build(),
+//                CommonMaster.builder().category("RESPONSIBLE_ROLE").code("SUPERVISOR").value("Supervisor").build(),
+//
+//                // Task Priority
+//                CommonMaster.builder().category("PRIORITY").code("LOW").value("Low").build(),
+//                CommonMaster.builder().category("PRIORITY").code("NORMAL").value("Normal").build(),
+//                CommonMaster.builder().category("PRIORITY").code("HIGH").value("High").build(),
+//                CommonMaster.builder().category("PRIORITY").code("URGENT").value("Urgent").build(),
+//
+//                // POS Outlet Types
+//                CommonMaster.builder().category("OUTLET_TYPE").code("RESTAURANT").value("Restaurant").build(),
+//                CommonMaster.builder().category("OUTLET_TYPE").code("BAR").value("Bar").build(),
+//                CommonMaster.builder().category("OUTLET_TYPE").code("SPA").value("Spa").build(),
+//                CommonMaster.builder().category("OUTLET_TYPE").code("ROOM_SERVICE").value("Room Service").build(),
+//
+//                // Lost & Found Categories
+//                CommonMaster.builder().category("LOST_FOUND_CAT").code("PERSONAL").value("Personal Items").build(),
+//                CommonMaster.builder().category("LOST_FOUND_CAT").code("JEWELLERY").value("Jewellery").build(),
+//                CommonMaster.builder().category("LOST_FOUND_CAT").code("ELECTRONICS").value("Electronics").build(),
+//
+//                // Table Sections
+//                CommonMaster.builder().category("TABLE_SECTION").code("INDOOR").value("Indoor").build(),
+//                CommonMaster.builder().category("TABLE_SECTION").code("OUTDOOR").value("Outdoor").build(),
+//                CommonMaster.builder().category("TABLE_SECTION").code("ROOFTOP").value("Rooftop").build(),
+//
+//                // Table Status
+//                CommonMaster.builder().category("TABLE_STATUS").code("AVAILABLE").value("Available").build(),
+//                CommonMaster.builder().category("TABLE_STATUS").code("OCCUPIED").value("Occupied").build(),
+//                CommonMaster.builder().category("TABLE_STATUS").code("RESERVED").value("Reserved").build(),
+//                CommonMaster.builder().category("TABLE_STATUS").code("DIRTY").value("Dirty").build()
+//            );
+//            commonMasterRepository.saveAll(masters);
+//            log.info("Successfully seeded {} master records", masters.size());
+//        }
+//    }
 
     private void seedBootstrapAdmin() {
         if (!adminBootstrapEnabled) {
