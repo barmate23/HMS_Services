@@ -28,29 +28,29 @@ public class Shift {
     @JoinColumn(name = "hotel_id")
     private Hotel hotel;
 
-    @Column(name = "shift_name", nullable = false, length = 100)
+    @Column(name = "shift_name", length = 100)
     private String shiftName;
 
-    @Column(name = "shift_code", nullable = false, unique = true, length = 20)
+    @Column(name = "shift_code", unique = true, length = 20)
     private String shiftCode;
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_time")
     private LocalTime startTime;
 
-    @Column(name = "end_time", nullable = false)
+    @Column(name = "end_time")
     private LocalTime endTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id")
     private CommonMaster property;
 
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status",length = 20)
     private String status; // ACTIVE | INACTIVE
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at",updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")

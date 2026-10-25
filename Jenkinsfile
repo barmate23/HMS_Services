@@ -6,8 +6,8 @@ pipeline {
         CONTAINER_NAME = "hmsservice"
         DOCKER_NETWORK = "updated_orgadmin_rmscadminnetwork"
 
-        HOST_PORT = "9005"
-        CONTAINER_PORT = "9005"
+        HOST_PORT = "7003"
+        CONTAINER_PORT = "7003"
 
         DOCKER_BUILDKIT = "0"
     }
@@ -58,15 +58,15 @@ pipeline {
                         --restart unless-stopped \
                         -p ${HOST_PORT}:${CONTAINER_PORT} \
                         --network ${DOCKER_NETWORK} \
-                        -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://adminserviceregistry:8761/eureka/ \
+                        -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://serviceregistry:8761/eureka/ \
                         -e EUREKA_CLIENT_REGISTER_WITH_EUREKA=true \
                         -e EUREKA_CLIENT_FETCH_REGISTRY=true \
                         -e EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS=10 \
                         -e EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS=30 \
                         -e MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics \
-                        -e SPRING_DATASOURCE_URL='jdbc:mysql://erp-mysql:3306/hms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC' \
+                        -e SPRING_DATASOURCE_URL='jdbc:mysql://mysql:3306/hms?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC' \
                         -e SPRING_DATASOURCE_USERNAME=root \
-                        -e SPRING_DATASOURCE_PASSWORD=root \
+                        -e SPRING_DATASOURCE_PASSWORD=Helixion2026 \
                         -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
                         ${IMAGE_NAME}:latest
                 """

@@ -2,11 +2,13 @@ package com.hotelerp.userservice.config;
 
 import com.hotelerp.userservice.entity.CommonMaster;
 import com.hotelerp.userservice.entity.Department;
+import com.hotelerp.userservice.entity.Hotel;
 import com.hotelerp.userservice.entity.Role;
 import com.hotelerp.userservice.entity.Shift;
 import com.hotelerp.userservice.entity.User;
 import com.hotelerp.userservice.repository.CommonMasterRepository;
 import com.hotelerp.userservice.repository.DepartmentRepository;
+import com.hotelerp.userservice.repository.HotelRepository;
 import com.hotelerp.userservice.repository.RoleRepository;
 import com.hotelerp.userservice.repository.ShiftRepository;
 import com.hotelerp.userservice.repository.UserRepository;
@@ -21,6 +23,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Configuration
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final ShiftRepository shiftRepository;
     private final UserRepository userRepository;
+    private final HotelRepository hotelRepository;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -155,9 +159,29 @@ public class DataInitializer implements CommandLineRunner {
                         .notes("Default shift created during service bootstrap.")
                         .build()));
 
-        if (userRepository.existsByUsername(adminUsername)
-                || userRepository.existsByEmail(adminEmail)
-                || userRepository.existsByEmployeeId(adminEmployeeId)) {
+        Hotel defaultHotel = hotelRepository.findById(1L)
+                .orElseGet(() -> hotelRepository.save(Hotel.builder()
+                        .name("HMS Cloud - Main Hotel")
+                        .email("admin@hmscloud.com")
+                        .phone("9999999999")
+                        .address("100 Hospitality Way")
+                        .city("Metropolis")
+                        .state("Central")
+                        .country("United States")
+                        .zipCode("10001")
+                        .totalRooms(100)
+                        .currency("USD")
+                        .isActive(true)
+                        .build()));
+
+        Optional<User> existingUser = userRepository.findByUsername(adminUsername);
+        if (existingUser.isPresent()) {
+            User existingAdmin = existingUser.get();
+            if (existingAdmin.getProperty() == null) {
+                existingAdmin.setProperty(defaultHotel);
+                userRepository.save(existingAdmin);
+                log.info("Linked existing admin user '{}' to default hotel '{}' (ID: {}).", adminUsername, defaultHotel.getName(), defaultHotel.getId());
+            }
             log.info("Default admin user bootstrap skipped because the admin user already exists.");
             return;
         }
@@ -171,6 +195,7 @@ public class DataInitializer implements CommandLineRunner {
                 .department(department)
                 .role(role)
                 .shift(shift)
+                .property(defaultHotel)
                 .status("ACTIVE")
                 .floorAccess("All Floors")
                 .notes("Default admin user created during service bootstrap.")
@@ -178,6 +203,6 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
 
         userRepository.save(adminUser);
-        log.info("Default admin user created with username '{}'.", adminUsername);
+        log.info("Default admin user created with username '{}' and linked to hotel '{}'.", adminUsername, defaultHotel.getName());
     }
 }
